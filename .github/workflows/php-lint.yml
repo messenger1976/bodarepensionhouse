@@ -1,0 +1,37 @@
+name: PHP Lint
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        php-version: ['7.4', '8.0', '8.1']
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        tools: composer
+    
+    - name: Validate composer.json
+      working-directory: ./admin
+      run: composer validate --no-interaction
+    
+    - name: Install dependencies
+      working-directory: ./admin
+      run: composer install --no-interaction --prefer-dist --no-progress
+    
+    - name: Run PHP Lint
+      run: |
+        find . -name "*.php" -not -path "./vendor/*" -not -path "./admin/system/*" -not -path "./system/*" | xargs -I {} php -l {}
+      continue-on-error: true

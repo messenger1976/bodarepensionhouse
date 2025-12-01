@@ -1,0 +1,34 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        tools: composer, phpstan, phpcs
+    
+    - name: Install dependencies
+      working-directory: ./admin
+      run: composer install --no-interaction --prefer-dist --no-progress
+    
+    - name: Run PHP CodeSniffer
+      run: |
+        phpcs --standard=PSR12 --ignore=vendor,system,admin/system ./admin/application --report=summary || true
+      continue-on-error: true
+    
+    - name: Run PHPStan
+      run: |
+        phpstan analyse --level=2 ./admin/application/controllers ./admin/application/models 2>/dev/null || true
+      continue-on-error: true
