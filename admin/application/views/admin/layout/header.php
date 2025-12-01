@@ -167,6 +167,58 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             font-weight: 500;
         }
         
+        /* Submenu Styles */
+        .nk-menu-item.has-submenu {
+            position: relative;
+        }
+        
+        .nk-menu-sub {
+            padding-left: 0;
+            margin-top: 0.25rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .nk-menu-item.has-submenu.active .nk-menu-sub {
+            max-height: 500px;
+        }
+        
+        .nk-menu-sub-item {
+            margin: 0.25rem 0.75rem 0.25rem 2.5rem;
+        }
+        
+        .nk-menu-sub-link {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            color: #64748b;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .nk-menu-sub-link:hover {
+            background-color: #f1f5f9;
+            color: var(--bs-primary);
+        }
+        
+        .nk-menu-sub-link.active {
+            background-color: rgba(101, 118, 255, 0.1);
+            color: var(--bs-primary);
+            font-weight: 500;
+        }
+        
+        .nk-menu-toggle {
+            margin-left: auto;
+            transition: transform 0.3s ease;
+        }
+        
+        .nk-menu-item.has-submenu.active .nk-menu-toggle {
+            transform: rotate(90deg);
+        }
+        
         /* Header Styles */
         .nk-header {
             position: fixed;
@@ -3208,6 +3260,27 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                     <span class="nk-menu-icon"><i class="bi bi-person-badge"></i></span>
                     <span class="nk-menu-text">Customers/Guests</span>
                 </a>
+            </div>
+            <?php endif; ?>
+            
+            <!-- Reports -->
+            <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'view_reports')): ?>
+            <?php 
+            $is_reports_active = strpos($current_uri, 'reports') !== false;
+            ?>
+            <div class="nk-menu-item has-submenu <?php echo $is_reports_active ? 'active' : ''; ?>">
+                <a href="#" class="nk-menu-link <?php echo $is_reports_active ? 'active' : ''; ?>" onclick="event.preventDefault(); this.closest('.nk-menu-item').classList.toggle('active');">
+                    <span class="nk-menu-icon"><i class="bi bi-graph-up"></i></span>
+                    <span class="nk-menu-text">Reports</span>
+                    <span class="nk-menu-toggle"><i class="bi bi-chevron-right"></i></span>
+                </a>
+                <div class="nk-menu-sub">
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('reports/daily_sales'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'reports/daily_sales') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-calendar-day me-2"></i> Daily Sales Report
+                        </a>
+                    </div>
+                </div>
             </div>
             <?php endif; ?>
             

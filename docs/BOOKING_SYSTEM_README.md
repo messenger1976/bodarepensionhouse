@@ -178,6 +178,7 @@ GET /admin/api/booking/calculate?room_id=1&check_in=2025-01-15&check_out=2025-01
 - `manage_roles` - Manage roles
 - `manage_permissions` - Manage permissions
 - `view_reports` - View reports
+  - Daily Sales Report - View daily sales data, booking statistics, revenue totals, and sales breakdown by room type
 - `system_settings` - System configuration
 
 ### Using Permissions in Controllers

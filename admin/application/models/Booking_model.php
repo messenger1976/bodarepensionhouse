@@ -546,5 +546,86 @@ class Booking_model extends CI_Model {
         
         return $availability_data;
     }
+    
+    /**
+     * Get daily sales data for a specific date
+     * Returns bookings created or with check-in on the specified date
+     */
+    public function get_daily_sales($date) {
+        $this->db->select('bookings.*, rooms.room_name, rooms.room_type, rooms.room_code, rooms.price');
+        $this->db->from('bookings');
+        $this->db->join('rooms', 'rooms.id = bookings.room_id', 'left');
+        $this->db->group_start();
+        $this->db->where("DATE(bookings.created_at) = '{$date}'", NULL, FALSE);
+        $this->db->or_where("DATE(bookings.check_in) = '{$date}'", NULL, FALSE);
+        $this->db->group_end();
+        $this->db->order_by('bookings.created_at', 'DESC');
+        return $this->db->get()->result();
+    }
+    
+    /**
+     * Get total revenue for a specific date
+     * Sum of total_amount from bookings created or with check-in on the specified date
+     */
+    public function get_daily_total_revenue($date) {
+        $this->db->select_sum('total_amount');
+        $this->db->group_start();
+        $this->db->where("DATE(created_at) = '{$date}'", NULL, FALSE);
+        $this->db->or_where("DATE(check_in) = '{$date}'", NULL, FALSE);
+        $this->db->group_end();
+        $result = $this->db->get('bookings')->row();
+        return $result->total_amount ? $result->total_amount : 0;
+    }
+    
+    /**
+     * Get total bookings count for a specific date
+     */
+    public function get_daily_bookings_count($date) {
+        $this->db->group_start();
+        $this->db->where("DATE(created_at) = '{$date}'", NULL, FALSE);
+        $this->db->or_where("DATE(check_in) = '{$date}'", NULL, FALSE);
+        $this->db->group_end();
+        return $this->db->count_all_results('bookings');
+    }
+    
+    /**
+     * Get confirmed bookings count for a specific date
+     */
+    public function get_daily_confirmed_bookings_count($date) {
+        $this->db->where('status', 'confirmed');
+        $this->db->group_start();
+        $this->db->where("DATE(created_at) = '{$date}'", NULL, FALSE);
+        $this->db->or_where("DATE(check_in) = '{$date}'", NULL, FALSE);
+        $this->db->group_end();
+        return $this->db->count_all_results('bookings');
+    }
+    
+    /**
+     * Get pending bookings count for a specific date
+     */
+    public function get_daily_pending_bookings_count($date) {
+        $this->db->where('status', 'pending');
+        $this->db->group_start();
+        $this->db->where("DATE(created_at) = '{$date}'", NULL, FALSE);
+        $this->db->or_where("DATE(check_in) = '{$date}'", NULL, FALSE);
+        $this->db->group_end();
+        return $this->db->count_all_results('bookings');
+    }
+    
+    /**
+     * Get daily sales grouped by room type
+     */
+    public function get_daily_sales_by_room($date) {
+        $this->db->select('rooms.room_type, rooms.room_name, COUNT(bookings.id) as booking_count, SUM(bookings.total_amount) as total_revenue');
+        $this->db->from('bookings');
+        $this->db->join('rooms', 'rooms.id = bookings.room_id', 'left');
+        $this->db->group_start();
+        $this->db->where("DATE(bookings.created_at) = '{$date}'", NULL, FALSE);
+        $this->db->or_where("DATE(bookings.check_in) = '{$date}'", NULL, FALSE);
+        $this->db->group_end();
+        $this->db->group_by('rooms.room_type, rooms.room_name');
+        $this->db->order_by('total_revenue', 'DESC');
+        return $this->db->get()->result();
+    }
 }
 

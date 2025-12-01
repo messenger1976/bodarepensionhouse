@@ -113,6 +113,11 @@ $route['roles/delete/(:num)'] = 'admin/roles/delete/$1';
 $route['module_generator'] = 'admin/module_generator/index';
 $route['module_generator/generate'] = 'admin/module_generator/generate';
 
+// Reports routes
+$route['reports'] = 'admin/reports/daily_sales';
+$route['reports/daily_sales'] = 'admin/reports/daily_sales';
+$route['reports/export_excel'] = 'admin/reports/export_excel';
+
 // API Routes for Frontend
 $route['api/auth/register'] = 'api/auth/register';
 $route['api/auth/login'] = 'api/auth/login';

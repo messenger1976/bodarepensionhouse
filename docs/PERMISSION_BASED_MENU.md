@@ -36,6 +36,15 @@ The sidebar menu now displays menu items based on user permissions. Only menu it
 - **Visibility**: Only admins with manage_roles permission
 - **Description**: Access to roles management
 
+### Reports
+- **Permission Required**: `view_reports`
+- **Visibility**: Only admins with view_reports permission
+- **Description**: Access to reports module
+- **Submenu Items**:
+  - **Daily Sales Report** - View daily sales data and booking statistics for a specific date
+    - Shows total revenue, booking counts, sales by room type, and detailed booking information
+    - Includes print functionality with formatted table layout
+
 ### Module Generator
 - **Permission Required**: Super Admin status
 - **Visibility**: Only super admins
@@ -71,6 +80,7 @@ This creates permissions like:
 - `view_rooms`, `add_rooms`, `edit_rooms`, `delete_rooms`
 - `view_users`, `add_users`, `edit_users`, `delete_users`
 - `manage_users`, `manage_groups`, `manage_roles`
+- `view_reports` - Access to reports module (Daily Sales Report)
 
 ### Step 2: Assign Permissions to Roles
 
@@ -118,22 +128,24 @@ VALUES (ADMIN_ID, GROUP_ID);
 ### Reception Staff
 - `view_bookings` - See bookings
 - `view_rooms` - See rooms
-- No access to Users, Groups, Roles
+- No access to Users, Groups, Roles, Reports
 
 ### Manager
 - `view_bookings`, `add_bookings`, `edit_bookings` - Manage bookings
 - `view_rooms`, `add_rooms`, `edit_rooms` - Manage rooms
+- `view_reports` - View daily sales reports
 - No access to Users, Groups, Roles
 
 ### Admin
 - All view permissions
 - All add/edit permissions
+- `view_reports` - Access to all reports
 - `manage_groups`, `manage_roles` - Manage system settings
 
 ### Super Admin
 - All permissions
 - Access to Module Generator
-- Full system access
+- Full system access including all reports
 
 ## Customization
 
