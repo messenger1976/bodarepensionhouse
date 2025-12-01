@@ -35,6 +35,14 @@ class Auth extends CI_Controller {
                 $admin = $this->Admin_model->login($username, $password);
                 
                 if ($admin) {
+                    // Destroy any existing session first to prevent session conflicts
+                    $this->session->sess_destroy();
+                    
+                    // Regenerate session ID to prevent session fixation and ensure clean session
+                    // This ensures each login gets a fresh session ID
+                    $this->session->sess_regenerate(TRUE);
+                    
+                    // Set new session data
                     $session_data = array(
                         'admin_id' => $admin->id,
                         'admin_username' => $admin->username,
@@ -42,6 +50,7 @@ class Auth extends CI_Controller {
                         'admin_logged_in' => TRUE
                     );
                     $this->session->set_userdata($session_data);
+                    
                     redirect('dashboard');
                 } else {
                     $this->session->set_flashdata('error', 'Invalid username or password');

@@ -400,13 +400,14 @@ $config['encryption_key'] = '';
 |
 */
 $config['sess_driver'] = 'files';
-$config['sess_cookie_name'] = 'ci_session';
+$config['sess_cookie_name'] = 'bodare_admin_session'; // Unique cookie name to avoid conflicts
 $config['sess_samesite'] = 'Lax';
 $config['sess_expiration'] = 7200;
-$config['sess_save_path'] = NULL;
+// Set session save path to application/cache/sessions for better control
+$config['sess_save_path'] = APPPATH . 'cache/sessions';
 $config['sess_match_ip'] = FALSE;
 $config['sess_time_to_update'] = 300;
-$config['sess_regenerate_destroy'] = FALSE;
+$config['sess_regenerate_destroy'] = TRUE; // Destroy old session when regenerating
 
 /*
 |--------------------------------------------------------------------------
@@ -429,7 +430,7 @@ $config['cookie_domain']	= '';
 $config['cookie_path']		= '/';
 // Auto-detect HTTPS and set cookie_secure accordingly
 $config['cookie_secure']	= (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-$config['cookie_httponly'] 	= FALSE;
+$config['cookie_httponly'] 	= TRUE; // More secure - prevents JavaScript access to cookies
 $config['cookie_samesite'] 	= 'Lax';
 
 /*
