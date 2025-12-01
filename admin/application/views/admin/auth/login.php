@@ -92,7 +92,7 @@
                     <label for="username" class="form-label">Username</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-person"></i></span>
-                        <input type="text" class="form-control with-icon" id="username" name="username" autocomplete="username" value="" required autofocus>
+                        <input type="text" class="form-control with-icon" id="username" name="username" autocomplete="off" value="" required autofocus>
                     </div>
                 </div>
                 <div class="mb-3">
