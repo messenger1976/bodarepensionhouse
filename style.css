@@ -1,0 +1,1969 @@
+/* --- Global Styles & Variables --- */
+:root {
+    --gold: #b2945b;
+    --dark-blue: #1a2238;
+    --off-white: #f4f4f4;
+    --text-dark: #333;
+    --text-light: #f9f9f9;
+    --font-primary: 'Cormorant Garamond', serif;
+    --font-secondary: 'Jost', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-secondary);
+    background-color: #fff;
+    color: var(--text-dark);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+/* --- Header & Navigation --- */
+.header {
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    padding: 1.5rem 2rem;
+    transition: background-color 0.4s ease, padding 0.4s ease;
+}
+
+.header.scrolled {
+    background-color: rgba(26, 34, 56, 0.9);
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.nav-logo {
+    color: #fff;
+    font-family: var(--font-primary);
+    font-size: 2rem;
+    font-weight: 600;
+    text-decoration: none;
+    letter-spacing: 2px;
+    text-decoration: none; /* Keep if you want to ensure no underline */
+    display: flex; /* Helps vertically align the image if needed */
+    align-items: center; /* Vertically center the image */  
+}
+.logo-img {
+    height: 50px; /* Adjust this value to control the logo's height */
+    width: auto; /* Maintain aspect ratio */
+    transition: height 0.4s ease; /* Smooth transition for height on scroll */
+}
+.header.scrolled .logo-img {
+    height: 45x; /* Smaller height when scrolled, adjust as needed */
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    gap: 2.5rem;
+}
+
+.nav-link {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 300;
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 1px;
+    bottom: -5px;
+    left: 0;
+    background-color: var(--gold);
+    transition: width 0.3s ease;
+}
+
+.nav-link:hover {
+    color: var(--gold);
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+/* --- Header Actions --- */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* --- CTA Button --- */
+.cta-button {
+    background-color: var(--gold);
+    border: 1px solid var(--gold);
+    color: var(--dark-blue);
+    padding: 0.75rem 1.5rem;
+    text-decoration: none;
+    font-weight: 400;
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+    border-radius: 5px;
+}
+
+.cta-button:hover {
+    background-color: #c9a86b;
+    color: var(--dark-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(178, 148, 91, 0.3);
+}
+
+/* --- Hero Section --- */
+.hero {
+    height: 100vh;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: #fff;
+    padding: 2rem;
+
+    /* ADD THESE FOUR LINES */
+    background-image: url('img/banner-item1.jpg'); /* <-- Path to your local image */
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.hero::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Dark overlay */
+}
+
+.hero-content {
+    z-index: 1;
+    animation: fadeIn 2s ease-in-out;
+    /* ADD these lines to make it a flex container */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hero-title {
+    font-family: var(--font-primary);
+    font-size: 4.5rem;
+    font-weight: 300;
+    margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    font-weight: 200;
+    margin-bottom: 2.5rem; /* Add space above the form */
+}
+
+/* --- Content Sections --- */
+.content-section {
+    padding: 6rem 0;
+    text-align: center;
+}
+
+.section-title {
+    font-family: var(--font-primary);
+    font-size: 2.8rem;
+    font-weight: 400;
+    margin-bottom: 1rem;
+    color: var(--dark-blue);
+}
+
+.section-text {
+    max-width: 700px;
+    margin: 0 auto;
+    font-size: 1.1rem;
+    color: #555;
+}
+
+.bg-light {
+    background-color: var(--off-white);
+}
+
+/* --- About Section --- */
+.about-content {
+    max-width: 1000px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.about-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #555;
+}
+
+.about-text p {
+    margin-bottom: 1.5rem;
+}
+
+.lead-text {
+    font-size: 1.3rem;
+    font-weight: 400;
+    color: var(--dark-blue);
+    margin-bottom: 2rem !important;
+    text-align: center;
+    font-style: italic;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin: 3rem 0;
+    padding: 2rem 0;
+}
+
+.feature-item {
+    text-align: center;
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.feature-item i {
+    font-size: 2.5rem;
+    color: var(--gold);
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.feature-item h4 {
+    font-family: var(--font-primary);
+    font-size: 1.3rem;
+    color: var(--dark-blue);
+    margin-bottom: 0.5rem;
+}
+
+.feature-item p {
+    font-size: 0.95rem;
+    color: #666;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.closing-text {
+    text-align: center;
+    font-style: italic;
+    color: #555;
+    margin-top: 2rem !important;
+    padding-top: 2rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* --- Rooms Section --- */
+.room-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-top: 3rem;
+}
+.room-card p {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    font-size: 0.95rem;
+}
+.room-details {
+    text-align: left; /* Aligns text to the left */
+    line-height: 1.8; /* Adds more space between lines */
+}
+.room-card {
+    background: #fff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    overflow: hidden;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.room-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.room-card img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+}
+
+.room-card h3 {
+    font-family: var(--font-primary);
+    font-weight: 600;
+    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+}
+
+.room-card p {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    font-size: 0.95rem;
+}
+
+.hero-booking-container {
+    background: rgba(26, 34, 56, 0.75); /* Semi-transparent background */
+    backdrop-filter: blur(5px); /* Frosted glass effect */
+    padding: 1.5rem 2rem;
+    border-radius: 8px;
+    border: 1px solid rgba(178, 148, 91, 0.3);
+    width: 100%;
+    max-width: 900px; /* Control max width */
+}
+
+/* MODIFIED: Adjusting the form layout */
+.booking-form {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap; /* Allows items to wrap on smaller screens */
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-grow: 1; /* Allow fields to grow and fill space */
+}
+
+.form-group label {
+    color: var(--off-white);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select {
+    padding: 0.75rem;
+    border: 1px solid var(--gold);
+    background: transparent;
+    color: #fff;
+    font-family: var(--font-secondary);
+    width: 100%; /* Make inputs take full width of their container */
+}
+
+.form-group select option {
+    background: var(--dark-blue);
+}
+
+.form-button {
+    align-self: flex-end;
+    color: var(--dark-blue);
+    background-color: var(--gold);
+    border: 1px solid var(--gold);
+    padding: 0.75rem 1.5rem;
+    white-space: nowrap; /* Prevent button text from wrapping */
+}
+.video-section-full-width {
+    padding-top: 6rem;
+    padding-bottom: 0;
+    background-color: #fff; /* Add this line to make the background white */
+    /* If your video's "black bars" are a different color (e.g., dark grey), 
+       change #fff to match that color for a truly seamless look. */
+}
+
+.video-wrapper {
+    position: relative;
+    padding-bottom: 40%; /* Keep 40% for general widescreen content */
+    height: 0;
+    overflow: hidden;
+    width: 100%; 
+    margin-top: 3rem; 
+}
+
+.video-wrapper video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Add this line */
+}  
+
+
+/* --- Animation --- */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- Mobile Menu Toggle (Hamburger) --- */
+.mobile-menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 30px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1001;
+    position: relative;
+}
+
+.mobile-menu-toggle span {
+    width: 100%;
+    height: 3px;
+    background-color: #fff;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+    transform-origin: center;
+}
+
+.mobile-menu-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(8px, 8px);
+}
+
+.mobile-menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-toggle.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+    .mobile-menu-toggle {
+        display: flex;
+    }
+
+    .nav-menu {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 80%;
+        max-width: 300px;
+        height: 100vh;
+        background: linear-gradient(180deg, var(--dark-blue) 0%, #2a3a5a 100%);
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        padding: 80px 2rem 2rem;
+        transition: right 0.3s ease;
+        z-index: 1000;
+        box-shadow: -2px 0 10px rgba(0,0,0,0.3);
+        overflow-y: auto;
+    }
+
+    .nav-menu.active {
+        right: 0;
+    }
+
+    .nav-menu .nav-item {
+        width: 100%;
+        margin: 0.5rem 0;
+    }
+
+    .nav-menu .nav-link {
+        display: block;
+        padding: 1rem;
+        font-size: 1.1rem;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        width: 100%;
+    }
+
+    .cta-button {
+        display: none;
+    }
+
+    body.menu-open {
+        overflow: hidden;
+    }
+
+    body.menu-open::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+    }
+    .hero-title {
+        font-size: 2.5rem; /* Slightly smaller title on mobile */
+    }
+    .hero-subtitle {
+        margin-bottom: 2rem;
+    }
+    .hero-booking-container {
+        padding: 1.5rem 1rem;
+    }
+    .room-grid {
+        grid-template-columns: 1fr;
+    }
+    .booking-form {
+        flex-direction: column; /* Stack form elements vertically */
+        align-items: stretch; /* Make elements full width */
+        gap: 1.5rem;
+    }
+    .form-group, .form-button {
+        width: 100%;
+    }
+    .form-button {
+        padding: 1rem; /* Bigger click target on mobile */
+    }
+}
+/* --- Rooms Page Styles --- */
+
+.page-header {
+    background: url('img/bodareentrance.jpg') no-repeat center center/cover;
+    height: 40vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: #fff;
+    position: relative;
+}
+
+.page-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.page-header-content {
+    z-index: 1;
+}
+
+.page-header h1 {
+    font-family: var(--font-primary);
+    font-size: 3.5rem;
+    font-weight: 400;
+}
+
+.rooms-page-section {
+    padding: 6rem 0;
+}
+
+.room-detail-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: center;
+    margin-bottom: 5rem;
+    background: var(--off-white);
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.room-detail-card:nth-child(even) {
+    grid-template-columns: 1fr 1fr;
+    direction: rtl; /* Reverses the order for every other card */
+}
+
+.room-detail-card:nth-child(even) > * {
+    direction: ltr; /* Resets text direction for content */
+}
+
+.room-detail-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.room-info {
+    padding: 2rem;
+}
+
+.room-info h2 {
+    font-family: var(--font-primary);
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--dark-blue);
+}
+
+.room-price {
+    font-size: 1.5rem;
+    color: var(--gold);
+    margin: 0.5rem 0 1rem 0;
+}
+
+.room-info ul {
+    list-style-type: none;
+    margin: 1.5rem 0;
+}
+
+.room-info ul li {
+    margin-bottom: 0.5rem;
+}
+
+/* Responsive adjustments for the rooms page */
+@media(max-width: 768px) {
+    .room-detail-card,
+    .room-detail-card:nth-child(even) {
+        grid-template-columns: 1fr;
+        direction: ltr;
+    }
+}
+/* --- New Footer Styles --- */
+.site-footer {
+    background-color: var(--off-white);
+    padding: 6rem 0 2rem 0;
+    color: var(--text-dark);
+    text-align: center;
+}
+
+/* Newsletter */
+.newsletter-section {
+    margin-bottom: 4rem;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 4rem;
+}
+
+.newsletter-section h3 {
+    font-family: var(--font-primary);
+    font-size: 2.5rem;
+    font-weight: 400;
+    margin-bottom: 0.5rem;
+}
+
+.newsletter-form {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.newsletter-form input {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    border: 1px solid #ccc;
+    border-right: none;
+    border-radius: 5px 0 0 5px;
+    font-size: 1rem;
+}
+
+.newsletter-form button {
+    padding: 0.9rem 1.5rem;
+    border: 1px solid var(--dark-blue);
+    background-color: var(--dark-blue);
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 0 5px 5px 0;
+    transition: background-color 0.3s;
+}
+.newsletter-form button:hover {
+    background-color: #3a4a7a;
+}
+
+/* Footer Grid */
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    text-align: left;
+    margin-bottom: 4rem;
+}
+
+.footer-column h4 {
+    font-family: var(--font-primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.footer-column p {
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.footer-column a {
+    color: var(--text-dark);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.footer-column a:hover {
+    color: var(--gold);
+}
+
+.footer-column ul {
+    list-style: none;
+}
+
+.footer-column ul li {
+    margin-bottom: 0.5rem;
+}
+
+.social-icons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.social-icons a {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    font-weight: bold;
+}
+.social-icons a:hover {
+    background-color: var(--dark-blue);
+    border-color: var(--dark-blue);
+    color: #fff;
+}
+
+/* Footer Bottom */
+.footer-bottom {
+    border-top: 1px solid #ddd;
+    padding-top: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.payment-methods {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+
+/* Responsive adjustments for footer */
+@media (max-width: 900px) {
+    .footer-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 3rem;
+    }
+}
+@media (max-width: 500px) {
+    .footer-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    .social-icons {
+        justify-content: center;
+    }
+    .footer-bottom {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+/* --- Room Detail Page Styles --- */
+
+/* Hero Image */
+.room-hero {
+    height: 60vh;
+    background-size: cover;
+    background-position: center;
+}
+
+/* Main Layout */
+.room-content-section {
+    padding: 4rem 0;
+}
+.room-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr; /* Left column twice as wide as right */
+    gap: 3rem;
+}
+
+/* Left Column: Details */
+.room-details-main h1 {
+    font-family: var(--font-primary);
+    font-size: 3rem;
+    font-weight: 600;
+}
+.room-specs {
+    display: flex;
+    gap: 1.5rem;
+    margin: 1rem 0 2rem 0;
+    color: #555;
+    font-size: 0.9rem;
+}
+.room-specs span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.room-details-main h3 {
+    font-family: var(--font-primary);
+    font-size: 1.8rem;
+    margin-top: 3rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Amenities */
+.amenities-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+.amenity-item {
+    background-color: var(--off-white);
+    padding: 0.8rem 1rem;
+    border-radius: 5px;
+}
+
+/* Right Column: Booking Widget */
+.booking-widget {
+    background-color: var(--dark-blue);
+    color: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    height: fit-content; /* Makes it only as tall as its content */
+    position: sticky; /* Makes it stick on scroll */
+    top: 100px; /* Space from the scrolled navbar */
+}
+.widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+.widget-header h2 {
+    font-family: var(--font-primary);
+    font-size: 2rem;
+}
+.widget-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #ccc;
+}
+.date-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.date-inputs input[type="date"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #556;
+    background: #2a3450;
+    color: #fff;
+    border-radius: 5px;
+}
+.guest-inputs {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #2a3450;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    margin-bottom: 2rem;
+}
+.counter {
+    display: flex;
+    align-items: center;
+}
+.counter button {
+    background: none;
+    border: 1px solid #778;
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+.counter input {
+    width: 40px;
+    text-align: center;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.1rem;
+}
+.booking-widget .cta-button {
+    width: 100%;
+    text-align: center;
+    padding: 1rem;
+    font-size: 1.1rem;
+    background: var(--gold);
+    color: var(--dark-blue);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .room-layout {
+        grid-template-columns: 1fr; /* Stack columns */
+    }
+    .booking-widget {
+        position: static; /* Unstick the widget on mobile */
+        margin-top: 3rem;
+    }
+    .amenities-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+/* --- Flatpickr Calendar Theme --- */
+.calendar-container {
+    margin-top: 1rem;
+    border: 1px solid #eee;
+    padding: 1rem;
+    border-radius: 8px;
+    max-width: 650px; /* Adjust as needed */
+}
+
+.flatpickr-calendar {
+    width: 100% !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.flatpickr-day.selected, 
+.flatpickr-day.startRange, 
+.flatpickr-day.endRange {
+    background: var(--gold) !important;
+    border-color: var(--gold) !important;
+}
+
+.flatpickr-day.inRange {
+    background: rgba(178, 148, 91, 0.2) !important;
+    box-shadow: -5px 0 0 rgba(178, 148, 91, 0.2), 5px 0 0 rgba(178, 148, 91, 0.2) !important;
+    border-color: transparent !important;
+}
+
+.flatpickr-months .flatpickr-month {
+    color: var(--dark-blue) !important;
+    fill: var(--dark-blue) !important;
+}
+
+span.flatpickr-weekday {
+    color: #333 !important;
+    font-weight: bold !important;
+}
+#availability-calendar {
+    display: none; /* Hides the input box */
+}
+
+/* Style for the container holding the buttons */
+.flatpickr-calendar .confirmDate-wrapper {
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    padding-top: 10px !important;
+}
+
+/* Base style for BOTH Apply and Cancel buttons */
+.flatpickr-confirm, .flatpickr-cancel {
+    background: transparent !important;
+    border: 1px solid #ccc !important;
+    border-radius: 5px !important;
+    padding: 8px 20px !important;
+    color: #333 !important;
+    font-weight: bold !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+}
+
+/* Style for the "Apply" button specifically */
+.flatpickr-confirm {
+    background: var(--gold) !important;
+    border-color: var(--gold) !important;
+    color: var(--dark-blue) !important;
+}
+/* New Grid for Counters */
+.counters-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.guest-inputs {
+    background: #2a3450;
+    padding: 0.75rem 1rem;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+}
+
+.guest-inputs label {
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: #ccc;
+}
+
+.guest-inputs .counter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Extra Services Section */
+.extra-services {
+    margin-bottom: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.extra-services h3 {
+    font-family: var(--font-primary);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.service-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.service-item input[type="checkbox"] {
+    margin-right: 0.75rem;
+    accent-color: var(--gold);
+}
+
+.service-item label {
+    flex-grow: 1; /* Pushes the price to the right */
+}
+
+/* Total Cost Section */
+.total-cost {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 1.5rem 0;
+    margin-bottom: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.total-cost h3 {
+    font-family: var(--font-primary);
+    font-size: 1.8rem;
+}
+
+#total-cost-display {
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: var(--gold);
+}
+/* --- Checkout Page Styles --- */
+.checkout-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 3rem;
+    margin-top: 3rem;
+}
+
+.checkout-form h2 {
+    font-family: var(--font-primary);
+    font-size: 2.5rem;
+    color: var(--dark-blue);
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.checkout-form .form-group-contact {
+    margin-bottom: 1.5rem;
+}
+
+.checkout-form .form-group-contact label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+.checkout-form .cta-button {
+    width: 100%;
+    text-align: center;
+    padding: 1rem;
+    font-size: 1.1rem;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.form-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .form-grid-2,
+    .form-grid-3 {
+        grid-template-columns: 1fr;
+    }
+    
+    .registration-container {
+        max-width: 100%;
+        padding: 1.5rem;
+        margin: 1rem;
+    }
+}
+
+.checkout-summary {
+    background: var(--off-white);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    height: fit-content;
+    position: sticky;
+    top: 100px;
+    overflow: hidden; /* Ensures rounded corners apply to image */
+}
+
+#summary-room-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+}
+
+.summary-content {
+    padding: 2rem;
+}
+
+.summary-content h3 {
+    font-family: var(--font-primary);
+    font-size: 2rem;
+    color: var(--dark-blue);
+    margin-bottom: 1.5rem;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: #555;
+}
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--dark-blue);
+    border-top: 1px solid #ddd;
+    padding-top: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.summary-total span {
+    font-family: var(--font-primary);
+    font-size: 1.8rem;
+}
+.summary-total strong {
+    font-size: 2rem;
+    color: var(--gold);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .checkout-layout {
+        grid-template-columns: 1fr;
+    }
+    .checkout-summary {
+        position: static;
+        margin-top: 3rem;
+    }
+}
+/* --- New Checkout Form Styles --- */
+.checkout-auth-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+}
+
+.checkout-auth-header h2 {
+    font-family: var(--font-primary);
+    font-size: 2.5rem;
+    color: var(--dark-blue);
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.cta-button-secondary {
+    background-color: var(--dark-blue);
+    border: 1px solid var(--dark-blue);
+    color: #fff;
+    padding: 0.75rem 1.5rem;
+    text-decoration: none;
+    font-weight: 400;
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+.cta-button-secondary:hover {
+    background-color: #2a3a5a;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(26, 34, 56, 0.3);
+}
+
+/* --- Registration Page (Minimalist Layout) --- */
+
+/* These rules are just for the registration page container */
+.registration-container {
+    max-width: 800px; 
+    margin: 2rem auto;
+    padding: 2.5rem;
+    background: #fff; 
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+.registration-container h2 {
+    font-family: var(--font-primary);
+    font-size: 2.8rem;
+    color: var(--dark-blue);
+    text-align: center;
+    margin-bottom: 2.5rem; 
+}
+
+/* --- NEW: Generic Minimal Form Styles --- */
+/* These rules now apply to ANY form with class="minimal-form" */
+
+.minimal-form .form-group-contact {
+    margin-bottom: 1.5rem;
+}
+
+/* Hide labels, use placeholders instead */
+.minimal-form .form-group-contact label {
+    display: none;
+}
+
+.minimal-form .form-group-contact input {
+    width: 100%;
+    padding: 1rem 0.5rem;
+    border: none;
+    border-bottom: 2px solid #ddd;
+    font-family: var(--font-secondary);
+    font-size: 1rem;
+    background: transparent;
+    transition: border-color 0.3s ease;
+}
+.minimal-form .form-group-contact input:focus,
+.minimal-form .form-group-contact textarea:focus,
+.minimal-form .form-group-contact select:focus {
+    outline: none;
+    border-color: var(--gold);
+}
+
+.minimal-form .form-group-contact textarea {
+    width: 100%;
+    padding: 1rem 0.5rem;
+    border: none;
+    border-bottom: 2px solid #ddd;
+    font-family: var(--font-secondary);
+    font-size: 1rem;
+    background: transparent;
+    transition: border-color 0.3s ease;
+    resize: vertical;
+}
+
+.minimal-form .form-group-contact select {
+    width: 100%;
+    padding: 1rem 0.5rem;
+    border: none;
+    border-bottom: 2px solid #ddd;
+    font-family: var(--font-secondary);
+    font-size: 1rem;
+    background: transparent;
+    transition: border-color 0.3s ease;
+    cursor: pointer;
+}
+
+/* Style the main button for all minimal forms */
+.minimal-form .cta-button {
+    width: 100%;
+    text-align: center;
+    padding: 1rem;
+    margin-top: 1.5rem;
+    background: var(--dark-blue);
+    color: #fff;
+    border: none;
+}
+.minimal-form .cta-button:hover {
+    background: #3a4a7a;
+}
+
+/* Style the "Already have an account?" link */
+.form-subtext {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+}
+.form-subtext a {
+    color: var(--gold);
+    font-weight: bold;
+    text-decoration: none;
+}
+.form-subtext a:hover {
+    text-decoration: underline;
+}
+/* --- Contact Page Styles (New Layout) --- */
+
+/* This creates the 3-column grid for info boxes */
+.contact-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-bottom: 5rem; /* Space below the boxes */
+}
+
+/* This styles each box */
+.contact-info-card {
+    background: var(--off-white);
+    padding: 2.5rem 2rem;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #eee;
+}
+
+.contact-info-card .icon {
+    font-size: 2.5rem;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.contact-info-card strong {
+    font-size: 1.3rem;
+    color: var(--dark-blue);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+/* This centers the contact form */
+.contact-form-centered {
+    max-width: 800px; /* Control the form width */
+    margin: 0 auto 5rem auto; /* Center it and add space below */
+}
+
+.contact-form-centered h2 {
+    font-family: var(--font-primary);
+    font-size: 2.5rem;
+    color: var(--dark-blue);
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+/* This centers the map section */
+.contact-map-section {
+    text-align: center;
+}
+
+.contact-map-section h2 {
+    font-family: var(--font-primary);
+    font-size: 2.5rem;
+    color: var(--dark-blue);
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.google-map {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    width: 100%;
+    height: 400px; /* Made the map a bit taller */
+}
+
+
+/* --- Update to Minimal Form --- */
+/* (This block should already exist, just ensure the textarea part is there) */
+.minimal-form .form-group-contact textarea {
+    width: 100%;
+    padding: 1rem 0.5rem;
+    border: none;
+    border-bottom: 2px solid #ddd;
+    font-family: var(--font-secondary);
+    font-size: 1rem;
+    background: transparent;
+    transition: border-color 0.3s ease;
+    resize: vertical; 
+}
+.minimal-form .form-group-contact textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+}
+/* --- Gallery Page Styles --- */
+.gallery-grid {
+    display: grid;
+    /* This creates a responsive grid:
+       - Fills the space (auto-fit)
+       - Creates columns at least 300px wide
+       - 1fr makes them all equal
+    */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.gallery-image {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gallery-image:hover {
+    transform: scale(1.03);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+
+/* --- Lightbox Modal Styles --- */
+.lightbox {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* On top of everything */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9); /* Black overlay */
+    
+    /* These styles are used by JS, but 'display' is none */
+    justify-content: center;
+    align-items: center;
+}
+
+.lightbox-content {
+    display: block;
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    /* Animation */
+    animation: zoomIn 0.5s ease;
+}
+
+@keyframes zoomIn {
+    from { transform: scale(0.5); }
+    to { transform: scale(1); }
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 40px;
+    color: #fff;
+    font-size: 4rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.lightbox-close:hover {
+    color: var(--gold);
+}
+/* --- Amenities Page Styles --- */
+.amenities-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+.amenity-card {
+    background: var(--off-white);
+    padding: 2.5rem 2rem;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #eee;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.amenity-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+}
+
+.amenity-card .icon {
+    font-size: 3rem;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.amenity-card h3 {
+    font-family: var(--font-primary);
+    font-size: 1.5rem;
+    color: var(--dark-blue);
+    margin-bottom: 0.5rem;
+}
+
+/* Responsive Grid for Amenities */
+@media (max-width: 900px) {
+    .amenities-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .amenities-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .about-text {
+        font-size: 1rem;
+    }
+    
+    .lead-text {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 900px) {
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+/* --- Checkout Page Login Button --- */
+#login-button {
+    margin-bottom: 2rem;
+}
+/* --- Room Detail Image Grid --- */
+.room-image-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem; /* Space above the description */
+}
+
+/* We can reuse the .gallery-image styles you already have,
+   but we'll make the height a bit smaller for this page.
+*/
+.room-image-grid .gallery-image {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.room-image-grid .gallery-image:hover {
+    transform: scale(1.05);
+}
+
+/* --- Touch-Friendly Styles for Mobile --- */
+@media (max-width: 768px) {
+    /* Ensure buttons and links are touch-friendly (minimum 44x44px) */
+    button, .cta-button, .cta-button-secondary, a.cta-button {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    /* Improve form inputs for mobile */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="date"],
+    input[type="number"],
+    select,
+    textarea {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 0.75rem;
+        min-height: 44px;
+    }
+
+    /* Better spacing for touch targets */
+    .nav-link {
+        padding: 1rem;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Improve container padding on mobile */
+    .container {
+        padding: 0 1rem;
+    }
+
+    /* Better header padding on mobile */
+    .header {
+        padding: 1rem;
+    }
+
+    .header.scrolled {
+        padding: 0.75rem 1rem;
+    }
+
+    /* Improve page header on mobile */
+    .page-header {
+        height: 30vh;
+        padding: 2rem 1rem;
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+    }
+
+    /* Better spacing for content sections */
+    .content-section {
+        padding: 3rem 0;
+    }
+
+    /* Improve room cards on mobile */
+    .room-card {
+        margin-bottom: 2rem;
+    }
+
+    /* Better footer on mobile */
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    /* Improve user menu on mobile */
+    .user-menu {
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    .user-menu button {
+        width: 100%;
+    }
+}
+
+/* --- Additional Mobile Enhancements --- */
+@media (max-width: 480px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .section-title {
+        font-size: 2rem;
+    }
+
+    .logo-img {
+        height: 40px;
+    }
+
+    .navbar {
+        padding: 0.5rem 0;
+    }
+}
+
+/* --- Prevent text selection on buttons (better UX) --- */
+button, .cta-button, .mobile-menu-toggle {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* --- Smooth scrolling for better mobile experience --- */
+html {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+/* --- Better focus states for accessibility --- */
+button:focus,
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+
+/* --- Shopping Cart Styles --- */
+.cart-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.cart-item {
+    display: grid;
+    grid-template-columns: 150px 1fr auto;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.cart-item-image {
+    width: 150px;
+    height: 150px;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.cart-item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cart-item-details {
+    flex: 1;
+}
+
+.cart-item-details h3 {
+    font-family: var(--font-primary);
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--dark-blue);
+}
+
+.cart-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.cart-item-info p {
+    margin: 0;
+}
+
+.cart-item-price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.cart-item-price strong {
+    font-size: 1.25rem;
+    color: var(--gold);
+}
+
+.remove-item-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.3s;
+}
+
+.remove-item-btn:hover {
+    background: #c82333;
+}
+
+.cart-summary {
+    margin-top: 2rem;
+}
+
+.summary-card {
+    background: #fff;
+    padding: 2rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.summary-card h3 {
+    font-family: var(--font-primary);
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--dark-blue);
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #eee;
+    font-size: 0.95rem;
+}
+
+.summary-total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem 0;
+    margin-top: 0.5rem;
+    border-top: 2px solid var(--dark-blue);
+    font-size: 1.25rem;
+}
+
+.summary-total-row strong {
+    color: var(--gold);
+    font-size: 1.5rem;
+}
+
+/* Cart Badge */
+.cart-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: white !important;
+    margin-right: 1rem;
+}
+
+.cart-link i,
+.cart-link .bi-cart,
+.cart-link i.bi-cart,
+#cart-link,
+#cart-link i,
+#cart-link .bi-cart,
+.header-actions .cart-link,
+.header-actions .cart-link i {
+    color: white !important;
+}
+
+.cart-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #dc2626;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: bold;
+    line-height: 1;
+    padding: 0;
+    text-align: center;
+    min-width: 20px;
+}
+
+/* Cart Services Styles */
+.service-item-cart {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #f9f9f9;
+    transition: all 0.3s;
+}
+
+.service-item-cart:hover {
+    background: #f0f0f0;
+    border-color: var(--gold);
+}
+
+.service-item-cart input[type="checkbox"] {
+    margin-right: 1rem;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.service-item-cart label {
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    flex: 1;
+}
+
+.service-item-cart label strong {
+    color: var(--dark-blue);
+    margin-bottom: 0.25rem;
+}
+
+.service-item-cart label span {
+    color: var(--gold);
+    font-size: 0.9rem;
+}
+
+.service-item-cart input[type="checkbox"]:checked + label {
+    color: var(--gold);
+}
+
+@media (max-width: 768px) {
+    .cart-item {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .cart-item-image {
+        width: 100%;
+        height: 200px;
+    }
+    
+    .cart-item-price {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .services-grid {
+        grid-template-columns: 1fr !important;
+    }
+}

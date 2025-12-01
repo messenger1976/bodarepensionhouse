@@ -1,0 +1,20 @@
+RewriteEngine On
+
+# Allow direct access to reset_admin_password.php
+RewriteCond %{REQUEST_FILENAME} reset_admin_password\.php$ [NC]
+RewriteRule ^ - [L]
+
+# Redirect to index.php if file doesn't exist
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php/$1 [L]
+
+# Prevent directory listing
+Options -Indexes
+
+# Protect sensitive files
+<FilesMatch "\.(sql|md|txt|log)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+

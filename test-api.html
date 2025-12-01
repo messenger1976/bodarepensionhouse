@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Connection Test</title>
+</head>
+<body>
+    <h1>API Connection Test</h1>
+    <button onclick="testAPI()">Test API Connection</button>
+    <div id="result" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc;"></div>
+    
+    <script src="api-config.js"></script>
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                // Test 1: Check API base URL
+                resultDiv.innerHTML += '<p>API Base URL: ' + API_BASE_URL + '</p>';
+                
+                // Test 2: Try to access auth/check endpoint
+                try {
+                    const response = await API.auth.check();
+                    resultDiv.innerHTML += '<p style="color: green;">✓ Auth check endpoint works!</p>';
+                    resultDiv.innerHTML += '<pre>' + JSON.stringify(response, null, 2) + '</pre>';
+                } catch (error) {
+                    resultDiv.innerHTML += '<p style="color: red;">✗ Auth check failed: ' + error.message + '</p>';
+                }
+                
+                // Test 3: Check if we can reach the server
+                const testUrl = API_BASE_URL + '/auth/check';
+                resultDiv.innerHTML += '<p>Testing URL: ' + testUrl + '</p>';
+                
+                const rawResponse = await fetch(testUrl, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                const text = await rawResponse.text();
+                resultDiv.innerHTML += '<p>Response Status: ' + rawResponse.status + '</p>';
+                resultDiv.innerHTML += '<p>Response Type: ' + rawResponse.headers.get('content-type') + '</p>';
+                resultDiv.innerHTML += '<p>Response Preview (first 500 chars):</p>';
+                resultDiv.innerHTML += '<pre style="background: #f0f0f0; padding: 10px; overflow: auto;">' + text.substring(0, 500) + '</pre>';
+                
+            } catch (error) {
+                resultDiv.innerHTML += '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>
+
