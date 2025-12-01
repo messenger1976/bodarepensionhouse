@@ -12,6 +12,7 @@ class Profile extends Admin_Controller {
         parent::__construct();
         $this->load->model('Admin_model');
         $this->load->library('form_validation');
+        $this->load->library('upload');
     }
     
     /**
@@ -74,6 +75,41 @@ class Profile extends Admin_Controller {
         // Add password if provided
         if (!empty($password)) {
             $update_data['password'] = $password;
+        }
+        
+        // Handle avatar upload
+        if (!empty($_FILES['avatar']['name'])) {
+            $upload_path = 'admin/img/avatars/';
+            $full_path = FCPATH . $upload_path;
+            
+            // Ensure upload directory exists
+            if (!is_dir($full_path)) {
+                mkdir($full_path, 0755, true);
+            }
+            
+            // Configure upload
+            $config['upload_path'] = $full_path;
+            $config['allowed_types'] = 'gif|jpg|jpeg|png|webp';
+            $config['max_size'] = 2048; // 2MB
+            $config['encrypt_name'] = true;
+            
+            $this->upload->initialize($config);
+            
+            if ($this->upload->do_upload('avatar')) {
+                $upload_data = $this->upload->data();
+                $avatar_path = $upload_path . $upload_data['file_name'];
+                
+                // Delete old avatar if exists
+                if (!empty($this->admin_data->avatar) && file_exists(FCPATH . $this->admin_data->avatar)) {
+                    @unlink(FCPATH . $this->admin_data->avatar);
+                }
+                
+                $update_data['avatar'] = $avatar_path;
+            } else {
+                $this->session->set_flashdata('error', 'Avatar upload failed: ' . $this->upload->display_errors('', ''));
+                redirect('profile');
+                return;
+            }
         }
         
         // Update admin

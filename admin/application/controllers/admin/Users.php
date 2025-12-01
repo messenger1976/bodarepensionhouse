@@ -13,6 +13,7 @@ class Users extends Admin_Controller {
         $this->load->model('Admin_model');
         $this->load->model('User_group_model');
         $this->load->library('form_validation');
+        $this->load->library('upload');
     }
     
     /**
@@ -65,6 +66,34 @@ class Users extends Admin_Controller {
                     'email' => $this->input->post('email'),
                     'status' => $this->input->post('status') ? 'active' : 'inactive'
                 );
+                
+                // Handle avatar upload
+                if (!empty($_FILES['avatar']['name'])) {
+                    $upload_path = 'admin/img/avatars/';
+                    $full_path = FCPATH . $upload_path;
+                    
+                    // Ensure upload directory exists
+                    if (!is_dir($full_path)) {
+                        mkdir($full_path, 0755, true);
+                    }
+                    
+                    // Configure upload
+                    $config['upload_path'] = $full_path;
+                    $config['allowed_types'] = 'gif|jpg|jpeg|png|webp';
+                    $config['max_size'] = 2048; // 2MB
+                    $config['encrypt_name'] = true;
+                    
+                    $this->upload->initialize($config);
+                    
+                    if ($this->upload->do_upload('avatar')) {
+                        $upload_data = $this->upload->data();
+                        $user_data['avatar'] = $upload_path . $upload_data['file_name'];
+                    } else {
+                        $this->session->set_flashdata('error', 'Avatar upload failed: ' . $this->upload->display_errors('', ''));
+                        redirect('users/add');
+                        return;
+                    }
+                }
                 
                 $user_id = $this->Admin_model->create($user_data);
                 
@@ -134,6 +163,49 @@ class Users extends Admin_Controller {
                 // Only update password if provided
                 if ($this->input->post('password')) {
                     $user_data['password'] = $this->input->post('password');
+                }
+                
+                // Handle avatar removal
+                if ($this->input->post('remove_avatar')) {
+                    // Delete old avatar if exists
+                    if (!empty($user->avatar) && file_exists(FCPATH . $user->avatar)) {
+                        @unlink(FCPATH . $user->avatar);
+                    }
+                    $user_data['avatar'] = null;
+                }
+                // Handle avatar upload (only if not removing)
+                else if (!empty($_FILES['avatar']['name'])) {
+                    $upload_path = 'admin/img/avatars/';
+                    $full_path = FCPATH . $upload_path;
+                    
+                    // Ensure upload directory exists
+                    if (!is_dir($full_path)) {
+                        mkdir($full_path, 0755, true);
+                    }
+                    
+                    // Configure upload
+                    $config['upload_path'] = $full_path;
+                    $config['allowed_types'] = 'gif|jpg|jpeg|png|webp';
+                    $config['max_size'] = 2048; // 2MB
+                    $config['encrypt_name'] = true;
+                    
+                    $this->upload->initialize($config);
+                    
+                    if ($this->upload->do_upload('avatar')) {
+                        $upload_data = $this->upload->data();
+                        $avatar_path = $upload_path . $upload_data['file_name'];
+                        
+                        // Delete old avatar if exists
+                        if (!empty($user->avatar) && file_exists(FCPATH . $user->avatar)) {
+                            @unlink(FCPATH . $user->avatar);
+                        }
+                        
+                        $user_data['avatar'] = $avatar_path;
+                    } else {
+                        $this->session->set_flashdata('error', 'Avatar upload failed: ' . $this->upload->display_errors('', ''));
+                        redirect('users/edit/' . $id);
+                        return;
+                    }
                 }
                 
                 if ($this->Admin_model->update($id, $user_data)) {

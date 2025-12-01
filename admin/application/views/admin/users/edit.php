@@ -19,7 +19,45 @@
         </div>
     <?php endif; ?>
     
-    <?php echo form_open('users/edit/' . $user->id); ?>
+    <?php echo form_open_multipart('users/edit/' . $user->id); ?>
+        <!-- Avatar Upload Section -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <label class="form-label">Profile Avatar</label>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="avatar-preview-container">
+                        <?php if (!empty($user->avatar) && file_exists(FCPATH . $user->avatar)): ?>
+                            <img src="<?php echo base_url($user->avatar); ?>" alt="Avatar" 
+                                class="rounded-circle" id="avatar-preview" 
+                                style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #dee2e6;">
+                        <?php else: ?>
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                                id="avatar-preview" 
+                                style="width: 100px; height: 100px; background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%); color: #fff; font-size: 2.5rem; font-weight: 600; border: 3px solid #dee2e6;">
+                                <?php 
+                                $display_name = !empty($user->name) ? $user->name : (!empty($user->username) ? $user->username : 'A');
+                                echo strtoupper(substr($display_name, 0, 1)); 
+                                ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="flex-grow-1">
+                        <input type="file" class="form-control mb-2" id="avatar" name="avatar" 
+                            accept="image/*" onchange="previewAvatar(this)">
+                        <small class="form-text text-muted d-block mb-2">Allowed: JPG, PNG, GIF, WEBP (Max 2MB). Leave blank to keep current avatar.</small>
+                        <?php if (!empty($user->avatar) && file_exists(FCPATH . $user->avatar)): ?>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="remove_avatar" name="remove_avatar" value="1">
+                                <label class="form-check-label text-danger" for="remove_avatar">
+                                    <i class="bi bi-trash"></i> Remove current avatar
+                                </label>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label for="username" class="form-label">Username *</label>
@@ -83,4 +121,33 @@
         </div>
     <?php echo form_close(); ?>
 </div>
+
+<script>
+function previewAvatar(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        const preview = document.getElementById('avatar-preview');
+        
+        reader.onload = function(e) {
+            // Check if preview is an img or div
+            if (preview.tagName === 'IMG') {
+                preview.src = e.target.result;
+            } else {
+                // Replace div with img
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'rounded-circle';
+                img.style.width = '100px';
+                img.style.height = '100px';
+                img.style.objectFit = 'cover';
+                img.style.border = '3px solid #dee2e6';
+                img.id = 'avatar-preview';
+                preview.parentNode.replaceChild(img, preview);
+            }
+        };
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
 

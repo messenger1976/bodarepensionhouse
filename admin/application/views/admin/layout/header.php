@@ -3285,10 +3285,20 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                         <?php 
                         $admin_name = $this->session->userdata('admin_name');
                         $admin_username = $this->session->userdata('admin_username');
-                        // Use name if available, otherwise fallback to username
-                        $display_name = !empty($admin_name) ? $admin_name : (!empty($admin_username) ? $admin_username : 'Admin');
-                        echo strtoupper(substr($display_name, 0, 1)); 
-                        ?>
+                        $admin_id = $this->session->userdata('admin_id');
+                        
+                        // Get admin data to check for avatar
+                        $this->load->model('Admin_model');
+                        $admin_data = $this->Admin_model->get_admin($admin_id);
+                        
+                        if (!empty($admin_data->avatar) && file_exists(FCPATH . $admin_data->avatar)): ?>
+                            <img src="<?php echo base_url($admin_data->avatar); ?>" alt="Avatar" 
+                                style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        <?php else: 
+                            // Use name if available, otherwise fallback to username
+                            $display_name = !empty($admin_name) ? $admin_name : (!empty($admin_username) ? $admin_username : 'Admin');
+                            echo strtoupper(substr($display_name, 0, 1)); 
+                        endif; ?>
                     </div>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">

@@ -13,6 +13,23 @@
                     <h6 class="mb-0"><i class="bi bi-info-circle"></i> Basic Information</h6>
                 </div>
                 <div class="card-body">
+                    <!-- Avatar Display -->
+                    <div class="text-center mb-3">
+                        <?php if (!empty($user->avatar) && file_exists(FCPATH . $user->avatar)): ?>
+                            <img src="<?php echo base_url($user->avatar); ?>" alt="Avatar" 
+                                class="rounded-circle mb-2" 
+                                style="width: 120px; height: 120px; object-fit: cover; border: 4px solid #dee2e6;">
+                        <?php else: ?>
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2" 
+                                style="width: 120px; height: 120px; background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%); color: #fff; font-size: 3rem; font-weight: 600; border: 4px solid #dee2e6;">
+                                <?php 
+                                $display_name = !empty($user->name) ? $user->name : (!empty($user->username) ? $user->username : 'A');
+                                echo strtoupper(substr($display_name, 0, 1)); 
+                                ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    
                     <table class="table table-borderless mb-0">
                         <tr>
                             <th width="40%">ID:</th>

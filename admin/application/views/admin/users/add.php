@@ -19,7 +19,28 @@
         </div>
     <?php endif; ?>
     
-    <?php echo form_open('users/add'); ?>
+    <?php echo form_open_multipart('users/add'); ?>
+        <!-- Avatar Upload Section -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <label class="form-label">Profile Avatar (Optional)</label>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="avatar-preview-container">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                            id="avatar-preview" 
+                            style="width: 100px; height: 100px; background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%); color: #fff; font-size: 2.5rem; font-weight: 600; border: 3px solid #dee2e6;">
+                            <i class="bi bi-person"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <input type="file" class="form-control" id="avatar" name="avatar" 
+                            accept="image/*" onchange="previewAvatar(this)">
+                        <small class="form-text text-muted">Allowed: JPG, PNG, GIF, WEBP (Max 2MB)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label for="username" class="form-label">Username *</label>
@@ -82,4 +103,33 @@
         </div>
     <?php echo form_close(); ?>
 </div>
+
+<script>
+function previewAvatar(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        const preview = document.getElementById('avatar-preview');
+        
+        reader.onload = function(e) {
+            // Check if preview is an img or div
+            if (preview.tagName === 'IMG') {
+                preview.src = e.target.result;
+            } else {
+                // Replace div with img
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'rounded-circle';
+                img.style.width = '100px';
+                img.style.height = '100px';
+                img.style.objectFit = 'cover';
+                img.style.border = '3px solid #dee2e6';
+                img.id = 'avatar-preview';
+                preview.parentNode.replaceChild(img, preview);
+            }
+        };
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
 
