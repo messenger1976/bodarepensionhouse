@@ -23,11 +23,22 @@ class Roles extends Admin_Controller {
         $this->require_permission('manage_roles');
         
         $data['title'] = 'Manage Roles';
-        $data['roles'] = $this->Role_model->get_all();
+        
+        // Explicitly get all roles without status filter
+        $data['roles'] = $this->Role_model->get_all(null);
+        
+        // Debug: Log the count (remove in production if not needed)
+        if (empty($data['roles'])) {
+            log_message('debug', 'Roles index: No roles found in database');
+        } else {
+            log_message('debug', 'Roles index: Found ' . count($data['roles']) . ' roles');
+        }
         
         // Get permissions for each role
-        foreach ($data['roles'] as $role) {
-            $role->permissions = $this->Role_model->get_role_permissions($role->id);
+        if (!empty($data['roles'])) {
+            foreach ($data['roles'] as $role) {
+                $role->permissions = $this->Role_model->get_role_permissions($role->id);
+            }
         }
         
         $data['can_manage'] = $this->has_permission('manage_roles');

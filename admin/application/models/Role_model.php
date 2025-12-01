@@ -12,11 +12,22 @@ class Role_model extends CI_Model {
      * Get all roles
      */
     public function get_all($status = null) {
+        // Reset any previous query
+        $this->db->reset_query();
+        
+        // Only filter by status if explicitly provided
         if ($status !== null) {
             $this->db->where('status', $status);
         }
+        
         $this->db->order_by('name', 'ASC');
-        return $this->db->get('roles')->result();
+        $query = $this->db->get('roles');
+        
+        // Debug logging (can be removed in production)
+        log_message('debug', 'Role_model::get_all - Query: ' . $this->db->last_query());
+        log_message('debug', 'Role_model::get_all - Rows: ' . $query->num_rows());
+        
+        return $query->result();
     }
     
     /**

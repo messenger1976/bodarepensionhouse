@@ -36,7 +36,7 @@
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($roles)): ?>
+                <?php if (!empty($roles) && is_array($roles)): ?>
                     <?php foreach ($roles as $role): ?>
                         <tr>
                             <td><?php echo $role->id; ?></td>
