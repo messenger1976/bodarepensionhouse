@@ -59,11 +59,15 @@ class Roles extends Admin_Controller {
                 
                 $role_id = $this->Role_model->create($role_data);
                 
-                // Assign permissions
-                if ($role_id && $this->input->post('permissions')) {
-                    $this->Role_model->assign_permissions_to_role($role_id, $this->input->post('permissions'));
+                if ($role_id) {
+                    // Assign permissions if provided
+                    if ($this->input->post('permissions')) {
+                        $this->Role_model->assign_permissions_to_role($role_id, $this->input->post('permissions'));
+                    }
                     $this->session->set_flashdata('success', 'Role created successfully');
                     redirect('roles');
+                } else {
+                    $this->session->set_flashdata('error', 'Failed to create role. Please try again.');
                 }
             }
         }
