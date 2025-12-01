@@ -403,8 +403,13 @@ $config['sess_driver'] = 'files';
 $config['sess_cookie_name'] = 'bodare_admin_session'; // Unique cookie name to avoid conflicts
 $config['sess_samesite'] = 'Lax';
 $config['sess_expiration'] = 7200;
-// Set session save path to application/cache/sessions for better control
-$config['sess_save_path'] = APPPATH . 'cache/sessions';
+// Set session save path - use custom directory if it exists and is writable, otherwise use default
+$sessions_path = APPPATH . 'cache/sessions';
+if (is_dir($sessions_path) && is_writable($sessions_path)) {
+    $config['sess_save_path'] = $sessions_path;
+} else {
+    $config['sess_save_path'] = NULL; // Use PHP default session save path
+}
 $config['sess_match_ip'] = FALSE;
 $config['sess_time_to_update'] = 300;
 $config['sess_regenerate_destroy'] = TRUE; // Destroy old session when regenerating

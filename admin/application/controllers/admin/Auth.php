@@ -35,11 +35,9 @@ class Auth extends CI_Controller {
                 $admin = $this->Admin_model->login($username, $password);
                 
                 if ($admin) {
-                    // Destroy any existing session first to prevent session conflicts
-                    $this->session->sess_destroy();
-                    
                     // Regenerate session ID to prevent session fixation and ensure clean session
                     // This ensures each login gets a fresh session ID
+                    // sess_regenerate with TRUE parameter destroys old session
                     $this->session->sess_regenerate(TRUE);
                     
                     // Set new session data
