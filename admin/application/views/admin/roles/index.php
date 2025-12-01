@@ -36,8 +36,15 @@
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($roles) && is_array($roles)): ?>
-                    <?php foreach ($roles as $role): ?>
+                <?php 
+                // Ensure roles is an array and not empty
+                $roles_display = isset($roles) ? $roles : array();
+                if (!is_array($roles_display)) {
+                    $roles_display = array();
+                }
+                ?>
+                <?php if (!empty($roles_display)): ?>
+                    <?php foreach ($roles_display as $role): ?>
                         <tr>
                             <td><?php echo $role->id; ?></td>
                             <td><strong><?php echo htmlspecialchars($role->name); ?></strong></td>
@@ -81,7 +88,22 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="7" class="text-center text-muted">No roles found</td>
+                        <td colspan="7" class="text-center text-muted">
+                            No roles found
+                            <?php if (isset($roles)): ?>
+                                <br><small class="text-danger">Debug: roles variable exists (type: <?php echo gettype($roles); ?>, 
+                                <?php if (is_array($roles)): ?>
+                                    count: <?php echo count($roles); ?>)
+                                <?php elseif (is_object($roles)): ?>
+                                    object with <?php echo count((array)$roles); ?> properties)
+                                <?php else: ?>
+                                    value: <?php echo var_export($roles, true); ?>)
+                                <?php endif; ?>
+                                </small>
+                            <?php else: ?>
+                                <br><small class="text-danger">Debug: roles variable is NOT set in view</small>
+                            <?php endif; ?>
+                        </td>
                     </tr>
                 <?php endif; ?>
             </tbody>

@@ -25,7 +25,10 @@ class Roles extends Admin_Controller {
         $data['title'] = 'Manage Roles';
         
         // Explicitly get all roles without status filter
-        $data['roles'] = $this->Role_model->get_all(null);
+        $roles_result = $this->Role_model->get_all(null);
+        
+        // Ensure roles is always an array
+        $data['roles'] = is_array($roles_result) ? $roles_result : array();
         
         // Debug: Log the count (remove in production if not needed)
         if (empty($data['roles'])) {
@@ -35,9 +38,11 @@ class Roles extends Admin_Controller {
         }
         
         // Get permissions for each role
-        if (!empty($data['roles'])) {
+        if (!empty($data['roles']) && is_array($data['roles'])) {
             foreach ($data['roles'] as $role) {
-                $role->permissions = $this->Role_model->get_role_permissions($role->id);
+                if (isset($role->id)) {
+                    $role->permissions = $this->Role_model->get_role_permissions($role->id);
+                }
             }
         }
         
