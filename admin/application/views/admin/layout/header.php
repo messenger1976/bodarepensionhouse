@@ -3293,7 +3293,7 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                     <li>
-                        <a class="dropdown-item" href="#">
+                        <a class="dropdown-item" href="<?php echo base_url('profile'); ?>">
                             <i class="bi bi-person-circle"></i>
                             <span>Profile</span>
                         </a>
