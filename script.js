@@ -195,8 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.toggle('menu-open');
         });
 
-        // Close menu when clicking on a link (except dropdown toggles)
-        const navLinks = navMenu.querySelectorAll('.nav-link:not(.dropdown-toggle)');
+        // Close menu when clicking on a link
+        const navLinks = navMenu.querySelectorAll('.nav-link');
         navLinks.forEach(link => {
             link.addEventListener('click', () => {
                 mobileMenuToggle.setAttribute('aria-expanded', 'false');
@@ -204,32 +204,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 navMenu.classList.remove('active');
                 document.body.classList.remove('menu-open');
             });
-        });
-        
-        // Dropdown toggle for mobile and desktop
-        const dropdownToggles = navMenu.querySelectorAll('.dropdown-toggle');
-        dropdownToggles.forEach(toggle => {
-            toggle.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const dropdownItem = toggle.closest('.nav-item');
-                // Close other dropdowns
-                document.querySelectorAll('.nav-item.dropdown').forEach(item => {
-                    if (item !== dropdownItem) {
-                        item.classList.remove('show');
-                    }
-                });
-                dropdownItem.classList.toggle('show');
-            });
-        });
-
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.nav-item.dropdown')) {
-                document.querySelectorAll('.nav-item.dropdown').forEach(item => {
-                    item.classList.remove('show');
-                });
-            }
         });
 
         // Close menu when clicking outside
