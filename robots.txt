@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Block access to admin areas
+Disallow: /admin/
+Disallow: /system/
+Disallow: /docs/
+
+# Allow access to CSS and JS
+Allow: /style.css
+Allow: /script.js
+Allow: /api-config.js
+Allow: /booking-api.js
+
+# Sitemap
+Sitemap: https://www.boholislandtours.com/sitemap.xml

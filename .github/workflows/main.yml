@@ -2,10 +2,10 @@ on:
   push:
     branches:
       - main
-name: 🚀 Deploy BODARE Pension House website on push
+name: 🚀 Deploy Bohol Island Tours website on push
 jobs:
   web-deploy:
-    name: 🎉 Deploy BODARE Pension House Livesite Server
+    name: 🎉 Deploy Bohol Island Tours Livesite Server
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -15,7 +15,7 @@ jobs:
     - name: 📂 Sync files
       uses: SamKirkland/FTP-Deploy-Action@4.3.0
       with:
-        server: pensionhouse.bodarempc.com
+        server: boholislandtours.com
         username: ${{ secrets.ftp_username }}
         password: ${{ secrets.ftp_password }}
         server-dir: /
