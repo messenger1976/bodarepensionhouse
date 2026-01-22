@@ -38,7 +38,7 @@ if (isset($_SERVER['HTTP_HOST'])) {
     $config['base_url'] = $protocol . $domain . $path;
 } else {
     // Fallback
-    $config['base_url'] = 'http://localhost/bodarepensionhouse/admin/';
+    $config['base_url'] = 'https://pensionhouse.com/admin/';
 }
 
 /*
@@ -241,7 +241,7 @@ $config['allow_get_array'] = TRUE;
 | your log files will fill up very fast.
 |
 */
-$config['log_threshold'] = 0;
+$config['log_threshold'] = 0; // 0=Disable, 1=Error, 2=Debug, 3=Info, 4=All
 
 /*
 |--------------------------------------------------------------------------

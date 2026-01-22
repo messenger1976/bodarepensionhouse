@@ -23,8 +23,17 @@ class Admin_model extends CI_Model {
     }
     
     public function get_admin($id) {
-        $this->db->where('id', $id);
-        return $this->db->get('admins')->row();
+        // Validate ID is provided and is numeric
+        if (empty($id) || !is_numeric($id)) {
+            return null;
+        }
+        $this->db->where('id', (int)$id);
+        $result = $this->db->get('admins')->row();
+        // Double-check the result matches the requested ID
+        if ($result && (int)$result->id != (int)$id) {
+            return null; // Safety check - should never happen, but prevents wrong admin being returned
+        }
+        return $result;
     }
     
     /**

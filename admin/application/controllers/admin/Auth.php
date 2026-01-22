@@ -35,19 +35,43 @@ class Auth extends CI_Controller {
                 $admin = $this->Admin_model->login($username, $password);
                 
                 if ($admin) {
+                    // IMPORTANT: Use the exact admin ID from the database query result
+                    $admin_id = (int)$admin->id;
+                    $admin_username = $admin->username;
+                    $admin_name = $admin->name ? $admin->name : $admin->username;
+                    
+                    log_message('debug', 'Login attempt for admin_id: ' . $admin_id . ' (username: ' . $admin_username . ')');
+                    
+                    // Clear any existing admin session data first
+                    $this->session->unset_userdata(array('admin_id', 'admin_username', 'admin_name', 'admin_logged_in'));
+                    
                     // Regenerate session ID to prevent session fixation and ensure clean session
-                    // This ensures each login gets a fresh session ID
-                    // sess_regenerate with TRUE parameter destroys old session
+                    // sess_regenerate with TRUE parameter destroys old session data
                     $this->session->sess_regenerate(TRUE);
                     
-                    // Set new session data
+                    // Set new session data with the logged-in admin's information
                     $session_data = array(
-                        'admin_id' => $admin->id,
-                        'admin_username' => $admin->username,
-                        'admin_name' => $admin->name,
+                        'admin_id' => $admin_id,
+                        'admin_username' => $admin_username,
+                        'admin_name' => $admin_name,
                         'admin_logged_in' => TRUE
                     );
+                    
+                    // Set session data
                     $this->session->set_userdata($session_data);
+                    
+                    // Force session write by accessing it
+                    $test_id = $this->session->userdata('admin_id');
+                    
+                    // Verify session was set correctly (for debugging)
+                    if ($test_id != $admin_id) {
+                        log_message('error', 'CRITICAL: Session mismatch after login! Expected admin_id ' . $admin_id . ' but got ' . var_export($test_id, true));
+                        $this->session->set_flashdata('error', 'Session error occurred. Please try logging in again.');
+                        redirect('login');
+                        return;
+                    }
+                    
+                    log_message('debug', 'Login successful - Session verified for admin_id: ' . $admin_id . ' (username: ' . $admin_username . ', name: ' . $admin_name . ')');
                     
                     redirect('dashboard');
                 } else {

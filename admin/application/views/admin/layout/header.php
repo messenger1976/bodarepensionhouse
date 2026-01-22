@@ -3345,33 +3345,55 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
         </div>
         <h5 class="nk-header-title"><?php echo isset($title) ? $title : 'Admin Panel'; ?></h5>
         <div class="nk-header-tools">
-            <span class="text-muted me-3 d-none d-md-inline">Welcome, <?php 
+            <span class="text-muted me-3">Welcome, <?php 
+                // Get admin info directly from session (source of truth)
                 $admin_name = $this->session->userdata('admin_name');
                 $admin_username = $this->session->userdata('admin_username');
+                $admin_id = $this->session->userdata('admin_id');
+                
+                // CRITICAL: Force use session data, never query database here
                 // Use name if available, otherwise fallback to username
                 $display_name = !empty($admin_name) ? $admin_name : (!empty($admin_username) ? $admin_username : 'Admin');
+                
+                // Output the admin name
                 echo htmlspecialchars($display_name);
             ?></span>
             <div class="user-dropdown">
                 <button class="btn p-0 border-0" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                     <div class="user-avatar">
                         <?php 
+                        // Get admin info from session (source of truth)
                         $admin_name = $this->session->userdata('admin_name');
                         $admin_username = $this->session->userdata('admin_username');
                         $admin_id = $this->session->userdata('admin_id');
                         
-                        // Get admin data to check for avatar
-                        $this->load->model('Admin_model');
-                        $admin_data = $this->Admin_model->get_admin($admin_id);
-                        
-                        if (!empty($admin_data->avatar) && file_exists(FCPATH . $admin_data->avatar)): ?>
-                            <img src="<?php echo base_url($admin_data->avatar); ?>" alt="Avatar" 
-                                style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
-                        <?php else: 
-                            // Use name if available, otherwise fallback to username
+                        // Validate admin_id before querying database
+                        if (!empty($admin_id) && is_numeric($admin_id)) {
+                            // Get admin data to check for avatar
+                            $this->load->model('Admin_model');
+                            $admin_data = $this->Admin_model->get_admin($admin_id);
+                            
+                            // Safety check: verify the admin from database matches session
+                            if ($admin_data && (int)$admin_data->id == (int)$admin_id) {
+                                if (!empty($admin_data->avatar) && file_exists(FCPATH . $admin_data->avatar)): ?>
+                                    <img src="<?php echo base_url($admin_data->avatar); ?>" alt="Avatar" 
+                                        style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                                <?php else: 
+                                    // Use name from session (not database) to ensure consistency
+                                    $display_name = !empty($admin_name) ? $admin_name : (!empty($admin_username) ? $admin_username : 'Admin');
+                                    echo strtoupper(substr($display_name, 0, 1)); 
+                                endif;
+                            } else {
+                                // Database mismatch - use session data only
+                                $display_name = !empty($admin_name) ? $admin_name : (!empty($admin_username) ? $admin_username : 'Admin');
+                                echo strtoupper(substr($display_name, 0, 1));
+                            }
+                        } else {
+                            // Invalid admin_id - use session data only
                             $display_name = !empty($admin_name) ? $admin_name : (!empty($admin_username) ? $admin_username : 'Admin');
-                            echo strtoupper(substr($display_name, 0, 1)); 
-                        endif; ?>
+                            echo strtoupper(substr($display_name, 0, 1));
+                        }
+                        ?>
                     </div>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
