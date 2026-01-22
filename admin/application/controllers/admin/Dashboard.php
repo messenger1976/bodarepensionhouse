@@ -18,6 +18,12 @@ class Dashboard extends Admin_Controller {
         // Require permission to view dashboard (optional check - can be removed if no permission system)
         // $this->require_permission('view_dashboard');
         
+        // Ensure cache headers are set for this page
+        $this->output->set_header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
+        $this->output->set_header('Pragma: no-cache');
+        $this->output->set_header('Expires: 0');
+        $this->output->set_header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+        
         $data['title'] = 'Dashboard';
         $data['total_bookings'] = $this->Booking_model->get_bookings_count();
         $data['pending_bookings'] = $this->Booking_model->get_pending_bookings_count();

@@ -85,7 +85,37 @@ class Auth extends CI_Controller {
     }
     
     public function logout() {
+        // Get cookie settings from config
+        $cookie_name = $this->config->item('sess_cookie_name') ?: 'bodare_admin_session';
+        $cookie_path = $this->config->item('cookie_path') ?: '/';
+        $cookie_domain = $this->config->item('cookie_domain') ?: '';
+        $cookie_secure = $this->config->item('cookie_secure') ?: false;
+        $cookie_httponly = $this->config->item('cookie_httponly') !== false ? true : false;
+        
+        // Unset all session data first
+        $this->session->unset_userdata(array(
+            'admin_id',
+            'admin_username',
+            'admin_name',
+            'admin_logged_in'
+        ));
+        
+        // Delete the session cookie explicitly by setting it to expire in the past
+        // Do this before destroying the session so we can use session functions if needed
+        if ($cookie_domain) {
+            setcookie($cookie_name, '', time() - 3600, $cookie_path, $cookie_domain, $cookie_secure, $cookie_httponly);
+        } else {
+            setcookie($cookie_name, '', time() - 3600, $cookie_path, '', $cookie_secure, $cookie_httponly);
+        }
+        
+        // Also unset from $_COOKIE superglobal
+        if (isset($_COOKIE[$cookie_name])) {
+            unset($_COOKIE[$cookie_name]);
+        }
+        
+        // Destroy the session (this also clears all session data)
         $this->session->sess_destroy();
+        
         redirect('login');
     }
 }

@@ -10,6 +10,13 @@ class Admin_Controller extends MY_Controller {
         parent::__construct();
         
         // Prevent browser caching for Firefox and other browsers
+        // Use CodeIgniter's output class to set headers properly
+        $this->output->set_header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
+        $this->output->set_header('Pragma: no-cache');
+        $this->output->set_header('Expires: 0');
+        $this->output->set_header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+        
+        // Also set raw headers as backup
         header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
         header('Pragma: no-cache');
         header('Expires: 0');
