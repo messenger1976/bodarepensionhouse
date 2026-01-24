@@ -415,16 +415,22 @@ $config['sess_time_to_update'] = 300;
 $config['sess_regenerate_destroy'] = TRUE; // Destroy old session when regenerating
 */
 
-$config['sess_cookie_name']		= 'ci_session';
-$config['sess_expiration']		= 7200;
-//$config['sess_expire_on_close']	= FALSE;  //default set this one
-$config['sess_expire_on_close']	= FALSE;
-$config['sess_encrypt_cookie']	= FALSE;
-$config['sess_use_database']	= FALSE;
-$config['sess_table_name']		= 'ci_sessions';
-$config['sess_match_ip']		= FALSE;
-$config['sess_match_useragent']	= TRUE;
-$config['sess_time_to_update']	= 300;
+// Use the new session configuration (uncommented version above)
+// This ensures proper session handling for both localhost and production
+$config['sess_driver'] = 'files';
+$config['sess_cookie_name'] = 'bodare_admin_session'; // Unique cookie name to avoid conflicts
+$config['sess_samesite'] = 'Lax';
+$config['sess_expiration'] = 7200;
+// Set session save path - use custom directory if it exists and is writable, otherwise use default
+$sessions_path = APPPATH . 'cache/sessions';
+if (is_dir($sessions_path) && is_writable($sessions_path)) {
+    $config['sess_save_path'] = $sessions_path;
+} else {
+    $config['sess_save_path'] = NULL; // Use PHP default session save path
+}
+$config['sess_match_ip'] = FALSE;
+$config['sess_time_to_update'] = 300;
+$config['sess_regenerate_destroy'] = TRUE; // Destroy old session when regenerating
 
 /*
 |--------------------------------------------------------------------------
@@ -445,11 +451,10 @@ $config['sess_time_to_update']	= 300;
 $config['cookie_prefix']	= '';
 $config['cookie_domain']	= '';
 $config['cookie_path']		= '/';
-$config['cookie_secure']	= FALSE;
-// Auto-detect HTTPS and set cookie_secure accordingly
-//$config['cookie_secure']	= (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-//$config['cookie_httponly'] 	= TRUE; // More secure - prevents JavaScript access to cookies
-//$config['cookie_samesite'] 	= 'Lax';
+// Auto-detect HTTPS and set cookie_secure accordingly - CRITICAL for production HTTPS
+$config['cookie_secure']	= (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+$config['cookie_httponly'] 	= TRUE; // More secure - prevents JavaScript access to cookies
+$config['cookie_samesite'] 	= 'Lax';
 
 /*
 |--------------------------------------------------------------------------

@@ -89,7 +89,14 @@ class Auth extends CI_Controller {
         $cookie_name = $this->config->item('sess_cookie_name') ?: 'bodare_admin_session';
         $cookie_path = $this->config->item('cookie_path') ?: '/';
         $cookie_domain = $this->config->item('cookie_domain') ?: '';
-        $cookie_secure = $this->config->item('cookie_secure') ?: false;
+        // Get cookie_secure from config (auto-detects HTTPS)
+        $cookie_secure = $this->config->item('cookie_secure');
+        if ($cookie_secure === null || $cookie_secure === false) {
+            // Auto-detect HTTPS if not set
+            $cookie_secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || 
+                            (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) || 
+                            (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+        }
         $cookie_httponly = $this->config->item('cookie_httponly') !== false ? true : false;
         
         // Unset all session data first
@@ -101,11 +108,14 @@ class Auth extends CI_Controller {
         ));
         
         // Delete the session cookie explicitly by setting it to expire in the past
-        // Do this before destroying the session so we can use session functions if needed
+        // Try multiple variations to ensure it's deleted in all scenarios
         if ($cookie_domain) {
             setcookie($cookie_name, '', time() - 3600, $cookie_path, $cookie_domain, $cookie_secure, $cookie_httponly);
         } else {
+            // Try without domain
             setcookie($cookie_name, '', time() - 3600, $cookie_path, '', $cookie_secure, $cookie_httponly);
+            // Also try with empty domain string explicitly
+            setcookie($cookie_name, '', time() - 3600, $cookie_path, false, $cookie_secure, $cookie_httponly);
         }
         
         // Also unset from $_COOKIE superglobal
