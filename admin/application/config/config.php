@@ -399,7 +399,7 @@ $config['encryption_key'] = '';
 | except for 'cookie_prefix' and 'cookie_httponly', which are ignored here.
 |
 */
-$config['sess_driver'] = 'files';
+/*$config['sess_driver'] = 'files';
 $config['sess_cookie_name'] = 'bodare_admin_session'; // Unique cookie name to avoid conflicts
 $config['sess_samesite'] = 'Lax';
 $config['sess_expiration'] = 7200;
@@ -413,6 +413,18 @@ if (is_dir($sessions_path) && is_writable($sessions_path)) {
 $config['sess_match_ip'] = FALSE;
 $config['sess_time_to_update'] = 300;
 $config['sess_regenerate_destroy'] = TRUE; // Destroy old session when regenerating
+*/
+
+$config['sess_cookie_name']		= 'ci_session';
+$config['sess_expiration']		= 7200;
+//$config['sess_expire_on_close']	= FALSE;  //default set this one
+$config['sess_expire_on_close']	= FALSE;
+$config['sess_encrypt_cookie']	= FALSE;
+$config['sess_use_database']	= FALSE;
+$config['sess_table_name']		= 'ci_sessions';
+$config['sess_match_ip']		= FALSE;
+$config['sess_match_useragent']	= TRUE;
+$config['sess_time_to_update']	= 300;
 
 /*
 |--------------------------------------------------------------------------
@@ -433,10 +445,11 @@ $config['sess_regenerate_destroy'] = TRUE; // Destroy old session when regenerat
 $config['cookie_prefix']	= '';
 $config['cookie_domain']	= '';
 $config['cookie_path']		= '/';
+$config['cookie_secure']	= FALSE;
 // Auto-detect HTTPS and set cookie_secure accordingly
-$config['cookie_secure']	= (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-$config['cookie_httponly'] 	= TRUE; // More secure - prevents JavaScript access to cookies
-$config['cookie_samesite'] 	= 'Lax';
+//$config['cookie_secure']	= (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+//$config['cookie_httponly'] 	= TRUE; // More secure - prevents JavaScript access to cookies
+//$config['cookie_samesite'] 	= 'Lax';
 
 /*
 |--------------------------------------------------------------------------
