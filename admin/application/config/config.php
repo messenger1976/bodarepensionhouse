@@ -24,7 +24,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 |
 */
 // Auto-detect base URL dynamically
-if (isset($_SERVER['HTTP_HOST'])) {
+//if (isset($_SERVER['HTTP_HOST'])) {
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
     $domain = $_SERVER['HTTP_HOST'];
     $path = dirname($_SERVER['SCRIPT_NAME']);
@@ -36,10 +36,10 @@ if (isset($_SERVER['HTTP_HOST'])) {
         $path .= '/';
     }
     $config['base_url'] = $protocol . $domain . $path;
-} else {
+//} else {
     // Fallback
-    $config['base_url'] = 'https://pensionhouse.com/admin/';
-}
+//    $config['base_url'] = 'https://pensionhouse.com/admin/';
+//}
 
 /*
 |--------------------------------------------------------------------------
@@ -415,7 +415,7 @@ $config['sess_time_to_update'] = 300;
 $config['sess_regenerate_destroy'] = TRUE; // Destroy old session when regenerating
 */
 
-// Use the new session configuration (uncommented version above)
+// Use CodeIgniter 3 session configuration
 // This ensures proper session handling for both localhost and production
 $config['sess_driver'] = 'files';
 $config['sess_cookie_name'] = 'bodare_admin_session'; // Unique cookie name to avoid conflicts
@@ -423,6 +423,10 @@ $config['sess_samesite'] = 'Lax';
 $config['sess_expiration'] = 7200;
 // Set session save path - use custom directory if it exists and is writable, otherwise use default
 $sessions_path = APPPATH . 'cache/sessions';
+// Try to create directory if it doesn't exist (important for production)
+if (!is_dir($sessions_path)) {
+    @mkdir($sessions_path, 0755, true);
+}
 if (is_dir($sessions_path) && is_writable($sessions_path)) {
     $config['sess_save_path'] = $sessions_path;
 } else {

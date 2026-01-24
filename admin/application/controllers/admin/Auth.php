@@ -63,7 +63,7 @@ class Auth extends CI_Controller {
                     // Force session write by accessing it
                     $test_id = $this->session->userdata('admin_id');
                     
-                    // Verify session was set correctly (for debugging)
+                    // Verify session was set correctly
                     if ($test_id != $admin_id) {
                         log_message('error', 'CRITICAL: Session mismatch after login! Expected admin_id ' . $admin_id . ' but got ' . var_export($test_id, true));
                         $this->session->set_flashdata('error', 'Session error occurred. Please try logging in again.');
