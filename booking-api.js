@@ -61,6 +61,10 @@ function setupRegistrationForm() {
         }
         
         try {
+            const cartSnapshot = typeof getCartStorageSnapshot === 'function'
+                ? getCartStorageSnapshot()
+                : null;
+
             const response = await API.auth.register(userData);
             
             if (response.success) {
@@ -69,6 +73,11 @@ function setupRegistrationForm() {
                 
                 // Store user info
                 localStorage.setItem('user', JSON.stringify(response.user));
+
+                // Keep cart intact after registration/login transition.
+                if (typeof restoreCartStorageSnapshot === 'function') {
+                    restoreCartStorageSnapshot(cartSnapshot);
+                }
                 
                 // Check if booking exists in cart
                 const bookingDetails = localStorage.getItem('bookingDetails');
@@ -190,11 +199,20 @@ async function handleCheckoutLogin() {
     }
     
     try {
+        const cartSnapshot = typeof getCartStorageSnapshot === 'function'
+            ? getCartStorageSnapshot()
+            : null;
+
         const response = await API.auth.login(email, password);
         
         if (response.success) {
             // Store user info
             localStorage.setItem('user', JSON.stringify(response.user));
+
+            // Keep cart intact after login transition.
+            if (typeof restoreCartStorageSnapshot === 'function') {
+                restoreCartStorageSnapshot(cartSnapshot);
+            }
             
             // Show success message
             showMessage('Welcome back! You have successfully logged in.', 'success');
@@ -336,7 +354,13 @@ async function handleCheckoutSubmit(e) {
     
     function clearCartLocal() {
         // Clear cart data
-        localStorage.removeItem('bookingCart');
+        if (typeof withExpectedCartMutation === 'function') {
+            withExpectedCartMutation('booking-success-clear-cart', () => {
+                localStorage.removeItem('bookingCart');
+            });
+        } else {
+            localStorage.removeItem('bookingCart');
+        }
         localStorage.removeItem('cartServices');
         localStorage.removeItem('bookingDetails'); // Also clear old booking details if exists
         
@@ -646,7 +670,13 @@ async function handleCheckoutSubmit(e) {
             if (remainingCart.length > 0) {
                 console.warn('Cart was not fully cleared. Remaining items:', remainingCart.length);
                 // Force clear again
-                localStorage.removeItem('bookingCart');
+                if (typeof withExpectedCartMutation === 'function') {
+                    withExpectedCartMutation('booking-force-clear-cart', () => {
+                        localStorage.removeItem('bookingCart');
+                    });
+                } else {
+                    localStorage.removeItem('bookingCart');
+                }
                 localStorage.removeItem('cartServices');
             }
             

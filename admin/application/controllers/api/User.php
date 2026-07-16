@@ -69,6 +69,7 @@ class User extends CI_Controller {
             // Add customer data if available
             if ($customer) {
                 $userData['city'] = $customer->city ? $customer->city : '';
+                $userData['barangay'] = isset($customer->barangay) && $customer->barangay ? $customer->barangay : '';
                 $userData['province'] = $customer->province ? $customer->province : '';
                 $userData['postal_code'] = $customer->postal_code ? $customer->postal_code : '';
                 $userData['country'] = $customer->country ? $customer->country : 'Philippines';
@@ -80,6 +81,7 @@ class User extends CI_Controller {
             } else {
                 // Set defaults if no customer record
                 $userData['city'] = '';
+                $userData['barangay'] = '';
                 $userData['province'] = '';
                 $userData['postal_code'] = '';
                 $userData['country'] = 'Philippines';
@@ -200,19 +202,6 @@ class User extends CI_Controller {
             'address' => $data['address']
         );
         
-        // Only update password if provided
-        if (isset($data['password']) && !empty($data['password'])) {
-            if (strlen($data['password']) < 6) {
-                $this->output->set_status_header(400);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Password must be at least 6 characters long.'
-                ]);
-                return;
-            }
-            $user_update_data['password'] = $data['password'];
-        }
-        
         // Prepare customer update data
         $customer_update_data = array(
             'first_name' => $data['first_name'],
@@ -221,6 +210,7 @@ class User extends CI_Controller {
             'phone' => $data['phone'],
             'address' => $data['address'],
             'city' => isset($data['city']) ? trim($data['city']) : null,
+            'barangay' => isset($data['barangay']) ? trim($data['barangay']) : null,
             'province' => isset($data['province']) ? trim($data['province']) : null,
             'postal_code' => isset($data['postal_code']) ? trim($data['postal_code']) : null,
             'country' => isset($data['country']) && !empty($data['country']) ? trim($data['country']) : 'Philippines',
@@ -306,6 +296,7 @@ class User extends CI_Controller {
         // Add customer data if available
         if ($updated_customer) {
             $response_user['city'] = $updated_customer->city ? $updated_customer->city : '';
+            $response_user['barangay'] = isset($updated_customer->barangay) && $updated_customer->barangay ? $updated_customer->barangay : '';
             $response_user['province'] = $updated_customer->province ? $updated_customer->province : '';
             $response_user['postal_code'] = $updated_customer->postal_code ? $updated_customer->postal_code : '';
             $response_user['country'] = $updated_customer->country ? $updated_customer->country : 'Philippines';
@@ -320,6 +311,108 @@ class User extends CI_Controller {
             'success' => true,
             'message' => 'Your profile has been updated successfully!',
             'user' => $response_user
+        ]);
+    }
+
+    /**
+     * Update user password only
+     */
+    public function change_password() {
+        $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Access-Control-Allow-Methods: POST, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Credentials: true');
+
+        if ($this->input->method() === 'options') {
+            exit;
+        }
+
+        if (!$this->session->userdata('user_logged_in')) {
+            $this->output->set_status_header(401);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Please log in to update your password.'
+            ]);
+            return;
+        }
+
+        if ($this->input->method() !== 'post') {
+            $this->output->set_status_header(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!$data) {
+            $data = $this->input->post();
+        }
+
+        $current_password = isset($data['current_password']) ? (string) $data['current_password'] : '';
+        $new_password = isset($data['new_password']) ? (string) $data['new_password'] : '';
+        $confirm_password = isset($data['confirm_password']) ? (string) $data['confirm_password'] : '';
+
+        if ($current_password === '' || $new_password === '' || $confirm_password === '') {
+            $this->output->set_status_header(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'All password fields are required.'
+            ]);
+            return;
+        }
+
+        if (strlen($new_password) < 6) {
+            $this->output->set_status_header(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'New password must be at least 6 characters long.'
+            ]);
+            return;
+        }
+
+        if ($new_password !== $confirm_password) {
+            $this->output->set_status_header(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'New password and confirmation do not match.'
+            ]);
+            return;
+        }
+
+        $user_id = $this->session->userdata('user_id');
+        $user = $this->User_model->get_user($user_id);
+
+        if (!$user) {
+            $this->output->set_status_header(404);
+            echo json_encode([
+                'success' => false,
+                'message' => 'User account not found.'
+            ]);
+            return;
+        }
+
+        if (!password_verify($current_password, $user->password)) {
+            $this->output->set_status_header(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Current password is incorrect.'
+            ]);
+            return;
+        }
+
+        $updated = $this->User_model->update_user($user_id, ['password' => $new_password]);
+        if (!$updated) {
+            $this->output->set_status_header(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Unable to update password. Please try again.'
+            ]);
+            return;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Your password has been updated successfully.'
         ]);
     }
 }

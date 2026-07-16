@@ -11,15 +11,19 @@ class Admin_Controller extends MY_Controller {
         
         // Prevent browser caching for Firefox and other browsers
         // Use CodeIgniter's output class to set headers properly
-        $this->output->set_header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
+        $this->output->set_header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0, private');
         $this->output->set_header('Pragma: no-cache');
-        $this->output->set_header('Expires: 0');
+        $this->output->set_header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
         $this->output->set_header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+        $this->output->set_header('ETag: "' . md5(time()) . '"');
         
-        // Also set raw headers as backup
-        header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
-        header('Pragma: no-cache');
-        header('Expires: 0');
+        // Also set raw headers as backup (must be before any output)
+        if (!headers_sent()) {
+            header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0, private');
+            header('Pragma: no-cache');
+            header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
+            header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+        }
         
         $this->load->library('session');
         $this->load->model('Admin_model');

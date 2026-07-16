@@ -18,34 +18,20 @@
     <link rel="apple-touch-icon" href="img/logo.png">
     <link rel="icon" type="image/png" href="img/logo.png">
     
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <header class="header">
-        <nav class="navbar">
-            <a href="index.php" class="nav-logo">
-                <img src="img/logo.png" alt="Bodare Logo" class="logo-img">
-            </a>
-            <button class="mobile-menu-toggle" aria-label="Toggle menu" aria-expanded="false">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <ul class="nav-menu">
-                <li class="nav-item"><a href="index.php#about" class="nav-link">About</a></li>
-                <li class="nav-item"><a href="rooms.php" class="nav-link">Rooms</a></li>
-                <li class="nav-item"><a href="amenities.php" class="nav-link">Amenities</a></li>
-                <li class="nav-item"><a href="gallery.php" class="nav-link">Gallery</a></li>
-                <li class="nav-item"><a href="contact.php" class="nav-link">Contact</a></li>
-            </ul>
-            <div class="user-menu">
-                <span id="user-name-display"></span>
-                <button id="logout-btn" class="cta-button-secondary">Logout</button>
-            </div>
-        </nav>
-    </header>
+    <?php
+    $headerConfig = [
+        'logo_href' => 'index.php',
+        'show_user_menu' => true
+    ];
+    include __DIR__ . '/includes/site-header.php';
+?>
+
 
     <section class="page-header">
         <div class="page-header-content">
@@ -64,48 +50,16 @@
                 </div>
             </noscript>
             
-            <!-- Dashboard Tabs -->
-            <div class="dashboard-tabs" style="
-                display: flex;
-                gap: 0.5rem;
-                border-bottom: 2px solid #e0e0e0;
-                margin-bottom: 2rem;
-                flex-wrap: wrap;
-            ">
-                <button class="tab-button active" data-tab="bookings" style="
-                    padding: 1rem 2rem;
-                    background: none;
-                    border: none;
-                    border-bottom: 3px solid transparent;
-                    cursor: pointer;
-                    font-size: 1rem;
-                    font-weight: 500;
-                    color: #666;
-                    transition: all 0.3s;
-                ">My Bookings</button>
-                <button class="tab-button" data-tab="profile" style="
-                    padding: 1rem 2rem;
-                    background: none;
-                    border: none;
-                    border-bottom: 3px solid transparent;
-                    cursor: pointer;
-                    font-size: 1rem;
-                    font-weight: 500;
-                    color: #666;
-                    transition: all 0.3s;
-                ">My Profile</button>
-                <button class="tab-button" data-tab="inquiry" style="
-                    padding: 1rem 2rem;
-                    background: none;
-                    border: none;
-                    border-bottom: 3px solid transparent;
-                    cursor: pointer;
-                    font-size: 1rem;
-                    font-weight: 500;
-                    color: #666;
-                    transition: all 0.3s;
-                ">Send Inquiry</button>
-            </div>
+            <div class="customer-dashboard-layout">
+                <?php
+                $customerSidebarActiveTab = isset($_GET['tab']) ? $_GET['tab'] : 'bookings';
+                if (!in_array($customerSidebarActiveTab, ['bookings', 'profile', 'security', 'inquiry'], true)) {
+                    $customerSidebarActiveTab = 'bookings';
+                }
+                include __DIR__ . '/includes/customer-sidebar.php';
+                ?>
+
+                <section class="customer-dashboard-content">
 
             <!-- Bookings Tab Content -->
             <div id="bookings-tab" class="tab-content active">
@@ -167,19 +121,33 @@
                         </div>
                         <div class="form-grid-2">
                             <div class="form-group-contact">
-                                <input type="text" id="profile-city" placeholder="City">
+                                <select id="profile-country" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+                                    <option value="Philippines">Philippines</option>
+                                </select>
                             </div>
                             <div class="form-group-contact">
-                                <input type="text" id="profile-province" placeholder="Province">
+                                <select id="profile-province-select" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+                                    <option value="">Select Province</option>
+                                </select>
+                                <input type="text" id="profile-province-manual" placeholder="Province" style="display: none; margin-top: 0.5rem;">
                             </div>
                         </div>
                         <div class="form-grid-2">
                             <div class="form-group-contact">
-                                <input type="text" id="profile-postal-code" placeholder="Postal Code">
+                                <select id="profile-city-select" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+                                    <option value="">Select Town/City</option>
+                                </select>
+                                <input type="text" id="profile-city-manual" placeholder="Town/City" style="display: none; margin-top: 0.5rem;">
                             </div>
                             <div class="form-group-contact">
-                                <input type="text" id="profile-country" placeholder="Country" value="Philippines">
+                                <select id="profile-barangay-select" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+                                    <option value="">Select Barangay</option>
+                                </select>
+                                <input type="text" id="profile-barangay-manual" placeholder="Barangay" style="display: none; margin-top: 0.5rem;">
                             </div>
+                        </div>
+                        <div class="form-group-contact">
+                            <input type="text" id="profile-postal-code" placeholder="Postal Code">
                         </div>
                         
                         <h3 style="margin: 2rem 0 1rem 0; color: #1a2238; font-size: 1.25rem;">Identification (Optional)</h3>
@@ -201,15 +169,27 @@
                             </div>
                         </div>
                         
-                        <h3 style="margin: 2rem 0 1rem 0; color: #1a2238; font-size: 1.25rem;">Account Security</h3>
-                        <div class="form-group-contact">
-                            <input type="password" id="profile-password" placeholder="New Password (leave blank to keep current)">
-                        </div>
-                        <div class="form-group-contact">
-                            <input type="password" id="profile-confirm-password" placeholder="Confirm New Password">
-                        </div>
-                        
                         <button type="submit" class="cta-button">Update Profile</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Security Tab Content -->
+            <div id="security-tab" class="tab-content" style="display: none;">
+                <div class="registration-container">
+                    <h2>Account Security</h2>
+                    <p style="color: #666; margin-bottom: 1.5rem;">Update your password separately from your profile information.</p>
+                    <form id="security-form" class="minimal-form">
+                        <div class="form-group-contact">
+                            <input type="password" id="security-current-password" placeholder="Current Password" required>
+                        </div>
+                        <div class="form-group-contact">
+                            <input type="password" id="security-new-password" placeholder="New Password" required>
+                        </div>
+                        <div class="form-group-contact">
+                            <input type="password" id="security-confirm-password" placeholder="Confirm New Password" required>
+                        </div>
+                        <button type="submit" class="cta-button">Update Password</button>
                     </form>
                 </div>
             </div>
@@ -242,20 +222,20 @@
                 </div>
             </div>
 
+                </section>
+            </div>
+
         </div>
     </main>
 
-    <footer id="contact" class="site-footer">
-        <div class="container">
-            <div class="footer-bottom">
-                <p>&copy; 2025 Bodare and Community Multi-Purpose Cooperative. All Rights Reserved.</p>
-            </div>
-        </div>
-    </footer>
+    <?php
+    $footerConfig = ['variant' => 'minimal'];
+    include __DIR__ . '/includes/site-footer.php';
+?>
     
-    <script src="api-config.js"></script>
-    <script src="booking-api.js"></script>
-    <script src="script.js"></script>
+    <script src="api-config.js?v=<?php echo filemtime(__DIR__ . '/api-config.js'); ?>"></script>
+    <script src="booking-api.js?v=<?php echo filemtime(__DIR__ . '/booking-api.js'); ?>"></script>
+    <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
     <script>
         // Check if API is loaded
         if (typeof API === 'undefined') {
@@ -267,6 +247,93 @@
         
         // Customer Dashboard Script
         let currentUser = null;
+        let profileLocationInitialized = false;
+
+        const PH_PROVINCE_POSTAL_CODES = {
+            "Abra": "2800",
+            "Agusan del Norte": "8600",
+            "Agusan del Sur": "8500",
+            "Aklan": "5600",
+            "Albay": "4500",
+            "Antique": "5700",
+            "Apayao": "3800",
+            "Aurora": "3200",
+            "Basilan": "7300",
+            "Bataan": "2100",
+            "Batanes": "3900",
+            "Batangas": "4200",
+            "Benguet": "2600",
+            "Biliran": "6549",
+            "Bohol": "6300",
+            "Bukidnon": "8700",
+            "Bulacan": "3000",
+            "Cagayan": "3500",
+            "Camarines Norte": "4600",
+            "Camarines Sur": "4400",
+            "Camiguin": "9100",
+            "Capiz": "5800",
+            "Catanduanes": "4800",
+            "Cavite": "4100",
+            "Cebu": "6000",
+            "Cotabato": "9400",
+            "Davao de Oro": "8800",
+            "Davao del Norte": "8100",
+            "Davao del Sur": "8000",
+            "Davao Occidental": "8012",
+            "Davao Oriental": "8200",
+            "Dinagat Islands": "8414",
+            "Eastern Samar": "6800",
+            "Guimaras": "5045",
+            "Ifugao": "3600",
+            "Ilocos Norte": "2900",
+            "Ilocos Sur": "2700",
+            "Iloilo": "5000",
+            "Isabela": "3300",
+            "Kalinga": "3800",
+            "La Union": "2500",
+            "Laguna": "4000",
+            "Lanao del Norte": "9200",
+            "Lanao del Sur": "9700",
+            "Leyte": "6500",
+            "Maguindanao del Norte": "9600",
+            "Maguindanao del Sur": "9600",
+            "Marinduque": "4900",
+            "Masbate": "5400",
+            "Metro Manila": "1000",
+            "Misamis Occidental": "7200",
+            "Misamis Oriental": "9000",
+            "Mountain Province": "2619",
+            "Negros Occidental": "6100",
+            "Negros Oriental": "6200",
+            "Northern Samar": "6400",
+            "Nueva Ecija": "3100",
+            "Nueva Vizcaya": "3700",
+            "Occidental Mindoro": "5100",
+            "Oriental Mindoro": "5200",
+            "Palawan": "5300",
+            "Pampanga": "2000",
+            "Pangasinan": "2400",
+            "Quezon": "4300",
+            "Quirino": "3400",
+            "Rizal": "1900",
+            "Romblon": "5500",
+            "Samar": "6700",
+            "Sarangani": "9500",
+            "Siquijor": "6225",
+            "Sorsogon": "4700",
+            "South Cotabato": "9500",
+            "Southern Leyte": "6600",
+            "Sultan Kudarat": "9800",
+            "Sulu": "7400",
+            "Surigao del Norte": "8400",
+            "Surigao del Sur": "8300",
+            "Tarlac": "2300",
+            "Tawi-Tawi": "7500",
+            "Zambales": "2200",
+            "Zamboanga del Norte": "7100",
+            "Zamboanga del Sur": "7000",
+            "Zamboanga Sibugay": "7001"
+        };
         
         document.addEventListener('DOMContentLoaded', async () => {
             try {
@@ -300,6 +367,8 @@
                     userNameDisplay.textContent = currentUser.name || 'User';
                 }
                 
+                await initializeProfileLocationFields();
+
                 // Verify session first, then load profile
                 verifySessionAndLoadProfile();
                 
@@ -313,6 +382,7 @@
                 
                 // Setup forms
                 setupProfileForm();
+                setupSecurityForm();
                 setupInquiryForm();
                 
                 // Setup logout
@@ -325,6 +395,13 @@
                             console.error('Logout error:', error);
                         } finally {
                             localStorage.removeItem('user');
+                            if (typeof clearBookingCartData === 'function') {
+                                clearBookingCartData();
+                            } else {
+                                localStorage.removeItem('bookingCart');
+                                localStorage.removeItem('cartServices');
+                                localStorage.removeItem('bookingDetails');
+                            }
                             window.location.href = 'index.php';
                         }
                     });
@@ -338,43 +415,433 @@
         
         // Setup tab switching
         function setupTabs() {
-            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabButtons = document.querySelectorAll('.tab-link');
             const tabContents = document.querySelectorAll('.tab-content');
+
+            function activateTab(targetTab) {
+                // Remove active class from all buttons and contents
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    content.style.display = 'none';
+                });
+
+                // Add active class to matching nav link and corresponding content
+                const activeButton = document.querySelector(`.tab-link[data-tab="${targetTab}"]`);
+                if (activeButton) {
+                    activeButton.classList.add('active');
+                }
+
+                const targetContent = document.getElementById(targetTab + '-tab');
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                    targetContent.style.display = 'block';
+
+                    // Load profile data when profile tab is clicked
+                    if (targetTab === 'profile') {
+                        verifySessionAndLoadProfile().catch(err => {
+                            console.error('Profile load error on tab click:', err);
+                        });
+                    }
+                }
+            }
+
+            // Activate initial tab from URL
+            const params = new URLSearchParams(window.location.search);
+            const initialTab = params.get('tab');
+            if (initialTab && ['bookings', 'profile', 'security', 'inquiry'].includes(initialTab)) {
+                activateTab(initialTab);
+            } else {
+                activateTab('bookings');
+            }
             
             tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
                     const targetTab = button.getAttribute('data-tab');
-                    
-                    // Remove active class from all buttons and contents
-                    tabButtons.forEach(btn => {
-                        btn.classList.remove('active');
-                        btn.style.borderBottomColor = 'transparent';
-                        btn.style.color = '#666';
-                    });
-                    tabContents.forEach(content => {
-                        content.classList.remove('active');
-                        content.style.display = 'none';
-                    });
-                    
-                    // Add active class to clicked button and corresponding content
-                    button.classList.add('active');
-                    button.style.borderBottomColor = '#b2945b';
-                    button.style.color = '#b2945b';
-                    
-                    const targetContent = document.getElementById(targetTab + '-tab');
-                    if (targetContent) {
-                        targetContent.classList.add('active');
-                        targetContent.style.display = 'block';
-                        
-                        // Load profile data when profile tab is clicked
-                        if (targetTab === 'profile') {
-                            verifySessionAndLoadProfile().catch(err => {
-                                console.error('Profile load error on tab click:', err);
-                            });
-                        }
-                    }
+                    activateTab(targetTab);
+
+                    const updatedUrl = new URL(window.location.href);
+                    updatedUrl.searchParams.set('tab', targetTab);
+                    window.history.replaceState({}, '', updatedUrl.toString());
                 });
             });
+        }
+
+        function getLocationFieldValue(fieldName) {
+            const selectEl = document.getElementById(`profile-${fieldName}-select`);
+            const manualEl = document.getElementById(`profile-${fieldName}-manual`);
+
+            if (manualEl && manualEl.style.display !== 'none') {
+                return manualEl.value.trim();
+            }
+            if (selectEl) {
+                return (selectEl.value || '').trim();
+            }
+
+            const directEl = document.getElementById(`profile-${fieldName}`);
+            return directEl ? directEl.value.trim() : '';
+        }
+
+        function showManualLocationInput(fieldName, value = '', placeholder = '') {
+            const selectEl = document.getElementById(`profile-${fieldName}-select`);
+            const manualEl = document.getElementById(`profile-${fieldName}-manual`);
+            if (!manualEl) return;
+
+            if (selectEl) {
+                selectEl.style.display = 'none';
+            }
+            manualEl.style.display = 'block';
+            if (placeholder) {
+                manualEl.placeholder = placeholder;
+            }
+            manualEl.value = value || '';
+        }
+
+        function showSelectLocationInput(fieldName, placeholder = '') {
+            const selectEl = document.getElementById(`profile-${fieldName}-select`);
+            const manualEl = document.getElementById(`profile-${fieldName}-manual`);
+            if (!selectEl) return;
+
+            selectEl.style.display = 'block';
+            if (manualEl) {
+                manualEl.style.display = 'none';
+                manualEl.value = '';
+            }
+
+            if (placeholder && selectEl.options.length > 0) {
+                selectEl.options[0].textContent = placeholder;
+            }
+        }
+
+        function setSelectOptions(selectEl, items, placeholderText) {
+            if (!selectEl) return;
+
+            const selectedBefore = selectEl.value;
+            selectEl.innerHTML = '';
+
+            const placeholderOption = document.createElement('option');
+            placeholderOption.value = '';
+            placeholderOption.textContent = placeholderText;
+            selectEl.appendChild(placeholderOption);
+
+            items.forEach(item => {
+                const option = document.createElement('option');
+                if (typeof item === 'string') {
+                    option.value = item;
+                    option.textContent = item;
+                } else {
+                    option.value = item.value;
+                    option.textContent = item.label;
+                    if (item.code) {
+                        option.dataset.code = item.code;
+                    }
+                }
+                selectEl.appendChild(option);
+            });
+
+            if (selectedBefore && Array.from(selectEl.options).some(opt => opt.value === selectedBefore)) {
+                selectEl.value = selectedBefore;
+            }
+        }
+
+        async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 10000) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return await response.json();
+            } finally {
+                clearTimeout(timeout);
+            }
+        }
+
+        async function loadCountryOptions() {
+            const countryEl = document.getElementById('profile-country');
+            if (!countryEl) return;
+
+            const existingValue = countryEl.value || 'Philippines';
+            try {
+                const countries = await fetchJsonWithTimeout('https://restcountries.com/v3.1/all?fields=name');
+                const countryNames = countries
+                    .map(c => c && c.name && c.name.common ? c.name.common : null)
+                    .filter(Boolean)
+                    .sort((a, b) => a.localeCompare(b));
+
+                setSelectOptions(countryEl, countryNames, 'Select Country');
+            } catch (error) {
+                console.warn('Unable to load full country list, using fallback list:', error);
+                const fallbackCountries = [
+                    'Philippines', 'United States', 'Canada', 'Australia', 'United Kingdom',
+                    'Japan', 'South Korea', 'Singapore', 'Malaysia', 'Thailand',
+                    'Indonesia', 'India', 'France', 'Germany', 'Italy', 'Spain',
+                    'United Arab Emirates', 'Saudi Arabia', 'Qatar'
+                ];
+                setSelectOptions(countryEl, fallbackCountries, 'Select Country');
+            }
+
+            countryEl.value = Array.from(countryEl.options).some(opt => opt.value === existingValue)
+                ? existingValue
+                : 'Philippines';
+        }
+
+        function autoFillPostalCodeFromProvince(provinceValue, keepExisting = true) {
+            const postalCodeEl = document.getElementById('profile-postal-code');
+            if (!postalCodeEl) return;
+
+            if (keepExisting && postalCodeEl.value.trim()) {
+                return;
+            }
+
+            const postalCode = PH_PROVINCE_POSTAL_CODES[provinceValue] || '';
+            if (postalCode) {
+                postalCodeEl.value = postalCode;
+            }
+        }
+
+        async function loadProvinceOptionsByCountry(countryName) {
+            if (!countryName) return [];
+
+            if (countryName === 'Philippines') {
+                const provinces = await fetchJsonWithTimeout('https://psgc.gitlab.io/api/provinces/');
+                return (Array.isArray(provinces) ? provinces : [])
+                    .map(p => ({ label: p.name, value: p.name, code: p.code }))
+                    .sort((a, b) => a.label.localeCompare(b.label));
+            }
+
+            const response = await fetchJsonWithTimeout('https://countriesnow.space/api/v0.1/countries/states', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ country: countryName })
+            });
+
+            const states = response && response.data && Array.isArray(response.data.states)
+                ? response.data.states
+                : [];
+
+            return states
+                .map(s => ({ label: s.name, value: s.name }))
+                .sort((a, b) => a.label.localeCompare(b.label));
+        }
+
+        async function loadCitiesByCountryAndProvince(countryName, provinceOption) {
+            if (!countryName || !provinceOption) return [];
+
+            if (countryName === 'Philippines') {
+                const provinceCode = provinceOption.dataset && provinceOption.dataset.code
+                    ? provinceOption.dataset.code
+                    : '';
+                if (!provinceCode) return [];
+
+                const cities = await fetchJsonWithTimeout(`https://psgc.gitlab.io/api/provinces/${provinceCode}/cities-municipalities/`);
+                return (Array.isArray(cities) ? cities : [])
+                    .map(c => ({ label: c.name, value: c.name, code: c.code }))
+                    .sort((a, b) => a.label.localeCompare(b.label));
+            }
+
+            const response = await fetchJsonWithTimeout('https://countriesnow.space/api/v0.1/countries/state/cities', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ country: countryName, state: provinceOption.value })
+            });
+
+            const cities = response && response.data && Array.isArray(response.data)
+                ? response.data
+                : [];
+
+            return cities
+                .map(name => ({ label: name, value: name }))
+                .sort((a, b) => a.label.localeCompare(b.label));
+        }
+
+        async function loadBarangaysByCity(countryName, cityOption) {
+            if (countryName !== 'Philippines') {
+                return [];
+            }
+
+            const cityCode = cityOption && cityOption.dataset && cityOption.dataset.code
+                ? cityOption.dataset.code
+                : '';
+            if (!cityCode) return [];
+
+            const barangays = await fetchJsonWithTimeout(`https://psgc.gitlab.io/api/cities-municipalities/${cityCode}/barangays/`);
+            return (Array.isArray(barangays) ? barangays : [])
+                .map(b => ({ label: b.name, value: b.name }))
+                .sort((a, b) => a.label.localeCompare(b.label));
+        }
+
+        async function onCountryChange(preferredProvince = '', preferredCity = '', preferredBarangay = '') {
+            const countryEl = document.getElementById('profile-country');
+            const provinceSelect = document.getElementById('profile-province-select');
+            const citySelect = document.getElementById('profile-city-select');
+            const barangaySelect = document.getElementById('profile-barangay-select');
+            if (!countryEl || !provinceSelect || !citySelect || !barangaySelect) return;
+
+            const country = countryEl.value.trim();
+            setSelectOptions(citySelect, [], 'Select Town/City');
+            setSelectOptions(barangaySelect, [], 'Select Barangay');
+
+            try {
+                const provinces = await loadProvinceOptionsByCountry(country);
+                if (provinces.length > 0) {
+                    showSelectLocationInput('province', 'Select Province');
+                    setSelectOptions(provinceSelect, provinces, 'Select Province');
+                    const hasPreferred = preferredProvince && provinces.some(p => p.value === preferredProvince);
+                    if (hasPreferred) {
+                        provinceSelect.value = preferredProvince;
+                        await onProvinceChange(preferredCity, preferredBarangay);
+                    } else {
+                        provinceSelect.value = '';
+                        showSelectLocationInput('city', 'Select Town/City');
+                        showSelectLocationInput('barangay', 'Select Barangay');
+                        setSelectOptions(citySelect, [], 'Select Town/City');
+                        setSelectOptions(barangaySelect, [], 'Select Barangay');
+                    }
+                } else {
+                    showManualLocationInput('province', preferredProvince, 'Province');
+                    showManualLocationInput('city', preferredCity, 'Town/City');
+                    showManualLocationInput('barangay', preferredBarangay, 'Barangay');
+                }
+            } catch (error) {
+                console.warn('Failed to load provinces for country:', country, error);
+                showManualLocationInput('province', preferredProvince, 'Province');
+                showManualLocationInput('city', preferredCity, 'Town/City');
+                showManualLocationInput('barangay', preferredBarangay, 'Barangay');
+            }
+        }
+
+        async function onProvinceChange(preferredCity = '', preferredBarangay = '') {
+            const countryEl = document.getElementById('profile-country');
+            const provinceSelect = document.getElementById('profile-province-select');
+            const citySelect = document.getElementById('profile-city-select');
+            const barangaySelect = document.getElementById('profile-barangay-select');
+            if (!countryEl || !citySelect || !barangaySelect) return;
+
+            const country = countryEl.value.trim();
+            const provinceOption = provinceSelect && provinceSelect.style.display !== 'none'
+                ? provinceSelect.options[provinceSelect.selectedIndex]
+                : null;
+
+            setSelectOptions(barangaySelect, [], 'Select Barangay');
+
+            if (provinceOption && provinceOption.value) {
+                autoFillPostalCodeFromProvince(provinceOption.value, false);
+            }
+
+            try {
+                const cities = await loadCitiesByCountryAndProvince(country, provinceOption);
+                if (cities.length > 0) {
+                    showSelectLocationInput('city', 'Select Town/City');
+                    setSelectOptions(citySelect, cities, 'Select Town/City');
+                    const hasPreferred = preferredCity && cities.some(c => c.value === preferredCity);
+                    if (hasPreferred) {
+                        citySelect.value = preferredCity;
+                        await onCityChange(preferredBarangay);
+                    } else {
+                        citySelect.value = '';
+                        showManualLocationInput('barangay', '', 'Barangay');
+                    }
+                } else {
+                    showManualLocationInput('city', preferredCity, 'Town/City');
+                    showManualLocationInput('barangay', preferredBarangay, 'Barangay');
+                }
+            } catch (error) {
+                console.warn('Failed to load cities:', error);
+                showManualLocationInput('city', preferredCity, 'Town/City');
+                showManualLocationInput('barangay', preferredBarangay, 'Barangay');
+            }
+        }
+
+        async function onCityChange(preferredBarangay = '') {
+            const countryEl = document.getElementById('profile-country');
+            const citySelect = document.getElementById('profile-city-select');
+            const barangaySelect = document.getElementById('profile-barangay-select');
+            if (!countryEl || !citySelect || !barangaySelect) return;
+
+            const country = countryEl.value.trim();
+            const cityOption = citySelect.style.display !== 'none'
+                ? citySelect.options[citySelect.selectedIndex]
+                : null;
+
+            try {
+                const barangays = await loadBarangaysByCity(country, cityOption);
+                if (barangays.length > 0) {
+                    showSelectLocationInput('barangay', 'Select Barangay');
+                    setSelectOptions(barangaySelect, barangays, 'Select Barangay');
+                    if (preferredBarangay && barangays.some(b => b.value === preferredBarangay)) {
+                        barangaySelect.value = preferredBarangay;
+                    }
+                } else {
+                    showManualLocationInput('barangay', preferredBarangay, 'Barangay');
+                }
+            } catch (error) {
+                console.warn('Failed to load barangays:', error);
+                showManualLocationInput('barangay', preferredBarangay, 'Barangay');
+            }
+        }
+
+        async function initializeProfileLocationFields() {
+            if (profileLocationInitialized) return;
+
+            const countryEl = document.getElementById('profile-country');
+            const provinceSelect = document.getElementById('profile-province-select');
+            const citySelect = document.getElementById('profile-city-select');
+            if (!countryEl || !provinceSelect || !citySelect) return;
+
+            profileLocationInitialized = true;
+            await loadCountryOptions();
+
+            countryEl.addEventListener('change', () => {
+                onCountryChange();
+            });
+
+            provinceSelect.addEventListener('change', () => {
+                onProvinceChange();
+            });
+
+            citySelect.addEventListener('change', () => {
+                onCityChange();
+            });
+
+            await onCountryChange('');
+        }
+
+        async function applyProfileLocationFromUser(user) {
+            const countryEl = document.getElementById('profile-country');
+            const provinceSelect = document.getElementById('profile-province-select');
+            const citySelect = document.getElementById('profile-city-select');
+            const postalCodeEl = document.getElementById('profile-postal-code');
+            if (!countryEl || !provinceSelect || !citySelect || !postalCodeEl) return;
+
+            const country = user.country || 'Philippines';
+            if (!Array.from(countryEl.options).some(opt => opt.value === country)) {
+                const option = document.createElement('option');
+                option.value = country;
+                option.textContent = country;
+                countryEl.appendChild(option);
+            }
+            countryEl.value = country;
+
+            await onCountryChange(user.province || '', user.city || '', user.barangay || '');
+
+            // If saved value wasn't available in dropdown data, preserve with manual entry.
+            if ((user.province || '') && provinceSelect.style.display !== 'none' && !provinceSelect.value) {
+                showManualLocationInput('province', user.province, 'Province');
+            }
+            if ((user.city || '') && citySelect.style.display !== 'none' && !citySelect.value) {
+                showManualLocationInput('city', user.city, 'Town/City');
+            }
+
+            postalCodeEl.value = user.postal_code || postalCodeEl.value || '';
         }
         
         // Verify session and load profile
@@ -410,10 +877,7 @@
             const emailEl = document.getElementById('profile-email');
             const phoneEl = document.getElementById('profile-phone');
             const addressEl = document.getElementById('profile-address');
-            const cityEl = document.getElementById('profile-city');
-            const provinceEl = document.getElementById('profile-province');
             const postalCodeEl = document.getElementById('profile-postal-code');
-            const countryEl = document.getElementById('profile-country');
             const dateOfBirthEl = document.getElementById('profile-date-of-birth');
             const genderEl = document.getElementById('profile-gender');
             const nationalityEl = document.getElementById('profile-nationality');
@@ -448,15 +912,13 @@
                     if (emailEl) emailEl.value = user.email || '';
                     if (phoneEl) phoneEl.value = user.phone || '';
                     if (addressEl) addressEl.value = user.address || '';
-                    if (cityEl) cityEl.value = user.city || '';
-                    if (provinceEl) provinceEl.value = user.province || '';
                     if (postalCodeEl) postalCodeEl.value = user.postal_code || '';
-                    if (countryEl) countryEl.value = user.country || 'Philippines';
                     if (dateOfBirthEl) dateOfBirthEl.value = user.date_of_birth || '';
                     if (genderEl) genderEl.value = user.gender || '';
                     if (nationalityEl) nationalityEl.value = user.nationality || '';
                     if (idTypeEl) idTypeEl.value = user.id_type || '';
                     if (idNumberEl) idNumberEl.value = user.id_number || '';
+                    await applyProfileLocationFromUser(user);
                     
                     // Remove loading message
                     if (loadingMsg) loadingMsg.remove();
@@ -551,31 +1013,15 @@
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Updating...';
                 
-                const password = document.getElementById('profile-password').value;
-                const confirmPassword = document.getElementById('profile-confirm-password').value;
-                
-                if (password && password !== confirmPassword) {
-                    showMessage('Passwords do not match. Please try again.', 'error');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
-                    return;
-                }
-                
-                if (password && password.length < 6) {
-                    showMessage('Password must be at least 6 characters long.', 'error');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
-                    return;
-                }
-                
                 const profileData = {
                     first_name: document.getElementById('profile-first-name').value.trim(),
                     last_name: document.getElementById('profile-last-name').value.trim(),
                     email: document.getElementById('profile-email').value.trim(),
                     phone: document.getElementById('profile-phone').value.trim(),
                     address: document.getElementById('profile-address').value.trim(),
-                    city: document.getElementById('profile-city')?.value.trim() || '',
-                    province: document.getElementById('profile-province')?.value.trim() || '',
+                    city: getLocationFieldValue('city'),
+                    province: getLocationFieldValue('province'),
+                    barangay: getLocationFieldValue('barangay'),
                     postal_code: document.getElementById('profile-postal-code')?.value.trim() || '',
                     country: document.getElementById('profile-country')?.value.trim() || 'Philippines',
                     date_of_birth: document.getElementById('profile-date-of-birth')?.value || '',
@@ -584,10 +1030,6 @@
                     id_type: document.getElementById('profile-id-type')?.value || '',
                     id_number: document.getElementById('profile-id-number')?.value.trim() || ''
                 };
-                
-                if (password) {
-                    profileData.password = password;
-                }
                 
                 try {
                     const response = await API.user.updateProfile(profileData);
@@ -600,13 +1042,67 @@
                             currentUser = response.user;
                             document.getElementById('user-name-display').textContent = response.user.name || currentUser.name;
                         }
-                        
-                        // Clear password fields
-                        document.getElementById('profile-password').value = '';
-                        document.getElementById('profile-confirm-password').value = '';
                     }
                 } catch (error) {
                     showMessage(error.message || 'Failed to update profile. Please try again.', 'error');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+            });
+        }
+
+        // Setup security form
+        function setupSecurityForm() {
+            const form = document.getElementById('security-form');
+            if (!form) return;
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Updating...';
+
+                const currentPassword = document.getElementById('security-current-password').value;
+                const newPassword = document.getElementById('security-new-password').value;
+                const confirmPassword = document.getElementById('security-confirm-password').value;
+
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    showMessage('Please fill in all password fields.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    showMessage('New password and confirmation do not match.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    showMessage('New password must be at least 6 characters long.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                    return;
+                }
+
+                try {
+                    const response = await API.user.changePassword({
+                        current_password: currentPassword,
+                        new_password: newPassword,
+                        confirm_password: confirmPassword
+                    });
+
+                    if (response.success) {
+                        showMessage('Your password has been updated successfully.', 'success');
+                        form.reset();
+                    }
+                } catch (error) {
+                    showMessage(error.message || 'Failed to update password. Please try again.', 'error');
                 } finally {
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
@@ -777,10 +1273,6 @@
             color: #ff8c00;
             font-weight: 600;
         }
-        .tab-button.active {
-            border-bottom-color: #b2945b !important;
-            color: #b2945b !important;
-        }
         .tab-content {
             animation: fadeIn 0.3s;
         }
@@ -789,19 +1281,8 @@
             to { opacity: 1; }
         }
     </style>
-    <script>
-        // Register Service Worker for PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        console.log('ServiceWorker registration successful:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('ServiceWorker registration failed:', error);
-                    });
-            });
-        }
-    </script>
 </body>
 </html>
+
+
+

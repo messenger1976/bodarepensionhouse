@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS `customers` (
   `phone` varchar(20) DEFAULT NULL,
   `address` text DEFAULT NULL,
   `city` varchar(100) DEFAULT NULL,
+  `barangay` varchar(100) DEFAULT NULL,
   `province` varchar(100) DEFAULT NULL,
   `postal_code` varchar(20) DEFAULT NULL,
   `country` varchar(100) DEFAULT 'Philippines',

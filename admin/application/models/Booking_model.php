@@ -546,6 +546,260 @@ class Booking_model extends CI_Model {
         
         return $availability_data;
     }
+
+    /**
+     * Get monthly booking and revenue trend.
+     */
+    public function get_monthly_booking_analytics($months = 12) {
+        $months = max(1, (int)$months);
+
+        $start_month = new DateTime('first day of this month');
+        $start_month->modify('-' . ($months - 1) . ' months');
+        $start_date = $start_month->format('Y-m-d');
+
+        $this->db->select("DATE_FORMAT(created_at, '%Y-%m') as period", FALSE);
+        $this->db->select('COUNT(id) as bookings_count', FALSE);
+        $this->db->select("COALESCE(SUM(CASE WHEN status = 'confirmed' THEN total_amount ELSE 0 END), 0) as confirmed_revenue", FALSE);
+        $this->db->from('bookings');
+        $this->db->where('DATE(created_at) >=', $start_date);
+        $this->db->group_by("DATE_FORMAT(created_at, '%Y-%m')", FALSE);
+        $this->db->order_by("DATE_FORMAT(created_at, '%Y-%m')", 'ASC', FALSE);
+        $rows = $this->db->get()->result();
+
+        $rows_by_period = array();
+        foreach ($rows as $row) {
+            $rows_by_period[$row->period] = $row;
+        }
+
+        $result = array();
+        $cursor = clone $start_month;
+        for ($i = 0; $i < $months; $i++) {
+            $period = $cursor->format('Y-m');
+            $label = $cursor->format('M Y');
+            $matched = isset($rows_by_period[$period]) ? $rows_by_period[$period] : null;
+
+            $result[] = array(
+                'period' => $period,
+                'label' => $label,
+                'bookings_count' => $matched ? (int)$matched->bookings_count : 0,
+                'confirmed_revenue' => $matched ? (float)$matched->confirmed_revenue : 0
+            );
+
+            $cursor->modify('+1 month');
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get booking status counts and value over a date range.
+     */
+    public function get_booking_status_analytics($start_date = null, $end_date = null) {
+        if (!$end_date) {
+            $end_date = date('Y-m-d');
+        }
+        if (!$start_date) {
+            $start_date = date('Y-m-d', strtotime('-89 days', strtotime($end_date)));
+        }
+
+        $this->db->select('status, COUNT(id) as bookings_count, COALESCE(SUM(total_amount), 0) as total_value', FALSE);
+        $this->db->from('bookings');
+        $this->db->where('DATE(created_at) >=', $start_date);
+        $this->db->where('DATE(created_at) <=', $end_date);
+        $this->db->group_by('status');
+        $rows = $this->db->get()->result();
+
+        $summary = array();
+        foreach ($rows as $row) {
+            $summary[$row->status] = array(
+                'status' => $row->status,
+                'bookings_count' => (int)$row->bookings_count,
+                'total_value' => (float)$row->total_value
+            );
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Get top rooms by sold units and revenue.
+     */
+    public function get_top_rooms_analytics($months = 6, $limit = 6) {
+        $months = max(1, (int)$months);
+        $limit = max(1, (int)$limit);
+        $start_date = date('Y-m-d', strtotime('-' . ($months - 1) . ' months'));
+
+        if ($this->db->table_exists('booking_items')) {
+            $this->db->select('rooms.id as room_id, rooms.room_name, rooms.room_type', FALSE);
+            $this->db->select('COUNT(booking_items.id) as sold_units', FALSE);
+            $this->db->select('COALESCE(SUM(booking_items.subtotal), 0) as revenue', FALSE);
+            $this->db->from('booking_items');
+            $this->db->join('bookings', 'bookings.id = booking_items.booking_id', 'inner');
+            $this->db->join('rooms', 'rooms.id = booking_items.room_id', 'left');
+            $this->db->where('bookings.status !=', 'cancelled');
+            $this->db->where('booking_items.status !=', 'cancelled');
+            $this->db->where('DATE(booking_items.created_at) >=', $start_date);
+            $this->db->group_by('rooms.id, rooms.room_name, rooms.room_type');
+            $this->db->order_by('revenue', 'DESC');
+            $this->db->limit($limit);
+            return $this->db->get()->result_array();
+        }
+
+        $this->db->select('rooms.id as room_id, rooms.room_name, rooms.room_type', FALSE);
+        $this->db->select('COUNT(bookings.id) as sold_units', FALSE);
+        $this->db->select('COALESCE(SUM(bookings.total_amount), 0) as revenue', FALSE);
+        $this->db->from('bookings');
+        $this->db->join('rooms', 'rooms.id = bookings.room_id', 'left');
+        $this->db->where('bookings.status !=', 'cancelled');
+        $this->db->where('DATE(bookings.created_at) >=', $start_date);
+        $this->db->group_by('rooms.id, rooms.room_name, rooms.room_type');
+        $this->db->order_by('revenue', 'DESC');
+        $this->db->limit($limit);
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Get booking volume and confirmed revenue grouped by date across a range.
+     */
+    public function get_booking_revenue_timeseries($start_date, $end_date) {
+        $start_date = date('Y-m-d', strtotime($start_date));
+        $end_date = date('Y-m-d', strtotime($end_date));
+
+        $this->db->select("DATE(created_at) as period", FALSE);
+        $this->db->select('COUNT(id) as bookings_count', FALSE);
+        $this->db->select("COALESCE(SUM(CASE WHEN status = 'confirmed' THEN total_amount ELSE 0 END), 0) as confirmed_revenue", FALSE);
+        $this->db->from('bookings');
+        $this->db->where('DATE(created_at) >=', $start_date);
+        $this->db->where('DATE(created_at) <=', $end_date);
+        $this->db->group_by('DATE(created_at)', FALSE);
+        $this->db->order_by('DATE(created_at)', 'ASC', FALSE);
+        $rows = $this->db->get()->result();
+
+        $rows_by_period = array();
+        foreach ($rows as $row) {
+            $rows_by_period[$row->period] = $row;
+        }
+
+        $result = array();
+        $cursor = new DateTime($start_date);
+        $end = new DateTime($end_date);
+
+        while ($cursor <= $end) {
+            $period = $cursor->format('Y-m-d');
+            $matched = isset($rows_by_period[$period]) ? $rows_by_period[$period] : null;
+
+            $result[] = array(
+                'period' => $period,
+                'label' => $cursor->format('M d'),
+                'bookings_count' => $matched ? (int)$matched->bookings_count : 0,
+                'confirmed_revenue' => $matched ? (float)$matched->confirmed_revenue : 0
+            );
+
+            $cursor->modify('+1 day');
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get top rooms by sold units and revenue for a custom date range.
+     */
+    public function get_top_rooms_analytics_by_range($start_date, $end_date, $limit = 6) {
+        $limit = max(1, (int)$limit);
+        $start_date = date('Y-m-d', strtotime($start_date));
+        $end_date = date('Y-m-d', strtotime($end_date));
+
+        if ($this->db->table_exists('booking_items')) {
+            $this->db->select('rooms.id as room_id, rooms.room_name, rooms.room_type', FALSE);
+            $this->db->select('COUNT(booking_items.id) as sold_units', FALSE);
+            $this->db->select('COALESCE(SUM(booking_items.subtotal), 0) as revenue', FALSE);
+            $this->db->from('booking_items');
+            $this->db->join('bookings', 'bookings.id = booking_items.booking_id', 'inner');
+            $this->db->join('rooms', 'rooms.id = booking_items.room_id', 'left');
+            $this->db->where('bookings.status !=', 'cancelled');
+            $this->db->where('booking_items.status !=', 'cancelled');
+            $this->db->where('DATE(booking_items.created_at) >=', $start_date);
+            $this->db->where('DATE(booking_items.created_at) <=', $end_date);
+            $this->db->group_by('rooms.id, rooms.room_name, rooms.room_type');
+            $this->db->order_by('revenue', 'DESC');
+            $this->db->limit($limit);
+            return $this->db->get()->result_array();
+        }
+
+        $this->db->select('rooms.id as room_id, rooms.room_name, rooms.room_type', FALSE);
+        $this->db->select('COUNT(bookings.id) as sold_units', FALSE);
+        $this->db->select('COALESCE(SUM(bookings.total_amount), 0) as revenue', FALSE);
+        $this->db->from('bookings');
+        $this->db->join('rooms', 'rooms.id = bookings.room_id', 'left');
+        $this->db->where('bookings.status !=', 'cancelled');
+        $this->db->where('DATE(bookings.created_at) >=', $start_date);
+        $this->db->where('DATE(bookings.created_at) <=', $end_date);
+        $this->db->group_by('rooms.id, rooms.room_name, rooms.room_type');
+        $this->db->order_by('revenue', 'DESC');
+        $this->db->limit($limit);
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Get inventory summary for a specific date.
+     */
+    public function get_inventory_summary_for_date($date) {
+        $availability = $this->get_room_availability_for_date($date);
+        $total_units = 0;
+        $booked_units = 0;
+
+        foreach ($availability as $room) {
+            $total_units += (int)$room['available'];
+            $booked_units += (int)$room['booked'];
+        }
+
+        $utilization_rate = $total_units > 0 ? round(($booked_units / $total_units) * 100, 1) : 0;
+
+        return array(
+            'date' => date('Y-m-d', strtotime($date)),
+            'total_units' => $total_units,
+            'booked_units' => $booked_units,
+            'utilization_rate' => $utilization_rate
+        );
+    }
+
+    /**
+     * Get occupancy forecast (active inventory utilization) for upcoming days.
+     */
+    public function get_occupancy_forecast($days = 30, $start_date = null) {
+        $days = max(1, (int)$days);
+        if (!$start_date) {
+            $start_date = date('Y-m-d');
+        }
+
+        $start_date = date('Y-m-d', strtotime($start_date));
+        $end_date = date('Y-m-d', strtotime('+' . ($days - 1) . ' days', strtotime($start_date)));
+        $availability = $this->get_room_availability_for_range($start_date, $end_date);
+
+        $forecast = array();
+        foreach ($availability as $date => $rooms) {
+            $total_units = 0;
+            $booked_units = 0;
+
+            foreach ($rooms as $room) {
+                if (!isset($room['room_status']) || $room['room_status'] != 'active') {
+                    continue;
+                }
+                $total_units += (int)$room['total_available'];
+                $booked_units += (int)$room['booked'];
+            }
+
+            $forecast[] = array(
+                'date' => $date,
+                'label' => date('M d', strtotime($date)),
+                'total_units' => $total_units,
+                'booked_units' => $booked_units,
+                'occupancy_rate' => $total_units > 0 ? round(($booked_units / $total_units) * 100, 1) : 0
+            );
+        }
+
+        return $forecast;
+    }
     
     /**
      * Get daily sales data for a specific date

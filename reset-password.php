@@ -23,30 +23,14 @@
 </head>
 <body>
 
-    <header class="header">
-        <nav class="navbar">
-            <a href="index.php" class="nav-logo">
-                <img src="img/logo.png" alt="Bodare Logo" class="logo-img">
-            </a>
-            <button class="mobile-menu-toggle" aria-label="Toggle menu" aria-expanded="false">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <ul class="nav-menu">
-                <li class="nav-item"><a href="index.php#about" class="nav-link">About</a></li>
-                <li class="nav-item"><a href="rooms.php" class="nav-link">Rooms</a></li>
-                <li class="nav-item"><a href="amenities.php" class="nav-link">Amenities</a></li>
-                <li class="nav-item"><a href="gallery.php" class="nav-link">Gallery</a></li>
-                <li class="nav-item"><a href="contact.php" class="nav-link">Contact</a></li>
-            </ul>
-            <div class="header-actions">
-                <a href="login.php" id="login-account-btn" class="cta-button-secondary" style="display: none;">Login</a>
-                <a href="customer-dashboard.php" id="my-account-btn" class="cta-button-secondary" style="display: none;">My Account</a>
-                <a href="rooms.php" class="cta-button">Book Now</a>
-            </div>
-        </nav>
-    </header>
+    <?php
+    $headerConfig = [
+        'logo_href' => 'index.php',
+        'show_cart' => false
+    ];
+    include __DIR__ . '/includes/site-header.php';
+?>
+
 
     <section class="page-header">
         <div class="page-header-content">
@@ -86,18 +70,15 @@
         </div>
     </main>
 
-    <footer id="contact" class="site-footer">
-        <div class="container">
-            <div class="footer-bottom">
-                <p>&copy; 2025 Bodare and Community Multi-Purpose Cooperative. All Rights Reserved.</p>
-            </div>
-        </div>
-    </footer>
+    <?php
+    $footerConfig = ['variant' => 'minimal'];
+    include __DIR__ . '/includes/site-footer.php';
+?>
     
     <script src="api-config.js"></script>
     <script src="booking-api.js"></script>
     <script src="api-config.js"></script>
-    <script src="script.js"></script>
+    <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
     <script>
         // Message display helper
         function showMessage(message, type = 'info') {
@@ -218,57 +199,10 @@
             });
         });
     </script>
-    <script>
-        // Check login status and update header button
-        async function updateLoginButton() {
-            const loginBtn = document.getElementById('login-account-btn');
-            const accountBtn = document.getElementById('my-account-btn');
-            
-            if (!loginBtn || !accountBtn) return;
-            
-            try {
-                if (typeof API !== 'undefined') {
-                    const response = await API.auth.check();
-                    if (response.success && response.logged_in) {
-                        loginBtn.style.display = 'none';
-                        accountBtn.style.display = 'inline-block';
-                    } else {
-                        loginBtn.style.display = 'inline-block';
-                        accountBtn.style.display = 'none';
-                    }
-                } else {
-                    loginBtn.style.display = 'inline-block';
-                    accountBtn.style.display = 'none';
-                }
-            } catch (error) {
-                loginBtn.style.display = 'inline-block';
-                accountBtn.style.display = 'none';
-            }
-        }
-        
-        if (typeof API !== 'undefined') {
-            updateLoginButton();
-        } else {
-            window.addEventListener('load', () => {
-                if (typeof API !== 'undefined') {
-                    updateLoginButton();
-                }
-            });
-        }
-        
-        // Register Service Worker for PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        console.log('ServiceWorker registration successful:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('ServiceWorker registration failed:', error);
-                    });
-            });
-        }
-    </script>
 </body>
 </html>
+
+
+
+
 

@@ -1,77 +1,129 @@
 // API Configuration for Frontend
-// This automatically detects the correct path
-const API_BASE_URL = (function() {
-    // Get the current path
-    const path = window.location.pathname;
-    // Remove filename if present (e.g., index.php, checkout.php)
-    const basePath = path.substring(0, path.lastIndexOf('/') + 1);
-    // Return the API path relative to current location
-    // Try with index.php first (if mod_rewrite not working)
-    const apiPath = basePath + 'admin/index.php/api';
-    return apiPath;
+// Use relative API paths only so uploads/deployments work across domains and folders.
+const API_BASE_CANDIDATES = (function() {
+    const pathname = window.location.pathname;
+    const currentDir = pathname.substring(0, pathname.lastIndexOf('/') + 1);
+
+    const candidates = [
+        `${currentDir}admin/index.php/api`,
+        `${currentDir}admin/api`,
+        'admin/index.php/api',
+        'admin/api',
+        './admin/index.php/api',
+        './admin/api'
+    ];
+
+    // Deduplicate while preserving order.
+    return [...new Set(candidates.map(url => url.replace(/\/+$/, '')))];
 })();
+
+let ACTIVE_API_BASE_URL = API_BASE_CANDIDATES[0];
+const API_BASE_URL = ACTIVE_API_BASE_URL;
 
 // API Helper Functions
 const API = {
-    baseURL: API_BASE_URL,
+    baseURL: ACTIVE_API_BASE_URL,
     
     // Helper method for API calls
     async request(endpoint, options = {}) {
-        const url = `${API_BASE_URL}/${endpoint}`;
+        const normalizedEndpoint = String(endpoint || '').replace(/^\/+/, '');
         const defaultOptions = {
             headers: {
                 'Content-Type': 'application/json',
             },
             credentials: 'include', // Include cookies for session
         };
-        
-        const config = { ...defaultOptions, ...options };
-        
-        try {
-            const response = await fetch(url, config);
-            
-            // Get response text first to check if it's JSON
-            const responseText = await response.text();
-            let data;
-            
-            try {
-                data = JSON.parse(responseText);
-            } catch (parseError) {
-                // If response is not JSON, log the full response for debugging
-                console.error('API returned non-JSON response. Status:', response.status, 'StatusText:', response.statusText);
-                console.error('Response preview:', responseText.substring(0, 500));
-                console.error('Full response length:', responseText.length);
-                
-                // Check if it's an HTML error page
-                if (responseText.includes('<!DOCTYPE') || responseText.includes('<html') || responseText.includes('<body')) {
-                    throw new Error('Server returned an error page. The API endpoint may not be accessible. Please check the server configuration.');
-                } else if (responseText.trim() === '') {
-                    throw new Error('Server returned an empty response. Please check the API endpoint and try again.');
-                } else {
-                    // Show a snippet of what we got
-                    const snippet = responseText.substring(0, 100).replace(/\n/g, ' ');
-                    throw new Error(`Invalid response from server: ${snippet}... Please try again.`);
-                }
+
+        const config = {
+            ...defaultOptions,
+            ...options,
+            headers: {
+                ...defaultOptions.headers,
+                ...(options.headers || {})
             }
+        };
+
+        let lastError;
+        for (const baseUrl of API_BASE_CANDIDATES) {
+            const url = `${baseUrl}/${normalizedEndpoint}`;
+
+            try {
+                const response = await fetch(url, config);
             
-            if (!response.ok) {
-                const error = new Error(data.message || 'Request failed');
-                error.response = data;
-                error.status = response.status;
+                // Get response text first to check if it's JSON
+                const responseText = await response.text();
+                let data;
+            
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    // If response is not JSON, log the full response for debugging
+                    console.error('API returned non-JSON response. Status:', response.status, 'StatusText:', response.statusText, 'URL:', url);
+                    console.error('Response preview:', responseText.substring(0, 500));
+                    console.error('Full response length:', responseText.length);
+                
+                    // Check if it's an HTML error page
+                    if (responseText.includes('<!DOCTYPE') || responseText.includes('<html') || responseText.includes('<body')) {
+                        const htmlError = new Error('Server returned an error page. The API endpoint may not be accessible. Please check the server configuration.');
+                        htmlError.url = url;
+                        throw htmlError;
+                    } else if (responseText.trim() === '') {
+                        const emptyError = new Error('Server returned an empty response. Please check the API endpoint and try again.');
+                        emptyError.url = url;
+                        throw emptyError;
+                    } else {
+                        // Show a snippet of what we got
+                        const snippet = responseText.substring(0, 100).replace(/\n/g, ' ');
+                        const invalidError = new Error(`Invalid response from server: ${snippet}... Please try again.`);
+                        invalidError.url = url;
+                        throw invalidError;
+                    }
+                }
+            
+                if (!response.ok) {
+                    const error = new Error(data.message || 'Request failed');
+                    error.response = data;
+                    error.status = response.status;
+                    error.url = url;
+                    throw error;
+                }
+
+                // Persist the working base URL for subsequent calls.
+                ACTIVE_API_BASE_URL = baseUrl;
+                API.baseURL = ACTIVE_API_BASE_URL;
+                return data;
+            } catch (error) {
+                console.error('API Error:', error, 'URL:', url);
+                lastError = error;
+
+                const isNetworkError = error instanceof TypeError || /NetworkError|Failed to fetch/i.test(error.message || '');
+
+                // Retry on alternative bases only for network-level failures.
+                if (isNetworkError) {
+                    continue;
+                }
+
+                // For non-network errors, stop retries and bubble up immediately.
+                if (!error.response && !(error.message || '').includes('Server returned')) {
+                    const wrappedError = new Error(error.message || 'Network error. Please check your connection.');
+                    wrappedError.originalError = error;
+                    throw wrappedError;
+                }
                 throw error;
             }
-            
-            return data;
-        } catch (error) {
-            console.error('API Error:', error);
-            // If it's not already our custom error, wrap it
-            if (!error.response && !error.message.includes('Server returned')) {
-                const wrappedError = new Error(error.message || 'Network error. Please check your connection.');
-                wrappedError.originalError = error;
-                throw wrappedError;
-            }
-            throw error;
         }
+            
+        if (!lastError) {
+            throw new Error('Unable to connect to API. Please try again later.');
+        }
+
+        if (!lastError.response && !(lastError.message || '').includes('Server returned')) {
+            const wrappedError = new Error(lastError.message || 'Network error. Please check your connection.');
+            wrappedError.originalError = lastError;
+            throw wrappedError;
+        }
+
+        throw lastError;
     },
     
     // Auth endpoints
@@ -178,6 +230,13 @@ const API = {
             return API.request('user/update', {
                 method: 'POST',
                 body: JSON.stringify(profileData)
+            });
+        },
+
+        async changePassword(payload) {
+            return API.request('user/change_password', {
+                method: 'POST',
+                body: JSON.stringify(payload)
             });
         }
     },

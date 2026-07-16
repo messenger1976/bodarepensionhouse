@@ -82,15 +82,87 @@ const roomData = {
 
 // --- CART MANAGEMENT FUNCTIONS ---
 
+let bookingCartMutationAllowed = false;
+
+function withExpectedCartMutation(actionLabel, mutator) {
+    bookingCartMutationAllowed = true;
+    try {
+        return mutator();
+    } finally {
+        bookingCartMutationAllowed = false;
+    }
+}
+
+function installBookingCartGuard() {
+    if (window.__bookingCartGuardInstalled) return;
+    window.__bookingCartGuardInstalled = true;
+
+    const originalSetItem = localStorage.setItem.bind(localStorage);
+    const originalRemoveItem = localStorage.removeItem.bind(localStorage);
+
+    localStorage.setItem = function(key, value) {
+        if (key === 'bookingCart' && !bookingCartMutationAllowed) {
+            console.warn('[Cart Guard] Unexpected bookingCart write detected.', {
+                key,
+                valuePreview: typeof value === 'string' ? value.substring(0, 120) : value,
+                stack: new Error().stack
+            });
+        }
+        return originalSetItem(key, value);
+    };
+
+    localStorage.removeItem = function(key) {
+        if (key === 'bookingCart' && !bookingCartMutationAllowed) {
+            console.warn('[Cart Guard] Unexpected bookingCart removal detected.', {
+                key,
+                stack: new Error().stack
+            });
+        }
+        return originalRemoveItem(key);
+    };
+}
+
+installBookingCartGuard();
+
 // Get cart from localStorage
 function getCart() {
     const cartStr = localStorage.getItem('bookingCart');
     return cartStr ? JSON.parse(cartStr) : [];
 }
 
+// Capture cart-related storage so auth flows can safely preserve it.
+function getCartStorageSnapshot() {
+    return {
+        bookingCart: localStorage.getItem('bookingCart'),
+        cartServices: localStorage.getItem('cartServices'),
+        bookingDetails: localStorage.getItem('bookingDetails')
+    };
+}
+
+function restoreCartStorageSnapshot(snapshot) {
+    if (!snapshot) return;
+
+    withExpectedCartMutation('restore-cart-snapshot', () => {
+        if (snapshot.bookingCart !== null) {
+            localStorage.setItem('bookingCart', snapshot.bookingCart);
+        }
+    });
+
+    if (snapshot.cartServices !== null) {
+        localStorage.setItem('cartServices', snapshot.cartServices);
+    }
+    if (snapshot.bookingDetails !== null) {
+        localStorage.setItem('bookingDetails', snapshot.bookingDetails);
+    }
+
+    updateCartBadge();
+}
+
 // Save cart to localStorage
 function saveCart(cart) {
-    localStorage.setItem('bookingCart', JSON.stringify(cart));
+    withExpectedCartMutation('save-cart', () => {
+        localStorage.setItem('bookingCart', JSON.stringify(cart));
+    });
     updateCartBadge();
 }
 
@@ -163,10 +235,104 @@ function updateCartBadge() {
     }
 }
 
-// Clear cart
-function clearCart() {
-    localStorage.removeItem('bookingCart');
+// Update header auth buttons globally for pages using shared header include.
+async function updateHeaderAuthButtons() {
+    const loginBtn = document.getElementById('login-account-btn');
+    const accountBtn = document.getElementById('my-account-btn');
+
+    if (!loginBtn || !accountBtn) return;
+
+    // Keep login CTA hidden on login page itself.
+    if (window.location.pathname.includes('login.php')) {
+        loginBtn.style.display = 'none';
+        return;
+    }
+
+    try {
+        if (typeof API !== 'undefined' && API.auth && typeof API.auth.check === 'function') {
+            const response = await API.auth.check();
+            if (response.success && response.logged_in) {
+                loginBtn.style.display = 'none';
+                accountBtn.style.display = 'inline-block';
+                return;
+            }
+        }
+    } catch (error) {
+        // Fallback to local storage below.
+    }
+
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+        loginBtn.style.display = 'none';
+        accountBtn.style.display = 'inline-block';
+    } else {
+        loginBtn.style.display = 'inline-block';
+        accountBtn.style.display = 'none';
+    }
+}
+
+// Clear booking cart data (used after successful booking or explicit logout).
+function clearBookingCartData() {
+    withExpectedCartMutation('clear-booking-cart', () => {
+        localStorage.removeItem('bookingCart');
+    });
+    localStorage.removeItem('cartServices');
+    localStorage.removeItem('bookingDetails');
     updateCartBadge();
+}
+
+// Backward-compatible alias used by existing code.
+function clearCart() {
+    clearBookingCartData();
+}
+
+function setupServiceWorkerAutoUpdate() {
+    if (!('serviceWorker' in navigator)) {
+        return;
+    }
+
+    if (window.__swAutoUpdateInitialized) {
+        return;
+    }
+    window.__swAutoUpdateInitialized = true;
+
+    let hasRefreshed = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hasRefreshed) return;
+        hasRefreshed = true;
+        window.location.reload();
+    });
+
+    window.addEventListener('load', async () => {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+
+            // Ask the SW to check for updates periodically.
+            setInterval(() => {
+                registration.update().catch(() => {});
+            }, 60 * 60 * 1000);
+
+            registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (!newWorker) return;
+
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        const shouldRefresh = window.confirm('A new version is available. Reload now to update?');
+                        if (shouldRefresh) {
+                            if (registration.waiting) {
+                                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                            } else {
+                                window.location.reload();
+                            }
+                        }
+                    }
+                });
+            });
+        } catch (error) {
+            console.log('ServiceWorker registration failed:', error);
+        }
+    });
 }
 
 // --- MAIN EVENT LISTENER ---
@@ -233,6 +399,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Update cart badge on page load
     updateCartBadge();
+
+    // Ensure Login/My Account visibility is correct across all public pages.
+    updateHeaderAuthButtons();
+
+    // Register SW once globally and refresh users when updates are available.
+    setupServiceWorkerAutoUpdate();
 });
 
 

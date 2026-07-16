@@ -20,33 +20,19 @@
     
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 </head>
 <body>
 
-    <header class="header">
-        <nav class="navbar">
-            <a href="index.php" class="nav-logo">
-                <img src="img/logo.png" alt="Bodare Logo" class="logo-img">
-            </a>
-            <button class="mobile-menu-toggle" aria-label="Toggle menu" aria-expanded="false">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <ul class="nav-menu">
-                <li class="nav-item"><a href="index.php#about" class="nav-link">About</a></li>
-                <li class="nav-item"><a href="rooms.php" class="nav-link">Rooms</a></li>
-                <li class="nav-item"><a href="amenities.php" class="nav-link">Amenities</a></li>
-                <li class="nav-item"><a href="gallery.php" class="nav-link">Gallery</a></li>
-                <li class="nav-item"><a href="contact.php" class="nav-link">Contact</a></li>
-            </ul>
-            <div class="header-actions">
-                <a href="login.php" id="login-account-btn" class="cta-button-secondary" style="display: none !important;">Login</a>
-                <a href="customer-dashboard.php" id="my-account-btn" class="cta-button-secondary" style="display: none;">My Account</a>
-                <a href="rooms.php" class="cta-button">Book Now</a>
-            </div>
-        </nav>
-    </header>
+    <?php
+    $headerConfig = [
+        'logo_href' => 'index.php',
+        'show_cart' => true,
+        'login_button_style' => 'display: none !important;'
+    ];
+    include __DIR__ . '/includes/site-header.php';
+?>
+
 
     <section class="page-header">
         <div class="page-header-content">
@@ -84,17 +70,14 @@
         </div>
     </main>
 
-    <footer id="contact" class="site-footer">
-        <div class="container">
-            <div class="footer-bottom">
-                <p>&copy; 2025 Bodare and Community Multi-Purpose Cooperative. All Rights Reserved.</p>
-            </div>
-        </div>
-    </footer>
+    <?php
+    $footerConfig = ['variant' => 'minimal'];
+    include __DIR__ . '/includes/site-footer.php';
+?>
     
-    <script src="api-config.js"></script>
-    <script src="booking-api.js"></script>
-    <script src="script.js"></script>
+    <script src="api-config.js?v=<?php echo filemtime(__DIR__ . '/api-config.js'); ?>"></script>
+    <script src="booking-api.js?v=<?php echo filemtime(__DIR__ . '/booking-api.js'); ?>"></script>
+    <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
     <script>
         // Check if API is loaded
         if (typeof API === 'undefined') {
@@ -171,6 +154,10 @@
                 }
                 
                 try {
+                    const cartSnapshot = typeof getCartStorageSnapshot === 'function'
+                        ? getCartStorageSnapshot()
+                        : null;
+
                     const response = await API.auth.login(email, password);
                     
                     if (response.success) {
@@ -179,6 +166,11 @@
                         
                         // Store user info
                         localStorage.setItem('user', JSON.stringify(response.user));
+
+                        // Ensure cart survives login transitions.
+                        if (typeof restoreCartStorageSnapshot === 'function') {
+                            restoreCartStorageSnapshot(cartSnapshot);
+                        }
                         
                         // Redirect to dashboard or previous page
                         const redirect = new URLSearchParams(window.location.search).get('redirect') || 'customer-dashboard.php';
@@ -238,63 +230,10 @@
             }, timeout);
         }
     </script>
-    <script>
-        // Check login status and update header button
-        async function updateLoginButton() {
-            const loginBtn = document.getElementById('login-account-btn');
-            const accountBtn = document.getElementById('my-account-btn');
-            
-            if (!loginBtn || !accountBtn) return;
-            
-            // Hide login button if we're on the login page
-            if (window.location.pathname.includes('login.php')) {
-                loginBtn.style.display = 'none';
-                return;
-            }
-            
-            try {
-                if (typeof API !== 'undefined') {
-                    const response = await API.auth.check();
-                    if (response.success && response.logged_in) {
-                        loginBtn.style.display = 'none';
-                        accountBtn.style.display = 'inline-block';
-                    } else {
-                        loginBtn.style.display = 'inline-block';
-                        accountBtn.style.display = 'none';
-                    }
-                } else {
-                    loginBtn.style.display = 'inline-block';
-                    accountBtn.style.display = 'none';
-                }
-            } catch (error) {
-                loginBtn.style.display = 'inline-block';
-                accountBtn.style.display = 'none';
-            }
-        }
-        
-        if (typeof API !== 'undefined') {
-            updateLoginButton();
-        } else {
-            window.addEventListener('load', () => {
-                if (typeof API !== 'undefined') {
-                    updateLoginButton();
-                }
-            });
-        }
-        
-        // Register Service Worker for PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        console.log('ServiceWorker registration successful:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('ServiceWorker registration failed:', error);
-                    });
-            });
-        }
-    </script>
 </body>
 </html>
+
+
+
+
 

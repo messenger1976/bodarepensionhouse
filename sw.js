@@ -1,5 +1,5 @@
 // Service Worker for BODARE Pension House PWA
-const CACHE_NAME = 'bodare-pwa-v1';
+const CACHE_NAME = 'bodare-pwa-v3';
 const urlsToCache = [
   '/',
   '/index.php',
@@ -43,44 +43,82 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Fetch event
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') {
     return;
   }
 
+  const requestUrl = new URL(event.request.url);
+
   // Skip API requests
   if (event.request.url.includes('/api/')) {
     return;
   }
 
+  // Always fetch critical runtime scripts from network to avoid stale auth/API logic.
+  const criticalRuntimeFiles = ['/api-config.js', '/booking-api.js', '/script.js'];
+  if (criticalRuntimeFiles.some((file) => requestUrl.pathname.endsWith(file))) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  const isDocumentRequest =
+    event.request.mode === 'navigate' ||
+    event.request.destination === 'document' ||
+    event.request.url.endsWith('.php');
+
+  // For pages, always try network first to avoid stale HTML/UI state.
+  if (isDocumentRequest) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === 'basic') {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request).then((cached) => {
+            return cached || caches.match('/index.php');
+          });
+        })
+    );
+    return;
+  }
+
+  // For static assets, cache-first with network fallback.
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request).then((response) => {
-          // Don't cache if not a valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
+        if (response) {
+          return response;
+        }
+
+        return fetch(event.request).then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+            return networkResponse;
           }
 
-          // Clone the response
-          const responseToCache = response.clone();
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
 
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-
-          return response;
+          return networkResponse;
         });
-      })
-      .catch(() => {
-        // If both cache and network fail, return offline page if available
-        if (event.request.destination === 'document') {
-          return caches.match('/index.php');
-        }
       })
   );
 });

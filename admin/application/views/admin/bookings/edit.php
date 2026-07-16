@@ -363,13 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const roomsContainer = document.getElementById('rooms-container');
     const addRoomBtn = document.getElementById('add-room-btn');
     
-    // Set minimum date to today
     const today = new Date().toISOString().split('T')[0];
-    
-    // Set min dates for all existing room rows
-    document.querySelectorAll('.room-checkin, .room-checkout').forEach(input => {
-        input.setAttribute('min', today);
-    });
     
     // Update remove button visibility
     function updateRemoveButtons() {
@@ -415,11 +409,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-bold">Check-In Date *</label>
-                    <input type="date" class="form-control room-checkin" name="room_selections[${roomIndex}][check_in]" value="${firstCheckIn}" data-index="${roomIndex}" min="${today}" required>
+                    <input type="date" class="form-control room-checkin" name="room_selections[${roomIndex}][check_in]" value="${firstCheckIn}" data-index="${roomIndex}" required>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-bold">Check-Out Date *</label>
-                    <input type="date" class="form-control room-checkout" name="room_selections[${roomIndex}][check_out]" value="${tomorrow}" data-index="${roomIndex}" min="${today}" required>
+                    <input type="date" class="form-control room-checkout" name="room_selections[${roomIndex}][check_out]" value="${tomorrow}" data-index="${roomIndex}" required>
                 </div>
                 <div class="col-md-1">
                     <label class="form-label small fw-bold">Guests</label>

@@ -1,4 +1,12 @@
 <?php
+if (isset($_SERVER['REQUEST_URI'])) {
+	$requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+	if (is_string($requestPath) && preg_match('#/admin/index\.php/?$#i', $requestPath)) {
+		header('Location: login');
+		exit;
+	}
+}
+
 /**
  * CodeIgniter
  *

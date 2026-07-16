@@ -10,9 +10,10 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0, private">
     <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
+    <meta name="cache-timestamp" content="<?php echo time(); ?>">
     <title><?php echo isset($title) ? $title . ' - ' : ''; ?>Admin Panel - BODARE Pension House</title>
     
     <!-- Dashlite CSS -->
@@ -3348,7 +3349,7 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
         </div>
         <h5 class="nk-header-title"><?php echo isset($title) ? $title : 'Admin Panel'; ?></h5>
         <div class="nk-header-tools">
-            <span class="text-muted me-3">Welcome, <?php 
+            <span class="text-muted me-3" data-admin-id="<?php echo $this->session->userdata('admin_id'); ?>" data-timestamp="<?php echo time(); ?>">Welcome, <?php 
                 // Get admin info directly from session (source of truth)
                 $admin_name = $this->session->userdata('admin_name');
                 $admin_username = $this->session->userdata('admin_username');

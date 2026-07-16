@@ -120,6 +120,7 @@ class Auth extends CI_Controller {
             'phone' => trim($data['phone']),
             'address' => trim($data['address']),
             'city' => isset($data['city']) ? trim($data['city']) : null,
+            'barangay' => isset($data['barangay']) ? trim($data['barangay']) : null,
             'province' => isset($data['province']) ? trim($data['province']) : null,
             'postal_code' => isset($data['postal_code']) ? trim($data['postal_code']) : null,
             'country' => isset($data['country']) && !empty($data['country']) ? trim($data['country']) : 'Philippines',
