@@ -197,6 +197,13 @@ const API = {
                 method: 'POST',
                 body: JSON.stringify({ token, password })
             });
+        },
+
+        async activateAccount(token) {
+            return API.request('auth/activate-account', {
+                method: 'POST',
+                body: JSON.stringify({ token })
+            });
         }
     },
     

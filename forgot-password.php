@@ -132,60 +132,8 @@
                     if (response.success) {
                         showMessage(response.message || 'If an account exists with this email, a password reset link has been sent. Please check your inbox and spam folder.', 'success');
                         form.reset();
-
-                        // Development diagnostics / fallback link
-                        if (response.debug) {
-                            const debugEl = document.createElement('div');
-                            debugEl.className = 'api-message info';
-                            debugEl.style.cssText = `
-                                padding: 1rem;
-                                margin: 1rem 0;
-                                border-radius: 4px;
-                                background: #fff3cd;
-                                color: #856404;
-                                border: 1px solid #ffeeba;
-                            `;
-                            debugEl.textContent = response.debug;
-                            form.insertBefore(debugEl, form.firstChild);
-                        }
-                        
-                        if (response.token && response.reset_url) {
-                            const infoEl = document.createElement('div');
-                            infoEl.className = 'api-message info';
-                            infoEl.style.cssText = `
-                                padding: 1rem;
-                                margin: 1rem 0;
-                                border-radius: 4px;
-                                background: #d1ecf1;
-                                color: #0c5460;
-                                border: 1px solid #bee5eb;
-                            `;
-                            infoEl.innerHTML = `
-                                <strong>Development Mode:</strong><br>
-                                <a href="${response.reset_url}" style="color: #0c5460; text-decoration: underline;">Click here to reset your password</a>
-                                <p style="margin: 0.5rem 0 0 0; font-size: 0.9em;">(This link is only shown in development mode)</p>
-                            `;
-                            form.insertBefore(infoEl, form.firstChild);
-                        }
                     } else {
                         showMessage(response.message || 'We couldn\'t process your request. Please try again later.', 'error');
-                        if (response.reset_url) {
-                            const infoEl = document.createElement('div');
-                            infoEl.className = 'api-message info';
-                            infoEl.style.cssText = `
-                                padding: 1rem;
-                                margin: 1rem 0;
-                                border-radius: 4px;
-                                background: #d1ecf1;
-                                color: #0c5460;
-                                border: 1px solid #bee5eb;
-                            `;
-                            infoEl.innerHTML = `
-                                <strong>Development fallback:</strong><br>
-                                <a href="${response.reset_url}" style="color: #0c5460; text-decoration: underline;">Open reset link anyway</a>
-                            `;
-                            form.insertBefore(infoEl, form.firstChild);
-                        }
                     }
                 } catch (error) {
                     showMessage(error.message || 'We couldn\'t process your request. Please try again later.', 'error');

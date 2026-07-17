@@ -68,7 +68,21 @@ function setupRegistrationForm() {
             const response = await API.auth.register(userData);
             
             if (response.success) {
-                // Show success message
+                // Email confirmation required — do not auto-login.
+                if (response.requires_verification) {
+                    showMessage(response.message || 'Please check your email and click the confirmation link to activate your account.', 'success');
+
+                    form.reset();
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+
+                    setTimeout(() => {
+                        window.location.href = 'login.php';
+                    }, 4000);
+                    return;
+                }
+
+                // Legacy path (auto-login) if API still returns a user session.
                 showMessage('Welcome! Your account has been created successfully. Redirecting to your dashboard...', 'success');
                 
                 // Store user info
