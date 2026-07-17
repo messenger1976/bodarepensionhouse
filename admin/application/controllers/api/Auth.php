@@ -415,55 +415,91 @@ class Auth extends CI_Controller {
         }
         
         $email = trim(strtolower($data['email']));
-        
-        // Check if user exists
-        $user = $this->User_model->get_user_by_email($email);
-        
-        if (!$user) {
-            // Don't reveal if email exists for security
-            echo json_encode([
-                'success' => true,
-                'message' => 'If an account exists with this email, a password reset link has been sent.'
-            ]);
-            return;
-        }
-        
-        // Generate token
-        $token = bin2hex(random_bytes(32));
-        $expires_at = date('Y-m-d H:i:s', strtotime('+1 hour'));
-        
-        // Save token
-        if ($this->Password_reset_model->create_token($email, $token, $expires_at)) {
-            // Build reset URL - get the frontend URL
-            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-            $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost';
-            $path = dirname($_SERVER['SCRIPT_NAME']);
-            // Remove /admin from path if present
-            $path = str_replace('/admin', '', $path);
-            if (substr($path, -1) !== '/') {
-                $path .= '/';
+
+        // Same message whether or not the account exists (avoid email enumeration).
+        $neutral_message = 'If an account exists with this email, a password reset link has been sent. Please check your inbox and spam folder.';
+
+        try {
+            $user = $this->User_model->get_user_by_email($email);
+
+            if (!$user || (isset($user->status) && $user->status !== 'active')) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => $neutral_message
+                ]);
+                return;
             }
-            $reset_url = $protocol . $host . $path . 'reset-password.php?token=' . $token;
-            
-            // In production, send email here
-            // For now, return the URL in development mode
+
+            $token = bin2hex(random_bytes(32));
+            $expires_at = date('Y-m-d H:i:s', strtotime('+1 hour'));
+
+            if (!$this->Password_reset_model->create_token($email, $token, $expires_at)) {
+                $this->output->set_status_header(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Unable to process your request. Please try again later.'
+                ]);
+                return;
+            }
+
+            $reset_url = $this->build_frontend_reset_url($token);
+            $name = trim(
+                (!empty($user->first_name) ? $user->first_name : '') . ' ' .
+                (!empty($user->last_name) ? $user->last_name : '')
+            );
+            if ($name === '') {
+                $name = !empty($user->email) ? $user->email : 'there';
+            }
+
+            $title = 'BODARE Pension House';
+            $subject = 'Reset your password - ' . $title;
+            $message = $this->build_reset_email($title, $name, $reset_url);
+
+            $this->load->library('coop_mail');
+            $this->coop_mail->set_profile('account');
+
+            if (!$this->coop_mail->send($email, $subject, $message)) {
+                // Clear token if email failed so the user can retry.
+                $this->Password_reset_model->delete_by_email($email);
+                $this->output->set_status_header(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'We could not send the reset email right now. Please try again later.'
+                ]);
+                return;
+            }
+
             $response = [
                 'success' => true,
-                'message' => 'Password reset instructions have been sent to your email address. Please check your inbox and follow the link to reset your password.'
+                'message' => $neutral_message
             ];
-            
-            // Include token in development mode (remove in production)
+
+            // Include reset link only in development for local testing.
             if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
                 $response['token'] = $token;
                 $response['reset_url'] = $reset_url;
             }
-            
+
             echo json_encode($response);
-        } else {
+        } catch (Exception $e) {
+            log_message('error', 'Forgot password failed: ' . $e->getMessage());
+            if (isset($email)) {
+                $this->Password_reset_model->delete_by_email($email);
+            }
             $this->output->set_status_header(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Unable to process your request. Please try again later.'
+                'message' => 'We could not process your password reset request right now. Please try again later.'
+            ]);
+        } catch (Error $e) {
+            log_message('error', 'Forgot password failed: ' . $e->getMessage());
+            if (isset($email)) {
+                $this->Password_reset_model->delete_by_email($email);
+            }
+            $this->output->set_status_header(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'We could not process your password reset request right now. Please try again later.'
             ]);
         }
     }
@@ -608,6 +644,84 @@ class Auth extends CI_Controller {
                 'message' => 'Unable to reset password. Please try again later.'
             ]);
         }
+    }
+
+    /**
+     * Public site root (parent of /admin).
+     */
+    protected function frontend_site_root() {
+        $this->load->helper('url');
+        return rtrim(preg_replace('#/admin/?$#', '', rtrim(base_url(), '/')), '/');
+    }
+
+    /**
+     * Build the public-site reset URL (outside /admin).
+     */
+    protected function build_frontend_reset_url($token) {
+        return $this->frontend_site_root() . '/reset-password.php?token=' . rawurlencode($token);
+    }
+
+    /**
+     * HTML email for password reset (same pattern as the main website Forgot flow).
+     */
+    protected function build_reset_email($title, $name, $reset_url) {
+        $safe_title = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+        $safe_name = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+        $safe_url = htmlspecialchars($reset_url, ENT_QUOTES, 'UTF-8');
+
+        $logo_src = htmlspecialchars($this->frontend_site_root() . '/img/logo.png', ENT_QUOTES, 'UTF-8');
+        $accent = '#b2945b';
+
+        return '
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Reset Password</title></head>
+<body style="margin:0;padding:0;background:#f5f6fa;font-family:Arial,Helvetica,sans-serif;color:#333;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f6fa;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="background:#ffffff;border-radius:12px;overflow:hidden;max-width:560px;width:100%;">
+          <tr>
+            <td style="background:' . $accent . ';padding:20px 28px;color:#fff;">
+              <div style="font-size:18px;font-weight:bold;">' . $safe_title . '</div>
+              <div style="font-size:13px;opacity:.9;margin-top:4px;">Password reset request</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px;">
+              <img src="' . $logo_src . '" alt="' . $safe_title . '" style="max-height:48px;margin-bottom:16px;">
+              <p style="margin:0 0 12px;font-size:15px;">Hi ' . $safe_name . ',</p>
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">
+                We received a request to reset your password. Click the button below to create a new password.
+                This link will expire in <strong>1 hour</strong>.
+              </p>
+              <p style="margin:24px 0;" align="center">
+                <a href="' . $safe_url . '" style="display:inline-block;background:' . $accent . ';color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:6px;font-weight:bold;font-size:15px;">
+                  Reset Password
+                </a>
+              </p>
+              <p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:#555;">
+                If the button does not work, copy and paste this link into your browser:
+              </p>
+              <p style="margin:0 0 18px;font-size:12px;line-height:1.5;word-break:break-all;color:' . $accent . ';">
+                ' . $safe_url . '
+              </p>
+              <p style="margin:0;font-size:13px;line-height:1.6;color:#777;">
+                If you did not request a password reset, you can safely ignore this email. Your password will stay the same.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 28px;background:#f8f9fb;font-size:12px;color:#888;">
+              &copy; ' . date('Y') . ' ' . $safe_title . '
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>';
     }
 }
 

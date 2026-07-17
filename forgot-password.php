@@ -130,7 +130,7 @@
                     const response = await API.auth.forgotPassword(email);
                     
                     if (response.success) {
-                        showMessage(response.message || 'Password reset instructions have been sent to your email address. Please check your inbox and follow the link to reset your password.', 'success');
+                        showMessage(response.message || 'If an account exists with this email, a password reset link has been sent. Please check your inbox and spam folder.', 'success');
                         form.reset();
                         
                         // Show additional info if token is returned (for development/testing)
@@ -152,19 +152,12 @@
                             `;
                             form.insertBefore(infoEl, form.firstChild);
                         }
+                    } else {
+                        showMessage(response.message || 'We couldn\'t process your request. Please try again later.', 'error');
                     }
                 } catch (error) {
-                    let errorMessage = 'We couldn\'t process your request. Please try again later.';
-                    
-                    if (error.message) {
-                        if (error.message.includes('not found') || error.message.includes('No account')) {
-                            errorMessage = 'No account found with this email address. Please check your email or register for a new account.';
-                        } else {
-                            errorMessage = error.message;
-                        }
-                    }
-                    
-                    showMessage(errorMessage, 'error');
+                    showMessage(error.message || 'We couldn\'t process your request. Please try again later.', 'error');
+                } finally {
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                 }

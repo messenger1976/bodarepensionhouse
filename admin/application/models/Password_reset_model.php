@@ -64,5 +64,13 @@ class Password_reset_model extends CI_Model {
         $this->db->order_by('created_at', 'DESC');
         return $this->db->get('password_resets')->row();
     }
+
+    /**
+     * Delete all tokens for an email (e.g. after a failed send so the user can retry).
+     */
+    public function delete_by_email($email) {
+        $this->db->where('email', $email);
+        return $this->db->delete('password_resets');
+    }
 }
 
