@@ -9,10 +9,7 @@ class Email_settings extends Admin_Controller {
 
 	public function __construct() {
 		parent::__construct();
-		if (!$this->is_super_admin() && !$this->has_role('admin')) {
-			$this->session->set_flashdata('error', 'Only Admin or Super Admin can manage email settings.');
-			redirect('dashboard');
-		}
+		$this->require_permission('manage_email_settings');
 		$this->load->database();
 		$this->load->library('form_validation');
 		$this->load->helper('url');

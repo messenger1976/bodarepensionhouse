@@ -1,23 +1,26 @@
--- Add permissions for inquiries module
--- This script adds view, edit, and delete permissions for inquiries
+-- Fix Inquiries role permissions
+-- Ensures inquiry access matches the intended roles:
+-- Super Admin, Admin, Manager, Staff
 
--- Inquiries permissions
+-- Keep permission definitions current
 INSERT INTO `permissions` (`name`, `slug`, `description`, `module`) VALUES
-('View Inquiries', 'view_inquiries', 'Permission to view inquiries list and details', 'inquiries'),
-('Edit Inquiries', 'edit_inquiries', 'Permission to edit inquiry status', 'inquiries'),
-('Delete Inquiries', 'delete_inquiries', 'Permission to delete inquiries', 'inquiries')
-ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`);
+('View Inquiries', 'view_inquiries', 'Permission to view the inquiries inbox, conversation thread, and download attachments', 'inquiries'),
+('Edit Inquiries', 'edit_inquiries', 'Permission to reply, update status, and check email replies', 'inquiries'),
+('Delete Inquiries', 'delete_inquiries', 'Permission to permanently delete inquiries and their attachments', 'inquiries')
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `description` = VALUES(`description`),
+  `module` = VALUES(`module`);
 
--- Assign all inquiry permissions to Super Admin role (role_id = 1)
--- This ensures Super Admin has all permissions
+-- Assign all inquiry permissions to Super Admin, Admin, Manager, and Staff
 INSERT INTO `role_permissions` (`role_id`, `permission_id`)
-SELECT 1, `id` FROM `permissions` 
-WHERE `slug` IN ('view_inquiries', 'edit_inquiries', 'delete_inquiries')
-AND NOT EXISTS (
-    SELECT 1 FROM `role_permissions` 
-    WHERE `role_permissions`.`role_id` = 1 
-    AND `role_permissions`.`permission_id` = `permissions`.`id`
-);
-
--- Note: You may want to assign these permissions to other roles as needed
-
+SELECT r.id, p.id
+FROM `roles` r
+CROSS JOIN `permissions` p
+WHERE r.slug IN ('super_admin', 'admin', 'manager', 'staff')
+  AND p.slug IN ('view_inquiries', 'edit_inquiries', 'delete_inquiries')
+  AND NOT EXISTS (
+    SELECT 1 FROM `role_permissions` rp
+    WHERE rp.role_id = r.id
+      AND rp.permission_id = p.id
+  );

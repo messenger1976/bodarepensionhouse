@@ -3266,7 +3266,7 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             <?php endif; ?>
 
             <!-- Email/SMTP Settings -->
-            <?php if ($admin_id && ($this->Admin_model->is_super_admin($admin_id) || $this->Admin_model->has_role($admin_id, 'admin'))): ?>
+            <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'manage_email_settings')): ?>
             <div class="nk-menu-item">
                 <a href="<?php echo base_url('email_settings'); ?>" class="nk-menu-link <?php echo strpos($current_uri, 'email_settings') !== false ? 'active' : ''; ?>">
                     <span class="nk-menu-icon"><i class="bi bi-mailbox"></i></span>
