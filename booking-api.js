@@ -985,6 +985,15 @@ async function checkUserLogin() {
             
             return response.user;
         }
+
+        // Session missing — logout the local account
+        if (localStorage.getItem('user')) {
+            if (typeof API.auth.clearLocalSession === 'function') {
+                API.auth.clearLocalSession();
+            } else {
+                localStorage.removeItem('user');
+            }
+        }
         return null;
     } catch (error) {
         console.log('User not logged in');

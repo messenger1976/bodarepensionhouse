@@ -248,26 +248,44 @@ async function updateHeaderAuthButtons() {
         return;
     }
 
+    const showLoggedOut = () => {
+        loginBtn.style.display = 'inline-block';
+        accountBtn.style.display = 'none';
+    };
+
+    const showLoggedIn = () => {
+        loginBtn.style.display = 'none';
+        accountBtn.style.display = 'inline-block';
+    };
+
     try {
         if (typeof API !== 'undefined' && API.auth && typeof API.auth.check === 'function') {
             const response = await API.auth.check();
             if (response.success && response.logged_in) {
-                loginBtn.style.display = 'none';
-                accountBtn.style.display = 'inline-block';
+                showLoggedIn();
                 return;
             }
+
+            // Server session missing/expired — logout the local account too.
+            if (localStorage.getItem('user')) {
+                if (typeof API.auth.clearLocalSession === 'function') {
+                    API.auth.clearLocalSession();
+                } else {
+                    localStorage.removeItem('user');
+                }
+            }
+            showLoggedOut();
+            return;
         }
     } catch (error) {
-        // Fallback to local storage below.
+        // API unreachable: fall back to local storage below.
     }
 
     const userStr = localStorage.getItem('user');
     if (userStr) {
-        loginBtn.style.display = 'none';
-        accountBtn.style.display = 'inline-block';
+        showLoggedIn();
     } else {
-        loginBtn.style.display = 'inline-block';
-        accountBtn.style.display = 'none';
+        showLoggedOut();
     }
 }
 

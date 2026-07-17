@@ -349,7 +349,7 @@ class Auth extends CI_Controller {
             $user_id = $this->session->userdata('user_id');
             $user = $this->User_model->get_user($user_id);
             
-            if ($user) {
+            if ($user && (!isset($user->status) || $user->status === 'active')) {
                 echo json_encode([
                     'success' => true,
                     'logged_in' => true,
@@ -360,10 +360,12 @@ class Auth extends CI_Controller {
                     ]
                 ]);
             } else {
+                // Account missing/inactive — clear server session so client can logout account
+                $this->session->unset_userdata(['user_logged_in', 'user_id', 'user_email', 'user_name']);
                 echo json_encode([
                     'success' => true,
                     'logged_in' => false,
-                    'message' => 'User session exists but user not found'
+                    'message' => 'User session is no longer valid'
                 ]);
             }
         } else {

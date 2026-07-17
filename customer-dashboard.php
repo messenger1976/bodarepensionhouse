@@ -852,9 +852,13 @@
                 console.log('Session check result:', sessionCheck);
                 
                 if (!sessionCheck.success || !sessionCheck.logged_in) {
-                    console.warn('Session is not valid, user may need to login again');
-                    if (document.getElementById('profile-tab').style.display !== 'none') {
-                        showMessage('Your session has expired. Please log in again.', 'error');
+                    console.warn('Session is not valid, logging out account');
+                    showMessage('Your session has expired. Please log in again.', 'error');
+                    if (typeof API !== 'undefined' && API.auth && typeof API.auth.forceLogout === 'function') {
+                        await API.auth.forceLogout('login.php');
+                    } else {
+                        localStorage.removeItem('user');
+                        window.location.href = 'login.php';
                     }
                     return;
                 }
@@ -954,24 +958,17 @@
                 // Remove loading message
                 if (loadingMsg) loadingMsg.remove();
                 
-                // Show error but don't block the page
-                if (error.message && (error.message.includes('log in') || error.message.includes('session'))) {
-                    console.warn('Session expired. User may need to login again.');
-                    if (profileTab.style.display !== 'none') {
-                        const errorMsg = error.response && error.response.message 
-                            ? error.response.message 
-                            : 'Your session has expired. Please log in again to view your profile.';
-                        showMessage(errorMsg, 'error');
+                // Session missing/expired — logout the account
+                if (error.status === 401 || (error.message && (error.message.includes('log in') || error.message.includes('session')))) {
+                    console.warn('Session expired. Logging out account.');
+                    showMessage('Your session has expired. Please log in again.', 'error');
+                    if (typeof API !== 'undefined' && API.auth && typeof API.auth.forceLogout === 'function') {
+                        await API.auth.forceLogout('login.php');
+                    } else {
+                        localStorage.removeItem('user');
+                        window.location.href = 'login.php';
                     }
-                } else if (error.status === 401) {
-                    // Unauthorized - session issue
-                    console.warn('Unauthorized access - session may have expired');
-                    if (profileTab.style.display !== 'none') {
-                        const errorMsg = error.response && error.response.message 
-                            ? error.response.message 
-                            : 'Please log in again to view your profile.';
-                        showMessage(errorMsg, 'error');
-                    }
+                    return;
                 } else {
                     // Try to populate from localStorage as fallback
                     if (currentUser) {

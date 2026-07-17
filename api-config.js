@@ -147,6 +147,32 @@ const API = {
                 method: 'POST'
             });
         },
+
+        // Clear client-side account state when the server session is missing/expired.
+        clearLocalSession() {
+            localStorage.removeItem('user');
+            if (typeof clearBookingCartData === 'function') {
+                clearBookingCartData();
+            } else {
+                localStorage.removeItem('bookingCart');
+                localStorage.removeItem('cartServices');
+                localStorage.removeItem('bookingDetails');
+            }
+        },
+
+        // Logout server session (best effort) and clear the local account.
+        async forceLogout(redirectTo = 'login.php') {
+            try {
+                await API.auth.logout();
+            } catch (error) {
+                // Session may already be gone; still clear local account state.
+            } finally {
+                API.auth.clearLocalSession();
+                if (redirectTo) {
+                    window.location.href = redirectTo;
+                }
+            }
+        },
         
         async check() {
             return API.request('auth/check');

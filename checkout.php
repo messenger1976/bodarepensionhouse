@@ -257,8 +257,12 @@
                         if (response.success && response.logged_in) {
                             isLoggedIn = true;
                         } else {
-                            // Session expired, clear localStorage
-                            localStorage.removeItem('user');
+                            // Session missing/expired — logout the local account
+                            if (typeof API.auth.clearLocalSession === 'function') {
+                                API.auth.clearLocalSession();
+                            } else {
+                                localStorage.removeItem('user');
+                            }
                             currentUser = null;
                         }
                     } catch (error) {

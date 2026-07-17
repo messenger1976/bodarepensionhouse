@@ -114,9 +114,19 @@
                         window.location.href = redirect;
                         return;
                     }
+                    // Session missing — clear the local account so login can proceed cleanly
+                    if (typeof API.auth.clearLocalSession === 'function') {
+                        API.auth.clearLocalSession();
+                    } else {
+                        localStorage.removeItem('user');
+                    }
                 } catch (error) {
-                    // Session expired, clear localStorage
-                    localStorage.removeItem('user');
+                    // Session check failed, clear local account state
+                    if (typeof API.auth.clearLocalSession === 'function') {
+                        API.auth.clearLocalSession();
+                    } else {
+                        localStorage.removeItem('user');
+                    }
                 }
             }
             
