@@ -56,7 +56,9 @@ class Customer_model extends CI_Model {
      * Get customer by email
      */
     public function get_customer_by_email($email) {
-        $this->db->where('LOWER(email)', strtolower(trim($email)));
+        $email = strtolower(trim($email));
+        // Avoid CI identifier escaping of LOWER(email) as a column name.
+        $this->db->where('LOWER(email) =', $this->db->escape($email), FALSE);
         return $this->db->get('customers')->row();
     }
     
@@ -91,7 +93,8 @@ class Customer_model extends CI_Model {
      * Check if email exists
      */
     public function email_exists($email, $exclude_id = null) {
-        $this->db->where('LOWER(email)', strtolower(trim($email)));
+        $email = strtolower(trim($email));
+        $this->db->where('LOWER(email) =', $this->db->escape($email), FALSE);
         if ($exclude_id) {
             $this->db->where('id !=', $exclude_id);
         }

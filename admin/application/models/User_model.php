@@ -25,25 +25,17 @@ class User_model extends CI_Model {
      * Login user
      */
     public function login($email, $password) {
-        // Trim and lowercase email for consistency
         $email = trim(strtolower($email));
-        
-        $this->db->where('LOWER(email)', strtolower($email));
-        $query = $this->db->get('users');
-        
-        if ($query->num_rows() == 1) {
-            $user = $query->row();
-            
-            // Check if user is active
-            if ($user->status != 'active') {
-                return false;
-            }
-            
-            // Verify password
-            if (password_verify($password, $user->password)) {
-                return $user;
-            }
+        $user = $this->get_user_by_email($email);
+
+        if (!$user || $user->status != 'active') {
+            return false;
         }
+
+        if (password_verify($password, $user->password)) {
+            return $user;
+        }
+
         return false;
     }
     
@@ -59,7 +51,9 @@ class User_model extends CI_Model {
      * Get user by email
      */
     public function get_user_by_email($email) {
-        $this->db->where('LOWER(email)', strtolower(trim($email)));
+        $email = strtolower(trim($email));
+        // Avoid CI identifier escaping of LOWER(email) as a column name.
+        $this->db->where('LOWER(email) =', $this->db->escape($email), FALSE);
         return $this->db->get('users')->row();
     }
     
@@ -81,7 +75,8 @@ class User_model extends CI_Model {
      * Check if email exists
      */
     public function email_exists($email, $exclude_id = null) {
-        $this->db->where('LOWER(email)', strtolower(trim($email)));
+        $email = strtolower(trim($email));
+        $this->db->where('LOWER(email) =', $this->db->escape($email), FALSE);
         if ($exclude_id) {
             $this->db->where('id !=', $exclude_id);
         }

@@ -420,13 +420,23 @@ class Auth extends CI_Controller {
         $neutral_message = 'If an account exists with this email, a password reset link has been sent. Please check your inbox and spam folder.';
 
         try {
-            $user = $this->User_model->get_user_by_email($email);
+            // Look in the login accounts first, then fall back to customer records
+            // (guests created from bookings may not have a users row yet).
+            $account = $this->User_model->get_user_by_email($email);
+            if (!$account || (isset($account->status) && $account->status !== 'active')) {
+                $account = $this->Customer_model->get_customer_by_email($email);
+            }
 
-            if (!$user || (isset($user->status) && $user->status !== 'active')) {
-                echo json_encode([
+            if (!$account || (isset($account->status) && $account->status !== 'active')) {
+                $response = [
                     'success' => true,
                     'message' => $neutral_message
-                ]);
+                ];
+                // Help local debugging without revealing accounts in production.
+                if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+                    $response['debug'] = 'No matching active account for this email in users or customers, so no reset email was sent.';
+                }
+                echo json_encode($response);
                 return;
             }
 
@@ -444,11 +454,11 @@ class Auth extends CI_Controller {
 
             $reset_url = $this->build_frontend_reset_url($token);
             $name = trim(
-                (!empty($user->first_name) ? $user->first_name : '') . ' ' .
-                (!empty($user->last_name) ? $user->last_name : '')
+                (!empty($account->first_name) ? $account->first_name : '') . ' ' .
+                (!empty($account->last_name) ? $account->last_name : '')
             );
             if ($name === '') {
-                $name = !empty($user->email) ? $user->email : 'there';
+                $name = !empty($account->email) ? $account->email : 'there';
             }
 
             $title = 'BODARE Pension House';
@@ -459,25 +469,40 @@ class Auth extends CI_Controller {
             $this->coop_mail->set_profile('account');
 
             if (!$this->coop_mail->send($email, $subject, $message)) {
-                // Clear token if email failed so the user can retry.
-                $this->Password_reset_model->delete_by_email($email);
-                $this->output->set_status_header(500);
-                echo json_encode([
+                $smtp_error = $this->coop_mail->get_last_error();
+                log_message('error', 'Password reset email failed for account mailer: ' . $smtp_error);
+
+                $response = [
                     'success' => false,
-                    'message' => 'We could not send the reset email right now. Please try again later.'
-                ]);
+                    'message' => 'We could not send the reset email right now. ' . ($smtp_error ? $smtp_error : 'Please try again later.')
+                ];
+
+                // In development keep the token so local testing can continue via the link.
+                if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+                    $response['token'] = $token;
+                    $response['reset_url'] = $reset_url;
+                    $response['debug'] = $smtp_error;
+                } else {
+                    $this->Password_reset_model->delete_by_email($email);
+                }
+
+                $this->output->set_status_header(500);
+                echo json_encode($response);
                 return;
             }
 
+            log_message('info', 'Password reset email sent via account mailer.');
+
             $response = [
                 'success' => true,
-                'message' => $neutral_message
+                'message' => 'If an account exists with this email, a password reset link has been sent. Please check your inbox and spam/junk folder.'
             ];
 
             // Include reset link only in development for local testing.
             if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
                 $response['token'] = $token;
                 $response['reset_url'] = $reset_url;
+                $response['debug'] = 'Reset email was accepted by SMTP for this account.';
             }
 
             echo json_encode($response);
@@ -613,23 +638,36 @@ class Auth extends CI_Controller {
             return;
         }
         
-        // Get user
+        // Get user login account
         $user = $this->User_model->get_user_by_email($reset_token->email);
-        
-        if (!$user) {
-            $this->output->set_status_header(400);
-            echo json_encode([
-                'success' => false,
-                'message' => 'User account not found.'
-            ]);
-            return;
+
+        if ($user) {
+            $saved = $this->User_model->update_user($user->id, array('password' => $password));
+        } else {
+            // Customer-only record (e.g. created from a booking): create the login account now.
+            $customer = $this->Customer_model->get_customer_by_email($reset_token->email);
+
+            if (!$customer) {
+                $this->output->set_status_header(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'User account not found.'
+                ]);
+                return;
+            }
+
+            $saved = (bool) $this->User_model->register(array(
+                'first_name' => $customer->first_name,
+                'last_name' => $customer->last_name,
+                'email' => strtolower(trim($customer->email)),
+                'phone' => $customer->phone,
+                'address' => $customer->address,
+                'password' => $password,
+                'status' => 'active'
+            ));
         }
-        
-        // Update password
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $update_data = array('password' => $hashed_password);
-        
-        if ($this->User_model->update_user($user->id, $update_data)) {
+
+        if ($saved) {
             // Mark token as used
             $this->Password_reset_model->mark_as_used($token);
             
