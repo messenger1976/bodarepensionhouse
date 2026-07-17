@@ -3249,10 +3249,28 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             
             <!-- Inquiries -->
             <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'view_inquiries')): ?>
+            <?php
+            $inquiry_badge_count = 0;
+            if ($this->db->table_exists('inquiry')) {
+                $this->db->where_in('status', array('new', 'guest_replied'));
+                $inquiry_badge_count = (int) $this->db->count_all_results('inquiry');
+            }
+            ?>
             <div class="nk-menu-item">
                 <a href="<?php echo base_url('inquiries'); ?>" class="nk-menu-link <?php echo strpos($current_uri, 'inquiries') !== false ? 'active' : ''; ?>">
                     <span class="nk-menu-icon"><i class="bi bi-envelope"></i></span>
                     <span class="nk-menu-text">Inquiries</span>
+                    <span id="inquiry-menu-badge" class="nk-menu-badge" <?php echo $inquiry_badge_count > 0 ? '' : 'style="display:none;"'; ?>><?php echo $inquiry_badge_count > 0 ? (int) $inquiry_badge_count : ''; ?></span>
+                </a>
+            </div>
+            <?php endif; ?>
+
+            <!-- Email/SMTP Settings -->
+            <?php if ($admin_id && ($this->Admin_model->is_super_admin($admin_id) || $this->Admin_model->has_role($admin_id, 'admin'))): ?>
+            <div class="nk-menu-item">
+                <a href="<?php echo base_url('email_settings'); ?>" class="nk-menu-link <?php echo strpos($current_uri, 'email_settings') !== false ? 'active' : ''; ?>">
+                    <span class="nk-menu-icon"><i class="bi bi-mailbox"></i></span>
+                    <span class="nk-menu-text">Email/SMTP</span>
                 </a>
             </div>
             <?php endif; ?>

@@ -59,26 +59,27 @@
 
             <div class="contact-form-centered">
                 <h2>Send Us a Message</h2>
-                <form action="#" class="minimal-form">
+                <div id="contact-form-alert" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;border-radius:4px;"></div>
+                <form id="contact-inquiry-form" action="#" class="minimal-form">
                     <div class="form-grid-2">
                         <div class="form-group-contact">
-                            <input type="text" id="contact-first-name" placeholder="First Name" required>
+                            <input type="text" id="contact-first-name" name="first_name" placeholder="First Name" required maxlength="75">
                         </div>
                         <div class="form-group-contact">
-                            <input type="text" id="contact-last-name" placeholder="Last Name" required>
+                            <input type="text" id="contact-last-name" name="last_name" placeholder="Last Name" required maxlength="75">
                         </div>
                     </div>
                     <div class="form-group-contact">
-                        <input type="email" id="contact-email" placeholder="Email Address" required>
+                        <input type="email" id="contact-email" name="email" placeholder="Email Address" required maxlength="255">
                     </div>
                     <div class="form-group-contact">
-                        <input type="text" id="contact-subject" placeholder="Subject" required>
+                        <input type="text" id="contact-subject" name="subject" placeholder="Subject" required maxlength="255">
                     </div>
                     <div class="form-group-contact">
-                        <textarea id="contact-message" placeholder="Your Message" rows="6" required></textarea>
+                        <textarea id="contact-message" name="message" placeholder="Your Message" rows="6" required maxlength="5000"></textarea>
                     </div>
                     
-                    <button type="submit" class="cta-button">Send Message</button>
+                    <button type="submit" class="cta-button" id="contact-submit-btn">Send Message</button>
                 </form>
             </div>
 
@@ -102,6 +103,59 @@
     
     <script src="api-config.js"></script>
     <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
+    <script>
+    (function () {
+        var form = document.getElementById('contact-inquiry-form');
+        if (!form || typeof API === 'undefined') return;
+
+        var alertBox = document.getElementById('contact-form-alert');
+        var submitBtn = document.getElementById('contact-submit-btn');
+
+        function showAlert(type, message) {
+            if (!alertBox) return;
+            alertBox.style.display = 'block';
+            alertBox.style.background = type === 'success' ? '#e8f5e9' : '#ffebee';
+            alertBox.style.color = type === 'success' ? '#1b5e20' : '#b71c1c';
+            alertBox.style.border = '1px solid ' + (type === 'success' ? '#a5d6a7' : '#ef9a9a');
+            alertBox.textContent = message;
+        }
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var first = (document.getElementById('contact-first-name').value || '').trim();
+            var last = (document.getElementById('contact-last-name').value || '').trim();
+            var email = (document.getElementById('contact-email').value || '').trim();
+            var subject = (document.getElementById('contact-subject').value || '').trim();
+            var message = (document.getElementById('contact-message').value || '').trim();
+            var name = (first + ' ' + last).trim();
+
+            if (!name || !email || !subject || !message) {
+                showAlert('danger', 'Please fill in all fields.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+            try {
+                var result = await API.request('inquiry/submit', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: name, email: email, subject: subject, message: message })
+                });
+                if (result && result.success) {
+                    showAlert('success', result.message || 'Thank you! Your message has been sent.');
+                    form.reset();
+                } else {
+                    showAlert('danger', (result && result.message) ? result.message : 'Could not send your message.');
+                }
+            } catch (err) {
+                showAlert('danger', 'Could not send your message. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Message';
+            }
+        });
+    })();
+    </script>
 </body>
 </html>
 

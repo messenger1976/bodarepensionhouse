@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS `email_smtp_settings` (
+  `id` tinyint(1) unsigned NOT NULL DEFAULT 1,
+  `protocol` varchar(10) NOT NULL DEFAULT 'smtp',
+  `smtp_host` varchar(255) NOT NULL,
+  `smtp_port` smallint(5) unsigned NOT NULL DEFAULT 587,
+  `smtp_user` varchar(255) NOT NULL,
+  `smtp_pass` text NOT NULL COMMENT 'AES-256-CBC encrypted SMTP password',
+  `smtp_crypto` varchar(10) NOT NULL DEFAULT 'tls',
+  `smtp_timeout` smallint(5) unsigned NOT NULL DEFAULT 30,
+  `from_email` varchar(255) NOT NULL,
+  `from_name` varchar(255) NOT NULL,
+  `mailtype` varchar(10) NOT NULL DEFAULT 'html',
+  `charset` varchar(20) NOT NULL DEFAULT 'utf-8',
+  `newline` varchar(10) NOT NULL DEFAULT '\r\n',
+  `crlf` varchar(10) NOT NULL DEFAULT '\r\n',
+  `is_active` tinyint(1) unsigned NOT NULL DEFAULT 1,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

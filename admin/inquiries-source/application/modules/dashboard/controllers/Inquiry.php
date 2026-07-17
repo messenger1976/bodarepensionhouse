@@ -1,22 +1,26 @@
-<?php
-defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-if (!class_exists('Admin_Controller', FALSE)) {
-	require_once(APPPATH . 'core/Admin_Controller.php');
-}
+class Inquiry extends MX_Controller {
 
-class Inquiries extends Admin_Controller {
-
-	public function __construct() {
+	function __construct() {
 		parent::__construct();
-		$this->require_permission('view_inquiries');
-		$this->load->database();
-		$this->load->helper(array('url', 'text', 'inquiry'));
-		$this->load->library('form_validation');
+
+		$logged_in = $this->session->userdata('logged_in');
+		$user_position = $this->session->userdata('user_position');
+		if (!$logged_in) {
+			redirect('access/login', 'refresh');
+		} elseif (!in_array($user_position, array('Admin', 'Super Admin', 'Manager', 'Staff'))) {
+			redirect('dashboard/index', 'refresh');
+		}
+
+		$language = $this->session->userdata('lang');
+		$this->lang->load('dashboard', $language);
+		$this->load->library('coop_access');
+		$this->coop_access->requireAnyRole(array('Super Admin', 'Admin', 'Manager', 'Staff'));
 	}
 
 	public function index() {
-		$this->allinquiries();
+		redirect('dashboard/inquiry/allinquiries', 'refresh');
 	}
 
 	public function allinquiries() {
@@ -36,21 +40,18 @@ class Inquiries extends Admin_Controller {
 		$data['filter_date_to'] = $dateFilter['date_to'];
 		$data['date_query'] = $dateFilter['query'];
 		$data['counts'] = $this->getStatusCounts($dateFilter['date_from'], $dateFilter['date_to']);
-		$data['title'] = 'Manage Inquiries';
-		$data['can_delete'] = $this->has_permission('delete_inquiries');
-		$data['can_edit'] = $this->has_permission('edit_inquiries');
 
-		$this->load->view('admin/layout/header', $data);
-		$this->load->view('admin/inquiries/index', $data);
-		$this->load->view('admin/layout/footer');
+		$this->load->view('Dashboard/header');
+		$this->load->view('Inquiry/allinquiries', $data);
+		$this->load->view('Dashboard/footer');
 	}
 
-	public function view($inquiryid = NULL) {
-		$inquiryid = (int) $inquiryid;
+	public function view() {
+		$inquiryid = (int) $this->uri->segment(4);
 		$inquiry = $this->getInquiry($inquiryid);
 		if (!$inquiry) {
-			$this->session->set_flashdata('error', 'Inquiry not found.');
-			redirect('inquiries');
+			$this->session->set_flashdata('notsuccess', 'Inquiry not found.');
+			redirect('dashboard/inquiry/allinquiries', 'refresh');
 			return;
 		}
 
@@ -66,23 +67,18 @@ class Inquiries extends Admin_Controller {
 		$data['inquiry'] = $inquiry;
 		$data['replies'] = $this->getReplies($inquiryid);
 		$data['attachments_by_reply'] = $this->getReplyAttachments($inquiryid);
-		$data['title'] = 'Inquiry #' . $inquiryid;
-		$data['can_delete'] = $this->has_permission('delete_inquiries');
-		$data['can_edit'] = $this->has_permission('edit_inquiries');
 
-		$this->load->view('admin/layout/header', $data);
-		$this->load->view('admin/inquiries/view', $data);
-		$this->load->view('admin/layout/footer');
+		$this->load->view('Dashboard/header');
+		$this->load->view('Inquiry/view', $data);
+		$this->load->view('Dashboard/footer');
 	}
 
 	public function reply() {
-		$this->require_permission('edit_inquiries');
-
 		$inquiryid = (int) $this->input->post('inquiryid');
 		$inquiry = $this->getInquiry($inquiryid);
 		if (!$inquiry) {
-			$this->session->set_flashdata('error', 'Inquiry not found.');
-			redirect('inquiries');
+			$this->session->set_flashdata('notsuccess', 'Inquiry not found.');
+			redirect('dashboard/inquiry/allinquiries', 'refresh');
 			return;
 		}
 
@@ -90,35 +86,31 @@ class Inquiries extends Admin_Controller {
 		$this->form_validation->set_rules('reply_message', 'Message', 'trim|required|max_length[10000]');
 
 		if ($this->form_validation->run() == FALSE) {
-			$this->session->set_flashdata('error', strip_tags(validation_errors()));
-			redirect('inquiries/' . $inquiryid);
+			$this->session->set_flashdata('notsuccess', strip_tags(validation_errors()));
+			redirect('dashboard/inquiry/view/' . $inquiryid, 'refresh');
 			return;
 		}
 
 		$reply_subject = $this->security->xss_clean($this->input->post('reply_subject'));
 		$reply_message = sanitize_inquiry_html($this->input->post('reply_message'));
 		if ($reply_message === '') {
-			$this->session->set_flashdata('error', 'Reply message is required.');
-			redirect('inquiries/' . $inquiryid);
+			$this->session->set_flashdata('notsuccess', 'Reply message is required.');
+			redirect('dashboard/inquiry/view/' . $inquiryid, 'refresh');
 			return;
 		}
 
 		$attachmentValidation = validate_inquiry_attachment_batch(isset($_FILES['attachments']) ? $_FILES['attachments'] : array());
 		if (!$attachmentValidation['valid']) {
-			$this->session->set_flashdata('error', $attachmentValidation['error']);
-			redirect('inquiries/' . $inquiryid);
+			$this->session->set_flashdata('notsuccess', $attachmentValidation['error']);
+			redirect('dashboard/inquiry/view/' . $inquiryid, 'refresh');
 			return;
 		}
 
 		$now = date('Y-m-d H:i:s');
-		$userid = $this->admin_id;
-		$siteName = 'BODARE Pension House';
-		if ($this->db->table_exists('websitebasic')) {
-			$info = $this->db->get('websitebasic')->row();
-			if ($info && !empty($info->title)) {
-				$siteName = $info->title;
-			}
-		}
+		$userid = $this->session->userdata('user_id');
+
+		$info = $this->db->get('websitebasic')->row();
+		$siteName = $info && !empty($info->title) ? $info->title : 'BODARE & COMMUNITY MPC';
 
 		$this->load->library('coop_imap');
 		$taggedSubject = Coop_imap::tagged_subject($inquiryid, $reply_subject);
@@ -159,8 +151,8 @@ class Inquiries extends Admin_Controller {
 		if (!$attachmentResult['success']) {
 			$this->db->where('replyid', $replyid);
 			$this->db->delete('inquiry_reply');
-			$this->session->set_flashdata('error', $attachmentResult['error']);
-			redirect('inquiries/' . $inquiryid);
+			$this->session->set_flashdata('notsuccess', $attachmentResult['error']);
+			redirect('dashboard/inquiry/view/' . $inquiryid, 'refresh');
 			return;
 		}
 
@@ -199,22 +191,20 @@ class Inquiries extends Admin_Controller {
 			$this->session->set_flashdata('success', 'Reply sent successfully to ' . $inquiry->email);
 		} else {
 			$error = $this->coop_mail->get_last_error();
-			$this->session->set_flashdata('error', 'Reply saved, but email could not be sent. ' . ($error ? $error : 'Check SMTP settings.'));
+			$this->session->set_flashdata('notsuccess', 'Reply saved, but email could not be sent. ' . ($error ? $error : 'Check SMTP settings.'));
 		}
 
-		redirect('inquiries/' . $inquiryid);
+		redirect('dashboard/inquiry/view/' . $inquiryid, 'refresh');
 	}
 
 	public function updatestatus() {
-		$this->require_permission('edit_inquiries');
-
 		$inquiryid = (int) $this->input->post('inquiryid');
 		$status = $this->input->post('status');
 		$allowed = array('new', 'read', 'replied', 'closed', 'guest_replied');
 
 		if (!$inquiryid || !in_array($status, $allowed, TRUE)) {
-			$this->session->set_flashdata('error', 'Invalid status update.');
-			redirect('inquiries');
+			$this->session->set_flashdata('notsuccess', 'Invalid status update.');
+			redirect('dashboard/inquiry/allinquiries', 'refresh');
 			return;
 		}
 
@@ -227,19 +217,17 @@ class Inquiries extends Admin_Controller {
 		if ($updated) {
 			$this->session->set_flashdata('success', 'Inquiry status updated.');
 		} else {
-			$this->session->set_flashdata('error', 'Could not update status.');
+			$this->session->set_flashdata('notsuccess', 'Could not update status.');
 		}
 
-		redirect('inquiries/' . $inquiryid);
+		redirect('dashboard/inquiry/view/' . $inquiryid, 'refresh');
 	}
 
 	public function delete($inquiryid = NULL) {
-		$this->require_permission('delete_inquiries');
-
 		$inquiryid = (int) $inquiryid;
 		if (!$inquiryid) {
-			$this->session->set_flashdata('error', 'Invalid inquiry.');
-			redirect('inquiries');
+			$this->session->set_flashdata('notsuccess', 'Invalid inquiry.');
+			redirect('dashboard/inquiry/allinquiries', 'refresh');
 			return;
 		}
 
@@ -253,10 +241,10 @@ class Inquiries extends Admin_Controller {
 		if ($deleted) {
 			$this->session->set_flashdata('success', 'Inquiry deleted successfully.');
 		} else {
-			$this->session->set_flashdata('error', 'Could not delete inquiry.');
+			$this->session->set_flashdata('notsuccess', 'Could not delete inquiry.');
 		}
 
-		redirect('inquiries');
+		redirect('dashboard/inquiry/allinquiries', 'refresh');
 	}
 
 	public function downloadattachment($attachmentid = NULL) {
@@ -285,18 +273,16 @@ class Inquiries extends Admin_Controller {
 	}
 
 	public function fetchinbound() {
-		$this->require_permission('edit_inquiries');
-
 		$this->load->library('coop_imap');
 		$result = $this->coop_imap->import_inbound_replies();
 
 		if (!empty($result['errors'])) {
-			$this->session->set_flashdata('error', implode(' ', $result['errors']));
+			$this->session->set_flashdata('notsuccess', implode(' ', $result['errors']));
 		} elseif ($result['imported'] > 0) {
 			$ids = !empty($result['inquiry_ids']) ? $result['inquiry_ids'] : array();
 			if (count($ids) === 1) {
 				$this->session->set_flashdata('success', 'Guest email reply imported for Inquiry #' . (int) $ids[0] . '.');
-				redirect('inquiries/' . (int) $ids[0]);
+				redirect('dashboard/inquiry/view/' . (int) $ids[0], 'refresh');
 				return;
 			}
 			$this->session->set_flashdata('success', $result['imported'] . ' guest email reply(ies) imported for inquiries: #' . implode(', #', $ids) . '.');
@@ -305,12 +291,12 @@ class Inquiries extends Admin_Controller {
 		}
 
 		$redirect = $this->input->post('redirect');
-		if ($redirect && strpos($redirect, 'inquiries') === 0) {
-			redirect($redirect);
+		if ($redirect && strpos($redirect, 'dashboard/inquiry/') === 0) {
+			redirect($redirect, 'refresh');
 			return;
 		}
 
-		redirect('inquiries?status=guest_replied');
+		redirect('dashboard/inquiry/allinquiries?status=guest_replied', 'refresh');
 	}
 
 	public function poll() {
@@ -358,9 +344,6 @@ class Inquiries extends Admin_Controller {
 	}
 
 	protected function getBadgeCount() {
-		if (!$this->db->table_exists('inquiry')) {
-			return 0;
-		}
 		$this->db->where_in('status', array('new', 'guest_replied'));
 		return (int) $this->db->count_all_results('inquiry');
 	}
@@ -371,9 +354,9 @@ class Inquiries extends Admin_Controller {
 	}
 
 	protected function getReplies($inquiryid) {
-		$this->db->select('inquiry_reply.*, admins.name as admin_name, admins.email as admin_email');
+		$this->db->select('inquiry_reply.*, users.fname, users.lname, users.email as admin_email');
 		$this->db->from('inquiry_reply');
-		$this->db->join('admins', 'admins.id = inquiry_reply.userid', 'left');
+		$this->db->join('users', 'users.userid = inquiry_reply.userid', 'left');
 		$this->db->where('inquiry_reply.inquiryid', (int) $inquiryid);
 		$this->db->order_by('inquiry_reply.replyid', 'ASC');
 		return $this->db->get()->result();

@@ -80,9 +80,18 @@ $route['room_settings'] = 'admin/room_settings/index';
 
 // Inquiry Management routes
 $route['inquiries'] = 'admin/inquiries/index';
-$route['inquiries/(:num)'] = 'admin/inquiries/view/$1';
-$route['inquiries/update_status/(:num)'] = 'admin/inquiries/update_status/$1';
+$route['inquiries/reply'] = 'admin/inquiries/reply';
+$route['inquiries/updatestatus'] = 'admin/inquiries/updatestatus';
+$route['inquiries/fetchinbound'] = 'admin/inquiries/fetchinbound';
+$route['inquiries/poll'] = 'admin/inquiries/poll';
+$route['inquiries/downloadattachment/(:num)'] = 'admin/inquiries/downloadattachment/$1';
 $route['inquiries/delete/(:num)'] = 'admin/inquiries/delete/$1';
+$route['inquiries/(:num)'] = 'admin/inquiries/view/$1';
+
+// Email/SMTP Settings (Inquiries Contact + Account mailers)
+$route['email_settings'] = 'admin/email_settings/index';
+$route['email_settings/update'] = 'admin/email_settings/update';
+$route['email_settings/test'] = 'admin/email_settings/test';
 
 // Customer/Guest Management routes
 $route['customers'] = 'admin/customers/index';
