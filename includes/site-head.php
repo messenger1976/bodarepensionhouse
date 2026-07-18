@@ -25,10 +25,12 @@ $pageTitle = trim((string) $pageSeo['title']);
 $pageDescription = trim((string) $pageSeo['description']);
 $canonicalPath = ltrim((string) $pageSeo['canonical_path'], '/');
 $canonicalUrl = bodare_absolute_url($canonicalPath === '' || $canonicalPath === 'index.php' ? '' : $canonicalPath);
-$ogImage = (string) $pageSeo['og_image'];
-if ($ogImage !== '' && strpos($ogImage, 'http') !== 0) {
-    $ogImage = bodare_absolute_url(ltrim($ogImage, '/'));
-}
+$ogImageInput = (string) $pageSeo['og_image'];
+$ogMeta = bodare_og_image_meta($ogImageInput !== '' ? $ogImageInput : null);
+$ogImage = $ogMeta['url'];
+$ogImageWidth = (int) $ogMeta['width'];
+$ogImageHeight = (int) $ogMeta['height'];
+$ogImageType = (string) $ogMeta['type'];
 $robots = (string) $pageSeo['robots'];
 $ogType = (string) $pageSeo['og_type'];
 $ogImageAlt = (string) $pageSeo['og_image_alt'];
@@ -70,12 +72,17 @@ $h = static function ($value) {
     <meta property="og:description" content="<?php echo $h($pageDescription); ?>">
     <meta property="og:url" content="<?php echo $h($canonicalUrl); ?>">
     <meta property="og:image" content="<?php echo $h($ogImage); ?>">
+    <meta property="og:image:secure_url" content="<?php echo $h($ogImage); ?>">
+    <meta property="og:image:type" content="<?php echo $h($ogImageType); ?>">
+    <meta property="og:image:width" content="<?php echo $h($ogImageWidth); ?>">
+    <meta property="og:image:height" content="<?php echo $h($ogImageHeight); ?>">
     <meta property="og:image:alt" content="<?php echo $h($ogImageAlt); ?>">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="<?php echo $h($pageTitle); ?>">
     <meta name="twitter:description" content="<?php echo $h($pageDescription); ?>">
     <meta name="twitter:image" content="<?php echo $h($ogImage); ?>">
+    <meta name="twitter:image:alt" content="<?php echo $h($ogImageAlt); ?>">
 
     <meta name="theme-color" content="#b2945b">
     <meta name="apple-mobile-web-app-capable" content="yes">

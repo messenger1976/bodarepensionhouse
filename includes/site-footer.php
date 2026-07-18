@@ -51,8 +51,20 @@ $footerConfig = isset($footerConfig) && is_array($footerConfig)
                     </p>
                 </div>
                 <div class="footer-column">
-                    <h4>Stay Connected</h4>
-                    <p>For reservations and updates, contact us by phone or email. Social profile links will appear here once available.</p>
+                    <h4>Get Social</h4>
+                    <p>Follow us on Facebook for updates, offers, and news.</p>
+                    <div class="social-icons">
+                        <?php
+                        if (!function_exists('bodare_site_config')) {
+                            require_once __DIR__ . '/site-config.php';
+                        }
+                        $footerSite = bodare_site_config();
+                        $facebookUrl = !empty($footerSite['facebook_url'])
+                            ? $footerSite['facebook_url']
+                            : 'https://www.facebook.com/bodarepensionhouse';
+                        ?>
+                        <a href="<?php echo htmlspecialchars($facebookUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" aria-label="BODARE Pension House on Facebook" title="Facebook">F</a>
+                    </div>
                 </div>
             </div>
 

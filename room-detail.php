@@ -1,45 +1,72 @@
 <?php
 require_once __DIR__ . '/includes/site-config.php';
 
-$roomCatalog = bodare_room_catalog();
 $roomKey = isset($_GET['room']) ? strtolower(preg_replace('/[^a-z0-9_-]/i', '', (string) $_GET['room'])) : '';
-$room = ($roomKey !== '' && isset($roomCatalog[$roomKey])) ? $roomCatalog[$roomKey] : null;
+$room = $roomKey !== '' ? bodare_live_room($roomKey) : null;
 
-if ($room) {
-    $pageSeo = [
-        'title' => $room['title'] . ' | BODARE Pension House Tagbilaran',
-        'description' => $room['description'],
-        'canonical_path' => 'room-detail.php?room=' . rawurlencode($roomKey),
-        'og_image' => $room['image'],
-        'og_image_alt' => $room['title'] . ' at BODARE Pension House',
-        'json_ld' => [
-            '@context' => 'https://schema.org',
-            '@type' => 'HotelRoom',
-            'name' => $room['title'],
-            'description' => $room['description'],
-            'image' => bodare_absolute_url($room['image']),
-            'url' => bodare_absolute_url('room-detail.php?room=' . rawurlencode($roomKey)),
-            'occupancy' => [
-                '@type' => 'QuantitativeValue',
-                'description' => $room['capacity'],
-            ],
-            'offers' => [
-                '@type' => 'Offer',
-                'priceCurrency' => 'PHP',
-                'price' => $room['price'],
-                'description' => '₱' . number_format($room['price']) . ' ' . $room['price_unit'],
-                'availability' => 'https://schema.org/InStock',
-                'url' => bodare_absolute_url('room-detail.php?room=' . rawurlencode($roomKey)),
-            ],
-            'containedInPlace' => [
-                '@id' => bodare_absolute_url() . '#lodging',
-            ],
-        ],
-        'extra_head' => '
+$flatpickrHead = '
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.js"></script>',
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.js"></script>';
+
+if ($room) {
+    $roomUrl = bodare_absolute_url('room-detail.php?room=' . rawurlencode($roomKey));
+    $roomImageUrl = bodare_absolute_url($room['image']);
+    $offerDescription = '₱' . number_format($room['price']) . ' ' . $room['price_unit'];
+
+    $hotelRoomSchema = [
+        '@context' => 'https://schema.org',
+        '@type' => 'HotelRoom',
+        'name' => $room['title'],
+        'description' => $room['description'],
+        'image' => $roomImageUrl,
+        'url' => $roomUrl,
+        'offers' => [
+            '@type' => 'Offer',
+            'priceCurrency' => 'PHP',
+            'price' => $room['price'],
+            'description' => $offerDescription,
+            'availability' => 'https://schema.org/InStock',
+            'url' => $roomUrl,
+        ],
+        'containedInPlace' => [
+            '@id' => bodare_absolute_url() . '#lodging',
+        ],
+    ];
+
+    if (!empty($room['capacity_value'])) {
+        $hotelRoomSchema['occupancy'] = [
+            '@type' => 'QuantitativeValue',
+            'value' => (int) $room['capacity_value'],
+            'unitText' => 'guests',
+            'description' => $room['capacity'],
+        ];
+    } else {
+        $hotelRoomSchema['occupancy'] = [
+            '@type' => 'QuantitativeValue',
+            'description' => $room['capacity'],
+        ];
+    }
+
+    if (!empty($room['amenities'])) {
+        $hotelRoomSchema['amenityFeature'] = array_map(static function ($amenity) {
+            return [
+                '@type' => 'LocationFeatureSpecification',
+                'name' => $amenity,
+                'value' => true,
+            ];
+        }, $room['amenities']);
+    }
+
+    $pageSeo = [
+        'title' => $room['title'] . ' | BODARE Pension House Tagbilaran',
+        'description' => $room['seo_description'],
+        'canonical_path' => 'room-detail.php?room=' . rawurlencode($roomKey),
+        'og_image' => $room['image'],
+        'og_image_alt' => $room['title'] . ' at BODARE Pension House',
+        'json_ld' => $hotelRoomSchema,
+        'extra_head' => $flatpickrHead,
     ];
 } else {
     $pageSeo = [
@@ -47,22 +74,24 @@ if ($room) {
         'description' => 'View room details and book your stay at BODARE Pension House in Tagbilaran City, Bohol.',
         'canonical_path' => 'room-detail.php',
         'robots' => 'noindex,follow',
-        'extra_head' => '
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.js"></script>',
+        'extra_head' => $flatpickrHead,
     ];
 }
 
 include __DIR__ . '/includes/site-head.php';
 
-$heroImage = $room ? $room['image'] : 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=2070&auto=format&fit=crop';
+$heroImage = $room ? $room['image'] : 'img/og-default.jpg';
 $initialTitle = $room ? $room['title'] : 'Executive Room';
 $initialCapacity = $room ? $room['capacity'] : 'Good for 4 persons';
+$initialDescription = $room
+    ? $room['description']
+    : 'Spacious and elegantly appointed, the Executive Room is designed for guests seeking extra comfort and space. It provides a relaxing sanctuary with modern amenities, perfect for families or business travelers who appreciate a higher standard of accommodation.';
 $initialPriceHtml = $room
     ? '<strong>₱' . number_format($room['price']) . '</strong> / ' . htmlspecialchars($room['price_unit'], ENT_QUOTES, 'UTF-8')
     : '<strong>₱1,999</strong> / night';
+$amenityItems = !empty($room['amenities'])
+    ? $room['amenities']
+    : ['Cable TV', 'Shower', 'Safe box', 'Free WiFi', 'Work Desk', 'Bathtub'];
 ?>
 <body>
 
@@ -91,23 +120,20 @@ $initialPriceHtml = $room
                     <div class="room-image-grid" id="room-image-grid-container">
                     </div>
                     <p class="room-description">
-                        Spacious and elegantly appointed, the Executive Room is designed for guests seeking extra comfort and space. It provides a relaxing sanctuary with modern amenities, perfect for families or business travelers who appreciate a higher standard of accommodation.
+                        <?php echo htmlspecialchars($initialDescription, ENT_QUOTES, 'UTF-8'); ?>
                     </p>
 
                     <h3>Room Amenities</h3>
                     <div class="amenities-grid">
-                        <div class="amenity-item">📺 Cable TV</div>
-                        <div class="amenity-item">🚿 Shower</div>
-                        <div class="amenity-item">🔒 Safe box</div>
-                        <div class="amenity-item">📶 Free WiFi</div>
-                        <div class="amenity-item">💼 Work Desk</div>
-                        <div class="amenity-item">🛁 Bathtub</div>
+                        <?php foreach ($amenityItems as $amenity): ?>
+                            <div class="amenity-item"><?php echo htmlspecialchars($amenity, ENT_QUOTES, 'UTF-8'); ?></div>
+                        <?php endforeach; ?>
                     </div>
                     
 
                 </div>
 
-                <aside class="booking-widget" id="booking-widget"<?php if ($room): ?> data-base-price="<?php echo (int) $room['price']; ?>"<?php endif; ?>>
+                <aside class="booking-widget" id="booking-widget"<?php if ($room): ?> data-base-price="<?php echo htmlspecialchars((string) $room['price'], ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
                     <div class="widget-header">
                         <h2>Reserve</h2>
                         <p>From <span id="room-price-display"><?php echo $initialPriceHtml; ?></span></p>

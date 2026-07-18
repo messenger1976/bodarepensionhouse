@@ -4,7 +4,8 @@ $pageSeo = [
     'description' => 'Stay at BODARE Pension House in Tagbilaran City, Bohol. Comfortable rooms near ICM Mall, free WiFi, free parking, and easy booking for travelers across Bohol.',
     'canonical_path' => '',
     'include_business_schema' => true,
-    'og_image' => 'img/executive.jpg',
+    'og_image' => 'img/og-default.jpg',
+    'og_image_alt' => 'BODARE Pension House — comfortable lodging in Tagbilaran City, Bohol',
 ];
 include __DIR__ . '/includes/site-head.php';
 ?>

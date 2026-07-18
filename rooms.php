@@ -45,7 +45,11 @@ include __DIR__ . '/includes/site-head.php';
                 <div class="room-grid" style="margin-top: 2rem;">
                     <?php
                     require_once __DIR__ . '/includes/site-config.php';
-                    foreach (bodare_room_catalog() as $roomKey => $roomMeta):
+                    foreach (array_keys(bodare_room_catalog()) as $roomKey):
+                        $roomMeta = bodare_live_room($roomKey);
+                        if (!$roomMeta) {
+                            continue;
+                        }
                     ?>
                         <div class="room-card">
                             <a href="room-detail.php?room=<?php echo htmlspecialchars($roomKey, ENT_QUOTES, 'UTF-8'); ?>">
