@@ -1,27 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="description" content="Browse our comfortable rooms and suites at BODARE Pension House">
-    <meta name="theme-color" content="#b2945b">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="BODARE">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>Rooms - BODARE Pension House</title>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="img/logo.png">
-    <link rel="icon" type="image/png" href="img/logo.png">
-    
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-</head>
+<?php
+$pageSeo = [
+    'title' => 'Rooms & Rates | BODARE Pension House Tagbilaran',
+    'description' => 'Browse dormitory, standard, deluxe, ambassador, and executive rooms at BODARE Pension House in Tagbilaran City. Compare rates and book your stay online.',
+    'canonical_path' => 'rooms.php',
+    'og_image' => 'img/deluxea.jpg',
+];
+include __DIR__ . '/includes/site-head.php';
+?>
 <body>
 
     <?php
@@ -55,6 +40,24 @@
                     <p>Loading rooms...</p>
                 </div>
             </div>
+
+            <noscript>
+                <div class="room-grid" style="margin-top: 2rem;">
+                    <?php
+                    require_once __DIR__ . '/includes/site-config.php';
+                    foreach (bodare_room_catalog() as $roomKey => $roomMeta):
+                    ?>
+                        <div class="room-card">
+                            <a href="room-detail.php?room=<?php echo htmlspecialchars($roomKey, ENT_QUOTES, 'UTF-8'); ?>">
+                                <img src="<?php echo htmlspecialchars($roomMeta['image'], ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($roomMeta['title'] . ' at BODARE Pension House', ENT_QUOTES, 'UTF-8'); ?>">
+                                <h2><?php echo htmlspecialchars($roomMeta['title'], ENT_QUOTES, 'UTF-8'); ?></h2>
+                            </a>
+                            <p class="room-details"><?php echo htmlspecialchars($roomMeta['description'], ENT_QUOTES, 'UTF-8'); ?></p>
+                            <p class="room-details"><strong>From ₱<?php echo number_format($roomMeta['price']); ?></strong> <?php echo htmlspecialchars($roomMeta['price_unit'], ENT_QUOTES, 'UTF-8'); ?></p>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </noscript>
 
         </div>
     </main>

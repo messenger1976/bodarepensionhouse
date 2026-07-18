@@ -449,7 +449,7 @@ function populateRoomDetails() {
     const room = roomData[roomKey];
 
     // Populate main details
-    document.title = `${room.title} - Bodare Coop`;
+    document.title = `${room.title} | BODARE Pension House Tagbilaran`;
     document.querySelector('.room-hero').style.backgroundImage = `url('${room.imageUrl}')`;
     document.getElementById('room-title').textContent = room.title;
     document.getElementById('room-capacity').textContent = room.capacity;
@@ -1020,6 +1020,7 @@ function setupGalleryLightbox() {
         image.addEventListener('click', () => {
             modal.style.display = 'flex';
             modalImg.src = image.src;
+            modalImg.alt = image.alt || 'Enlarged photo of BODARE Pension House';
         });
     });
 

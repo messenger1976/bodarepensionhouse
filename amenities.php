@@ -1,27 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="description" content="Discover the amenities and services at BODARE Pension House">
-    <meta name="theme-color" content="#b2945b">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="BODARE">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>Amenities - BODARE Pension House</title>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="img/logo.png">
-    <link rel="icon" type="image/png" href="img/logo.png">
-    
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-</head>
+<?php
+$pageSeo = [
+    'title' => 'Amenities & Guest Services | BODARE Pension House',
+    'description' => 'Enjoy free WiFi, free parking, air conditioning, 24-hour front desk, cable TV, and private bathrooms at BODARE Pension House in Tagbilaran City.',
+    'canonical_path' => 'amenities.php',
+    'og_image' => 'img/ambassador.jpg',
+];
+include __DIR__ . '/includes/site-head.php';
+?>
 <body>
 
     <?php
@@ -38,6 +23,7 @@
 
     <main class="content-section">
         <div class="container">
+            <h2 class="section-title" style="text-align:center;margin-bottom:2rem;">What Guests Enjoy</h2>
             <div class="amenities-grid">
                 
                 <div class="amenity-card">

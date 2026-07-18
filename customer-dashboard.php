@@ -1,27 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="description" content="Manage your account, bookings, and inquiries at BODARE Pension House">
-    <meta name="theme-color" content="#b2945b">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="BODARE">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>My Dashboard - BODARE Pension House</title>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="img/logo.png">
-    <link rel="icon" type="image/png" href="img/logo.png">
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
-</head>
+<?php
+$pageSeo = [
+    'title' => 'My Dashboard | BODARE Pension House',
+    'description' => 'Manage your BODARE Pension House account, bookings, and inquiries.',
+    'canonical_path' => 'customer-dashboard.php',
+    'robots' => 'noindex,nofollow',
+];
+include __DIR__ . '/includes/site-head.php';
+?>
 <body>
 
     <?php

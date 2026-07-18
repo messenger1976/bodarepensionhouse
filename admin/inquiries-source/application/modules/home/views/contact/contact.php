@@ -21,7 +21,7 @@
     <!-- Page Header End -->
 
     <?php
-        $mapQuery = trim((string) getBasic()->map);
+        $mapQuery = 'BODARE MPC & Community Bldg, J.A. Clarin St., Dao District, Tagbilaran City, Bohol, Philippines 6300';
         $mapEmbedUrl = 'https://www.google.com/maps?q=' . rawurlencode($mapQuery) . '&output=embed';
     ?>
     <div class="animate-in cs_sections map" data-anim-type="bounce-in-up-large"  data-anim-delay="600"  >

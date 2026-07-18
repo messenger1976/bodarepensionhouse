@@ -1,0 +1,27 @@
+# BODARE Pension House
+User-agent: *
+Allow: /
+Allow: /index.php
+Allow: /rooms.php
+Allow: /room-detail.php
+Allow: /amenities.php
+Allow: /gallery.php
+Allow: /contact.php
+
+Disallow: /admin/
+Disallow: /cart.php
+Disallow: /checkout.php
+Disallow: /booking-confirmation.php
+Disallow: /login.php
+Disallow: /registration.php
+Disallow: /forgot-password.php
+Disallow: /reset-password.php
+Disallow: /activate-account.php
+Disallow: /customer-dashboard.php
+Disallow: /customer-profile.php
+Disallow: /customer-bookings.php
+Disallow: /customer-inquiry.php
+Disallow: /test-api.html
+Disallow: /includes/
+
+Sitemap: https://pensionhouse.bodarempc.com/sitemap.php

@@ -1,31 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="description" content="View room details and book at BODARE Pension House">
-    <meta name="theme-color" content="#b2945b">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="BODARE">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>Room Details - BODARE Pension House</title>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="img/logo.png">
-    <link rel="icon" type="image/png" href="img/logo.png">
-    
-    <link rel="stylesheet" href="style.css">
+<?php
+require_once __DIR__ . '/includes/site-config.php';
+
+$roomCatalog = bodare_room_catalog();
+$roomKey = isset($_GET['room']) ? strtolower(preg_replace('/[^a-z0-9_-]/i', '', (string) $_GET['room'])) : '';
+$room = ($roomKey !== '' && isset($roomCatalog[$roomKey])) ? $roomCatalog[$roomKey] : null;
+
+if ($room) {
+    $pageSeo = [
+        'title' => $room['title'] . ' | BODARE Pension House Tagbilaran',
+        'description' => $room['description'],
+        'canonical_path' => 'room-detail.php?room=' . rawurlencode($roomKey),
+        'og_image' => $room['image'],
+        'og_image_alt' => $room['title'] . ' at BODARE Pension House',
+        'json_ld' => [
+            '@context' => 'https://schema.org',
+            '@type' => 'HotelRoom',
+            'name' => $room['title'],
+            'description' => $room['description'],
+            'image' => bodare_absolute_url($room['image']),
+            'url' => bodare_absolute_url('room-detail.php?room=' . rawurlencode($roomKey)),
+            'occupancy' => [
+                '@type' => 'QuantitativeValue',
+                'description' => $room['capacity'],
+            ],
+            'offers' => [
+                '@type' => 'Offer',
+                'priceCurrency' => 'PHP',
+                'price' => $room['price'],
+                'description' => '₱' . number_format($room['price']) . ' ' . $room['price_unit'],
+                'availability' => 'https://schema.org/InStock',
+                'url' => bodare_absolute_url('room-detail.php?room=' . rawurlencode($roomKey)),
+            ],
+            'containedInPlace' => [
+                '@id' => bodare_absolute_url() . '#lodging',
+            ],
+        ],
+        'extra_head' => '
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-</head>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.js"></script>',
+    ];
+} else {
+    $pageSeo = [
+        'title' => 'Room Details | BODARE Pension House',
+        'description' => 'View room details and book your stay at BODARE Pension House in Tagbilaran City, Bohol.',
+        'canonical_path' => 'room-detail.php',
+        'robots' => 'noindex,follow',
+        'extra_head' => '
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.js"></script>',
+    ];
+}
+
+include __DIR__ . '/includes/site-head.php';
+
+$heroImage = $room ? $room['image'] : 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=2070&auto=format&fit=crop';
+$initialTitle = $room ? $room['title'] : 'Executive Room';
+$initialCapacity = $room ? $room['capacity'] : 'Good for 4 persons';
+$initialPriceHtml = $room
+    ? '<strong>₱' . number_format($room['price']) . '</strong> / ' . htmlspecialchars($room['price_unit'], ENT_QUOTES, 'UTF-8')
+    : '<strong>₱1,999</strong> / night';
+?>
 <body>
 
     <?php
@@ -38,15 +76,15 @@
 
 
     <main>
-        <section class="room-hero" style="background-image: url('https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=2070&auto=format&fit=crop');">
+        <section class="room-hero" style="background-image: url('<?php echo htmlspecialchars($heroImage, ENT_QUOTES, 'UTF-8'); ?>');" role="img" aria-label="<?php echo htmlspecialchars($initialTitle . ' at BODARE Pension House', ENT_QUOTES, 'UTF-8'); ?>">
             </section>
 
         <section class="room-content-section">
             <div class="container room-layout">
                 <div class="room-details-main">
-                    <h1 id="room-title">Executive Room</h1>
+                    <h1 id="room-title"><?php echo htmlspecialchars($initialTitle, ENT_QUOTES, 'UTF-8'); ?></h1>
                     <div class="room-specs">
-                        <span>👥 <span id="room-capacity">Good for 4 persons</span></span>
+                        <span>👥 <span id="room-capacity"><?php echo htmlspecialchars($initialCapacity, ENT_QUOTES, 'UTF-8'); ?></span></span>
                         <span>📏 10ft Size</span>
                         <span>🛏️ Normal Beds</span>
                     </div>
@@ -69,10 +107,10 @@
 
                 </div>
 
-                <aside class="booking-widget" id="booking-widget">
+                <aside class="booking-widget" id="booking-widget"<?php if ($room): ?> data-base-price="<?php echo (int) $room['price']; ?>"<?php endif; ?>>
                     <div class="widget-header">
                         <h2>Reserve</h2>
-                        <p>From <span id="room-price-display"><strong>₱1,999</strong> / night</span></p>
+                        <p>From <span id="room-price-display"><?php echo $initialPriceHtml; ?></span></p>
                     </div>
                     <form class="widget-form" id="booking-form-widget">
                         <div class="date-inputs">
@@ -124,7 +162,7 @@
 
                         <div class="total-cost">
                             <h3>Total Cost</h3>
-                            <span id="total-cost-display">₱1,999</span>
+                            <span id="total-cost-display"><?php echo $room ? '₱' . number_format($room['price']) : '₱1,999'; ?></span>
                         </div>
 
                         <button type="submit" class="cta-button">Add to Cart</button>
@@ -139,12 +177,9 @@
 ?>
     <div id="lightbox-modal" class="lightbox">
         <span class="lightbox-close">&times;</span>
-        <img class="lightbox-content" id="lightbox-image">
+        <img class="lightbox-content" id="lightbox-image" alt="Enlarged room photo">
     </div>
     <script src="api-config.js"></script>
     <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
 </body>
 </html>
-
-
-

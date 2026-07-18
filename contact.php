@@ -1,27 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="description" content="Contact BODARE Pension House for reservations and inquiries">
-    <meta name="theme-color" content="#b2945b">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="BODARE">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>Contact Us - BODARE Pension House</title>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="img/logo.png">
-    <link rel="icon" type="image/png" href="img/logo.png">
-    
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-</head>
+<?php
+require_once __DIR__ . '/includes/site-config.php';
+$pageSeo = [
+    'title' => 'Contact Us | BODARE Pension House Tagbilaran City',
+    'description' => 'Contact BODARE Pension House for reservations and inquiries. Visit us at J.A. Clarin St., Dao District, Tagbilaran City, Bohol, or call 0950 533 7480.',
+    'canonical_path' => 'contact.php',
+    'include_business_schema' => true,
+    'og_image' => 'img/executive.jpg',
+    'json_ld' => [
+        '@context' => 'https://schema.org',
+        '@type' => 'ContactPage',
+        'name' => 'Contact BODARE Pension House',
+        'url' => bodare_absolute_url('contact.php'),
+        'mainEntity' => [
+            '@id' => bodare_absolute_url() . '#lodging',
+        ],
+    ],
+];
+include __DIR__ . '/includes/site-head.php';
+?>
 <body>
 
     <?php
@@ -43,17 +39,17 @@
                 <div class="contact-info-card">
                     <span class="icon">📍</span>
                     <strong>Address</strong>
-                    <p>123 Luxury Lane<br>Tagbilaran City, Bohol 6300</p>
+                    <p>BODARE MPC &amp; Community Bldg<br>J.A. Clarin St., Dao District<br>Tagbilaran City, Bohol<br>Philippines 6300</p>
                 </div>
                 <div class="contact-info-card">
                     <span class="icon">📞</span>
                     <strong>Phone</strong>
-                    <p>(038) 411-0000</p>
+                    <p>0950 533 7480</p>
                 </div>
                 <div class="contact-info-card">
                     <span class="icon">✉️</span>
                     <strong>Email</strong>
-                    <p>reservations@bodarecoop.com</p>
+                    <p>bodarepensionhouse@yahoo.com</p>
                 </div>
             </div>
 
@@ -86,8 +82,9 @@
             <div class="contact-map-section">
                 <h2>Our Location</h2>
                 <iframe 
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15720.198338965688!2d123.84650532997193!3d9.65651921313175!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33aa4db4591a2e79%3A0x869b0c74b1f6365!2sTagbilaran%20City%2C%20Bohol!5e0!3m2!1sen!2sph!4v1729352771569!5m2!1sen!2sph" 
+                    src="https://www.google.com/maps?q=BODARE%20MPC%20%26%20Community%20Bldg%2C%20J.A.%20Clarin%20St.%2C%20Dao%20District%2C%20Tagbilaran%20City%2C%20Bohol%2C%20Philippines%206300&amp;output=embed"
                     class="google-map"
+                    title="Map showing BODARE Pension House location on J.A. Clarin St., Dao District, Tagbilaran City"
                     allowfullscreen="" 
                     loading="lazy" 
                     referrerpolicy="no-referrer-when-downgrade">

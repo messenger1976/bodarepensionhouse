@@ -706,7 +706,7 @@ foreach ($section as $section) { ?>
     
 
     <?php
-        $homeMapQuery = trim((string) getBasic()->map);
+        $homeMapQuery = 'BODARE MPC & Community Bldg, J.A. Clarin St., Dao District, Tagbilaran City, Bohol, Philippines 6300';
         $homeMapEmbedUrl = 'https://www.google.com/maps?q=' . rawurlencode($homeMapQuery) . '&output=embed';
     ?>
     <div class="animate-in cs_sections map" data-anim-type="bounce-in-up-large"  data-anim-delay="600"  >

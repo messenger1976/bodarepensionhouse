@@ -1,7 +1,7 @@
 <?php
 $defaultHeaderConfig = [
     'logo_href' => 'https://bodarempc.com/',
-    'logo_alt' => 'Bodare Logo',
+    'logo_alt' => 'BODARE Pension House logo',
     'about_href' => 'index.php#about',
     'show_cart' => true,
     'cart_style' => 'display: flex;',

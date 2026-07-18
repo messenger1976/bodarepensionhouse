@@ -1,27 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="description" content="BODARE Pension House - Comfortable and affordable lodging in the heart of Tagbilaran City">
-    <meta name="theme-color" content="#b2945b">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="BODARE">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>BODARE Pension House</title>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="img/logo.png">
-    <link rel="icon" type="image/png" href="img/logo.png">
-    
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-</head>
+<?php
+$pageSeo = [
+    'title' => 'BODARE Pension House | Affordable Lodging in Tagbilaran City, Bohol',
+    'description' => 'Stay at BODARE Pension House in Tagbilaran City, Bohol. Comfortable rooms near ICM Mall, free WiFi, free parking, and easy booking for travelers across Bohol.',
+    'canonical_path' => '',
+    'include_business_schema' => true,
+    'og_image' => 'img/executive.jpg',
+];
+include __DIR__ . '/includes/site-head.php';
+?>
 <body>
 
     <?php
@@ -77,32 +63,32 @@
                     <div class="features-grid">
                         <div class="feature-item">
                             <i class="bi bi-geo-alt-fill"></i>
-                            <h4>Prime Location</h4>
+                            <h3>Prime Location</h3>
                             <p>Walking distance to ICM Mall and soon-to-open SM City Tagbilaran</p>
                         </div>
                         <div class="feature-item">
                             <i class="bi bi-wifi"></i>
-                            <h4>Free WiFi</h4>
+                            <h3>Free WiFi</h3>
                             <p>Stay connected with complimentary high-speed internet access</p>
                         </div>
                         <div class="feature-item">
                             <i class="bi bi-lightning-charge-fill"></i>
-                            <h4>Backup Power</h4>
+                            <h3>Backup Power</h3>
                             <p>Uninterrupted power supply even during blackouts</p>
                         </div>
                         <div class="feature-item">
                             <i class="bi bi-cup-hot-fill"></i>
-                            <h4>Restaurants Nearby</h4>
+                            <h3>Restaurants Nearby</h3>
                             <p>Easy access to various dining options and local eateries</p>
                         </div>
                         <div class="feature-item">
                             <i class="bi bi-currency-dollar"></i>
-                            <h4>Affordable Rates</h4>
+                            <h3>Affordable Rates</h3>
                             <p>Budget-friendly accommodation without sacrificing quality</p>
                         </div>
                         <div class="feature-item">
                             <i class="bi bi-shield-check"></i>
-                            <h4>Safe & Secure</h4>
+                            <h3>Safe & Secure</h3>
                             <p>24/7 security and a welcoming, family-friendly environment</p>
                         </div>
                     </div>
@@ -119,33 +105,45 @@
             <h2 class="section-title">Rooms & Suites</h2>
             <div class="room-grid">
                 <div class="room-card">
-                    <img src="img/dormitory.jpg" alt="Dormitory Room">
-                    <h3>Dormitory</h3>
+                    <a href="room-detail.php?room=dormitory">
+                        <img src="img/dormitory.jpg" alt="Dormitory lodging at BODARE Pension House in Tagbilaran City">
+                        <h3>Dormitory</h3>
+                    </a>
                     <p class="room-details"><strong>Price:</strong> ₱299 per head<br><strong>Capacity:</strong> Min. 8 persons<br><strong>Services:</strong> Wifi, Television, Bathroom</p>
                 </div>
                 <div class="room-card">
-                    <img src="img/standard.jpg" alt="Standard Room">
-                    <h3>Standard Room</h3>
+                    <a href="room-detail.php?room=standard">
+                        <img src="img/standard.jpg" alt="Standard guest room at BODARE Pension House">
+                        <h3>Standard Room</h3>
+                    </a>
                     <p class="room-details"><strong>Price:</strong> ₱999 per night<br><strong>Capacity:</strong> Good for 2 persons<br><strong>Services:</strong> Wifi, Television, Bathroom</p>
                 </div> 
                 <div class="room-card">
-                    <img src="img/deluxeb.jpg" alt="Deluxe B Room">
-                    <h3>Deluxe B Room</h3>
+                    <a href="room-detail.php?room=deluxeb">
+                        <img src="img/deluxeb.jpg" alt="Deluxe B room at BODARE Pension House">
+                        <h3>Deluxe B Room</h3>
+                    </a>
                     <p class="room-details"><strong>Price:</strong> ₱1,199 per night<br><strong>Capacity:</strong> Good for 2 persons<br><strong>Services:</strong> Wifi, Television, Bathroom</p>
                 </div>
                 <div class="room-card">
-                    <img src="img/deluxea.jpg" alt="Deluxe A Room">
-                    <h3>Deluxe A Room</h3>
+                    <a href="room-detail.php?room=deluxea">
+                        <img src="img/deluxea.jpg" alt="Deluxe A room at BODARE Pension House">
+                        <h3>Deluxe A Room</h3>
+                    </a>
                     <p class="room-details"><strong>Price:</strong> ₱1,299 per night<br><strong>Capacity:</strong> Good for 3 persons<br><strong>Services:</strong> Wifi, Television, Bathroom</p>
                 </div>
                 <div class="room-card">
-                    <img src="img/ambassador.jpg" alt="Ambassador Room">
-                    <h3>Ambassador Room</h3>
+                    <a href="room-detail.php?room=ambassador">
+                        <img src="img/ambassador.jpg" alt="Ambassador room at BODARE Pension House">
+                        <h3>Ambassador Room</h3>
+                    </a>
                     <p class="room-details"><strong>Price:</strong> ₱1,399 per night<br><strong>Capacity:</strong> Good for 3 persons<br><strong>Services:</strong> Wifi, Television, Bathroom</p>
                 </div>                                                               
                 <div class="room-card">
-                    <img src="img/executive.jpg" alt="Executive Room">
-                    <h3>Executive Room</h3>
+                    <a href="room-detail.php?room=executive">
+                        <img src="img/executive.jpg" alt="Executive room at BODARE Pension House">
+                        <h3>Executive Room</h3>
+                    </a>
                     <p class="room-details"><strong>Price:</strong> ₱1,999 per night<br><strong>Capacity:</strong> Good for 4 persons<br><strong>Services:</strong> Wifi, Television, Bathroom</p>
                 </div>
             </div>

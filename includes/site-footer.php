@@ -42,21 +42,17 @@ $footerConfig = isset($footerConfig) && is_array($footerConfig)
                 <div class="footer-column">
                     <h4>Contact</h4>
                     <p>
-                        123 Luxury Lane<br>
-                        Tagbilaran City, Bohol 6300<br>
-                        <a href="tel:+63384110000">(038) 411-0000</a><br>
-                        <a href="mailto:reservations@bodarecoop.com">reservations@bodarecoop.com</a>
+                        BODARE MPC &amp; Community Bldg<br>
+                        J.A. Clarin St., Dao District<br>
+                        Tagbilaran City, Bohol<br>
+                        Philippines 6300<br>
+                        <a href="tel:+639505337480">0950 533 7480</a><br>
+                        <a href="mailto:bodarepensionhouse@yahoo.com">bodarepensionhouse@yahoo.com</a>
                     </p>
                 </div>
                 <div class="footer-column">
-                    <h4>Get Social</h4>
-                    <p>Follow us on social platforms and keep in touch.</p>
-                    <div class="social-icons">
-                        <a href="#">F</a>
-                        <a href="#">T</a>
-                        <a href="#">I</a>
-                        <a href="#">Y</a>
-                    </div>
+                    <h4>Stay Connected</h4>
+                    <p>For reservations and updates, contact us by phone or email. Social profile links will appear here once available.</p>
                 </div>
             </div>
 

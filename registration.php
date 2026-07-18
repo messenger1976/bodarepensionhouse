@@ -1,26 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="description" content="Create an account at BODARE Pension House">
-    <meta name="theme-color" content="#b2945b">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="BODARE">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>Register Account - BODARE Pension House</title>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="img/logo.png">
-    <link rel="icon" type="image/png" href="img/logo.png">
-    
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
-</head>
+<?php
+$pageSeo = [
+    'title' => 'Create Account | BODARE Pension House',
+    'description' => 'Create a guest account to book rooms and manage reservations at BODARE Pension House.',
+    'canonical_path' => 'registration.php',
+    'robots' => 'noindex,nofollow',
+    'include_bootstrap_icons' => false,
+];
+include __DIR__ . '/includes/site-head.php';
+?>
 <body>
 
     <?php
@@ -164,7 +151,7 @@
                 <h2>Booking Summary</h2>
                 <div class="booking-summary-display" style="background: #f8f9fa; padding: 2rem; border-radius: 8px; margin-bottom: 2rem;">
                     <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
-                        <img id="summary-room-image" src="" alt="Room Image" style="width: 200px; height: 150px; object-fit: cover; border-radius: 8px;">
+                        <img id="summary-room-image" src="" alt="Selected room for booking at BODARE Pension House" style="width: 200px; height: 150px; object-fit: cover; border-radius: 8px;">
                         <div style="flex: 1; min-width: 250px;">
                             <h3 id="summary-room-name" style="margin-top: 0; margin-bottom: 1rem;">-</h3>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
