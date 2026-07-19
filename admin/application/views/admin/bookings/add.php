@@ -144,11 +144,11 @@
                         </div>
                         <div class="col-md-1">
                             <label class="form-label small fw-bold">Price/Night</label>
-                            <input type="text" class="form-control room-price-display" readonly value="₱0.00" style="background-color: #f8f9fa; font-size: 0.85rem;">
+                            <input type="text" class="form-control room-price-display" readonly value="₱0.00" style="font-size: 0.85rem;">
                         </div>
                         <div class="col-md-1">
                             <label class="form-label small fw-bold">Subtotal</label>
-                            <input type="text" class="form-control room-subtotal" readonly value="₱0.00" style="background-color: #f8f9fa; font-weight: bold; font-size: 0.85rem;">
+                            <input type="text" class="form-control room-subtotal" readonly value="₱0.00" style="font-weight: bold; font-size: 0.85rem;">
                         </div>
                         <div class="col-md-1">
                             <label class="form-label small fw-bold">&nbsp;</label>
@@ -246,6 +246,19 @@
     background-color: #e9ecef;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
+.room-price-display,
+.room-subtotal {
+    background-color: #f8f9fa;
+}
+body.dark-mode .room-row {
+    background-color: #0f172a;
+}
+body.dark-mode .room-row:hover {
+    background-color: #1e293b;
+}
+body.dark-mode .card-title {
+    color: #e2e8f0;
+}
 .card {
     border: none;
     border-radius: 8px;
@@ -336,11 +349,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="col-md-1">
                     <label class="form-label small fw-bold">Price/Night</label>
-                    <input type="text" class="form-control room-price-display" readonly value="₱0.00" style="background-color: #f8f9fa; font-size: 0.85rem;">
+                    <input type="text" class="form-control room-price-display" readonly value="₱0.00" style="font-size: 0.85rem;">
                 </div>
                 <div class="col-md-1">
                     <label class="form-label small fw-bold">Subtotal</label>
-                    <input type="text" class="form-control room-subtotal" readonly value="₱0.00" style="background-color: #f8f9fa; font-weight: bold; font-size: 0.85rem;">
+                    <input type="text" class="form-control room-subtotal" readonly value="₱0.00" style="font-weight: bold; font-size: 0.85rem;">
                 </div>
                 <div class="col-md-1">
                     <label class="form-label small fw-bold">&nbsp;</label>

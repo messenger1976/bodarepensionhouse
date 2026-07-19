@@ -341,6 +341,11 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             border-bottom-color: #334155;
         }
         
+        body.dark-mode .nk-sidebar-brand a,
+        body.dark-mode .nk-header-brand .logo-link {
+            color: #e2e8f0;
+        }
+        
         body.dark-mode .nk-menu-link {
             color: #cbd5e1;
         }
@@ -607,6 +612,41 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             border-color: #334155 !important;
         }
         
+        /* Bootstrap 5.3 paints each table cell from these CSS variables,
+           so they must be overridden for dark mode to reach the cells */
+        body.dark-mode .table {
+            --bs-table-bg: #1e293b;
+            --bs-table-color: #e2e8f0;
+            --bs-table-border-color: #334155;
+            --bs-table-striped-bg: #0f172a;
+            --bs-table-striped-color: #e2e8f0;
+            --bs-table-hover-bg: #334155;
+            --bs-table-hover-color: #f1f5f9;
+            --bs-table-active-bg: #334155;
+            --bs-table-active-color: #f1f5f9;
+        }
+        
+        body.dark-mode .nk-block-title,
+        body.dark-mode .nk-block-head-title {
+            color: #e2e8f0;
+        }
+        
+        body.dark-mode .text-soft,
+        body.dark-mode .nk-block-des.text-soft {
+            color: #94a3b8;
+        }
+        
+        body.dark-mode .card-bordered {
+            border-color: #334155;
+        }
+        
+        /* Higher specificity than the light-theme .page-item.disabled .page-link rule */
+        body.dark-mode .page-item.disabled .page-link {
+            color: #64748b;
+            background-color: #0f172a;
+            border-color: #334155;
+        }
+        
         /* Forms Dark Mode */
         body.dark-mode .form-label {
             color: #e2e8f0;
@@ -643,7 +683,21 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
         }
         
         body.dark-mode .form-control[readonly] {
+            background-color: #0f172a !important;
+        }
+        
+        body.dark-mode .bg-white {
+            background-color: #0f172a !important;
+            color: #e2e8f0 !important;
+        }
+        
+        body.dark-mode .room-row {
             background-color: #0f172a;
+            border-color: #334155 !important;
+        }
+        
+        body.dark-mode .room-row:hover {
+            background-color: #1e293b;
         }
         
         body.dark-mode .form-text {

@@ -273,5 +273,12 @@ window.addEventListener('DOMContentLoaded', function() {
 .field-row:hover {
     background-color: #e9ecef;
 }
+body.dark-mode .field-row {
+    background-color: #0f172a;
+    border-color: #334155 !important;
+}
+body.dark-mode .field-row:hover {
+    background-color: #1e293b;
+}
 </style>
 
