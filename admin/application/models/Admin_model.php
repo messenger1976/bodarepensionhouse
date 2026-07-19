@@ -37,6 +37,89 @@ class Admin_model extends CI_Model {
     }
     
     /**
+     * Get admin by email (any status)
+     */
+    public function get_by_email($email) {
+        $this->db->where('email', $email);
+        return $this->db->get('admins')->row();
+    }
+    
+    /**
+     * Check if a username is already taken
+     */
+    public function username_exists($username) {
+        $this->db->where('username', $username);
+        return $this->db->count_all_results('admins') > 0;
+    }
+    
+    /**
+     * Check if an email is already registered
+     */
+    public function email_exists($email) {
+        $this->db->where('email', $email);
+        return $this->db->count_all_results('admins') > 0;
+    }
+    
+    /**
+     * Update the password hash for an admin
+     */
+    public function update_password($admin_id, $password) {
+        $this->db->where('id', (int)$admin_id);
+        return $this->db->update('admins', array(
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'updated_at' => date('Y-m-d H:i:s')
+        ));
+    }
+    
+    /**
+     * Find the group that carries the "staff" role (fallback: group named "Staff").
+     */
+    public function get_staff_group_id() {
+        if ($this->db->table_exists('group_roles') && $this->db->table_exists('roles')) {
+            $this->db->select('group_roles.group_id');
+            $this->db->from('group_roles');
+            $this->db->join('roles', 'roles.id = group_roles.role_id');
+            $this->db->where('roles.slug', 'staff');
+            $this->db->where('roles.status', 'active');
+            $this->db->limit(1);
+            $row = $this->db->get()->row();
+            if ($row) {
+                return (int)$row->group_id;
+            }
+        }
+        
+        if ($this->db->table_exists('user_groups')) {
+            $this->db->where('name', 'Staff');
+            $row = $this->db->get('user_groups')->row();
+            if ($row) {
+                return (int)$row->id;
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Add an admin to a group (without removing existing group memberships)
+     */
+    public function add_to_group($admin_id, $group_id) {
+        $exists = $this->db->get_where('admin_user_groups', array(
+            'admin_id' => $admin_id,
+            'group_id' => $group_id
+        ))->row();
+        
+        if ($exists) {
+            return true;
+        }
+        
+        return $this->db->insert('admin_user_groups', array(
+            'admin_id' => $admin_id,
+            'group_id' => $group_id,
+            'created_at' => date('Y-m-d H:i:s')
+        ));
+    }
+    
+    /**
      * Get all admins
      */
     public function get_all($status = null) {

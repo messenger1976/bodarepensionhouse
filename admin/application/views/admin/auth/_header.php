@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - BODARE Pension House</title>
+    <title><?php echo isset($title) ? html_escape($title) : 'Admin'; ?> - BODARE Pension House</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <style>
@@ -18,6 +18,7 @@
             align-items: center;
             justify-content: center;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px 0;
         }
         .login-container {
             background: white;
@@ -63,6 +64,7 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
             background: linear-gradient(135deg, #2a3a5a 0%, var(--primary-color) 100%);
+            color: white;
         }
         .input-group-text {
             background: #f8f9fa;
@@ -71,12 +73,25 @@
         .form-control.with-icon {
             border-left: none;
         }
+        .auth-links {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 0.9rem;
+        }
+        .auth-links a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h3><i class="bi bi-shield-lock"></i> Admin Login</h3>
+            <h3><i class="bi <?php echo isset($header_icon) ? $header_icon : 'bi-shield-lock'; ?>"></i> <?php echo isset($header_title) ? html_escape($header_title) : 'Admin'; ?></h3>
             <p class="mb-0 mt-2" style="opacity: 0.9;">BODARE Pension House</p>
         </div>
         <div class="login-body">
@@ -86,42 +101,14 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
-            
             <?php if ($this->session->flashdata('success')): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <?php echo $this->session->flashdata('success'); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
-            
-            <?php echo form_open('login', array('autocomplete' => 'off')); ?>
-                <div class="mb-3">
-                    <label for="username" class="form-label">Username</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-person"></i></span>
-                        <input type="text" class="form-control with-icon" id="username" name="username" autocomplete="off" value="" required autofocus>
-                    </div>
+            <?php if (function_exists('validation_errors') && validation_errors()): ?>
+                <div class="alert alert-danger" role="alert">
+                    <?php echo validation_errors('<div>', '</div>'); ?>
                 </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                        <input type="password" class="form-control with-icon" id="password" name="password" autocomplete="current-password" value="" required>
-                    </div>
-                </div>
-                <div class="mb-3 text-end">
-                    <a href="<?php echo site_url('forgot-password'); ?>" style="color: var(--secondary-color); text-decoration: none; font-size: 0.9rem; font-weight: 600;">Forgot password?</a>
-                </div>
-                <button type="submit" class="btn btn-login">
-                    <i class="bi bi-box-arrow-in-right"></i> Login
-                </button>
-            <?php echo form_close(); ?>
-            <div style="text-align: center; margin-top: 18px; font-size: 0.9rem;">
-                Don't have an account? <a href="<?php echo site_url('register'); ?>" style="color: var(--secondary-color); text-decoration: none; font-weight: 600;">Create account</a>
-            </div>
-        </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
-
+            <?php endif; ?>
