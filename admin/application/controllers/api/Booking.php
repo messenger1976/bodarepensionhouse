@@ -433,6 +433,24 @@ class Booking extends CI_Controller {
             ]);
             return;
         }
+
+        // Normalize and total extra services from the cart
+        $extra_services = array();
+        $services_total = 0;
+        if (isset($data['extra_services']) && is_array($data['extra_services'])) {
+            foreach ($data['extra_services'] as $service) {
+                if (!is_array($service) || empty($service['name'])) {
+                    continue;
+                }
+                $cost = isset($service['cost']) ? floatval($service['cost']) : 0;
+                $extra_services[] = array(
+                    'name' => trim((string)$service['name']),
+                    'cost' => $cost
+                );
+                $services_total += $cost;
+            }
+        }
+        $total_amount = floatval($total_amount) + $services_total;
         
         // Prepare main booking data
         // Include room_id for backward compatibility (use first room's ID)
@@ -454,6 +472,7 @@ class Booking extends CI_Controller {
             'total_amount' => $total_amount,
             'status' => 'pending',
             'notes' => isset($data['notes']) ? $data['notes'] : '',
+            'extra_services' => !empty($extra_services) ? json_encode($extra_services) : null,
             'booking_number' => $this->Booking_model->generate_booking_number()
         );
         
@@ -649,6 +668,44 @@ class Booking extends CI_Controller {
                         }
                     }
 
+                    $extra_services = array();
+                    if (!empty($booking->extra_services)) {
+                        $decoded = json_decode($booking->extra_services, true);
+                        if (is_array($decoded)) {
+                            foreach ($decoded as $service) {
+                                if (!is_array($service) || empty($service['name'])) {
+                                    continue;
+                                }
+                                $extra_services[] = array(
+                                    'name' => $service['name'],
+                                    'cost' => isset($service['cost']) ? floatval($service['cost']) : null
+                                );
+                            }
+                        }
+                    }
+
+                    // Fallback for older bookings that only stored services in notes
+                    if (empty($extra_services) && !empty($booking->notes) && preg_match('/\|\s*Services:\s*(.+?)(?:\s*\|\s*|$)/i', $booking->notes, $matches)) {
+                        $services_text = preg_replace('/\s*\(Card ending in.*$/i', '', $matches[1]);
+                        foreach (explode(',', $services_text) as $part) {
+                            $part = trim($part);
+                            if ($part === '') {
+                                continue;
+                            }
+                            if (preg_match('/^(.+?)\s*\(₱\s*([\d,]+(?:\.\d{1,2})?)\)\s*$/u', $part, $service_match)) {
+                                $extra_services[] = array(
+                                    'name' => trim($service_match[1]),
+                                    'cost' => floatval(str_replace(',', '', $service_match[2]))
+                                );
+                            } else {
+                                $extra_services[] = array(
+                                    'name' => $part,
+                                    'cost' => null
+                                );
+                            }
+                        }
+                    }
+
                     $bookings_array[] = [
                         'id' => $booking->id,
                         'booking_number' => isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT),
@@ -662,6 +719,7 @@ class Booking extends CI_Controller {
                         'total_amount' => isset($booking->total_amount) ? floatval($booking->total_amount) : 0,
                         'status' => isset($booking->status) ? $booking->status : 'pending',
                         'notes' => isset($booking->notes) ? $booking->notes : '',
+                        'extra_services' => $extra_services,
                         'created_at' => isset($booking->created_at) ? $booking->created_at : '',
                         'items' => $items_array
                     ];

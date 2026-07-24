@@ -73,6 +73,10 @@ class Booking_model extends CI_Model {
             log_message('warning', 'Bookings table does not have rooms field. Booking created without rooms count.');
             unset($data['rooms']);
         }
+
+        if (!in_array('extra_services', $fields) && isset($data['extra_services'])) {
+            unset($data['extra_services']);
+        }
         
         $this->db->insert('bookings', $data);
         

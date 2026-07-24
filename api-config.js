@@ -149,15 +149,9 @@ const API = {
         },
 
         // Clear client-side account state when the server session is missing/expired.
+        // Keep the booking cart/services so checkout can continue after re-login.
         clearLocalSession() {
             localStorage.removeItem('user');
-            if (typeof clearBookingCartData === 'function') {
-                clearBookingCartData();
-            } else {
-                localStorage.removeItem('bookingCart');
-                localStorage.removeItem('cartServices');
-                localStorage.removeItem('bookingDetails');
-            }
         },
 
         // Logout server session (best effort) and clear the local account.

@@ -194,6 +194,85 @@ function displayFieldErrors(errors) {
     });
 }
 
+async function showAuthenticatedCheckout(user) {
+    if (!user) return;
+
+    localStorage.setItem('user', JSON.stringify(user));
+
+    const authHeaderTitle = document.getElementById('auth-header-title');
+    const authButtons = document.getElementById('auth-buttons');
+    const loggedInInfo = document.getElementById('logged-in-info');
+    const loggedInName = document.getElementById('logged-in-name');
+    const logoutButton = document.getElementById('logout-button');
+    const loginFields = document.getElementById('login-fields');
+    const accountInfoSection = document.getElementById('account-info-section');
+    const paymentSection = document.getElementById('payment-section');
+
+    if (authHeaderTitle) authHeaderTitle.textContent = 'Continue with Your Booking';
+    if (authButtons) authButtons.style.display = 'none';
+    if (loggedInInfo) loggedInInfo.style.display = 'block';
+    if (loggedInName) {
+        loggedInName.textContent = user.name
+            || [user.first_name, user.last_name].filter(Boolean).join(' ')
+            || user.email;
+    }
+    if (loginFields) loginFields.style.display = 'none';
+    if (accountInfoSection) accountInfoSection.style.display = 'block';
+    if (paymentSection) paymentSection.style.display = 'block';
+
+    if (logoutButton && !logoutButton.dataset.checkoutLogoutBound) {
+        logoutButton.dataset.checkoutLogoutBound = 'true';
+        logoutButton.addEventListener('click', async () => {
+            try {
+                await API.auth.logout();
+            } catch (error) {
+                console.error('Logout error:', error);
+            } finally {
+                localStorage.removeItem('user');
+                window.location.reload();
+            }
+        });
+    }
+
+    const requiredFields = [
+        'account-first-name', 'account-last-name', 'account-email',
+        'account-phone', 'account-address', 'account-city',
+        'account-province', 'account-postal-code', 'account-country',
+        'payment-method'
+    ];
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) field.setAttribute('required', 'required');
+    });
+
+    try {
+        const profileResponse = await API.user.getProfile();
+        if (profileResponse.success && profileResponse.user) {
+            const profile = profileResponse.user;
+            const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
+            const storedUser = {
+                ...user,
+                ...profile,
+                name: fullName || user.name || profile.email
+            };
+            localStorage.setItem('user', JSON.stringify(storedUser));
+            if (loggedInName) loggedInName.textContent = storedUser.name;
+            if (typeof displayAccountInfo === 'function') {
+                displayAccountInfo(profile);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading checkout profile:', error);
+        if (typeof displayAccountInfo === 'function') {
+            displayAccountInfo(user);
+        }
+    }
+
+    if (typeof updateHeaderAuthButtons === 'function') {
+        updateHeaderAuthButtons();
+    }
+}
+
 // Checkout login handler
 async function handleCheckoutLogin() {
     const emailInput = document.getElementById('login-email');
@@ -213,6 +292,12 @@ async function handleCheckoutLogin() {
     }
     
     try {
+        const loginButton = document.getElementById('login-button');
+        if (loginButton) {
+            loginButton.disabled = true;
+            loginButton.textContent = 'Logging in...';
+        }
+
         const cartSnapshot = typeof getCartStorageSnapshot === 'function'
             ? getCartStorageSnapshot()
             : null;
@@ -227,18 +312,10 @@ async function handleCheckoutLogin() {
             if (typeof restoreCartStorageSnapshot === 'function') {
                 restoreCartStorageSnapshot(cartSnapshot);
             }
-            
-            // Show success message
-            showMessage('Welcome back! You have successfully logged in.', 'success');
-            
-            // Show payment section
-            document.getElementById('login-fields').style.display = 'none';
-            document.getElementById('payment-section').style.display = 'block';
-            
-            const loginHeader = document.querySelector('.checkout-auth-header h2');
-            if (loginHeader) {
-                loginHeader.textContent = 'Welcome, ' + response.user.name;
-            }
+
+            // Reload so the page renders from the established server session.
+            sessionStorage.setItem('checkoutLoginMessage', 'Welcome back! You have successfully logged in.');
+            window.location.reload();
             
             return true;
         }
@@ -257,6 +334,12 @@ async function handleCheckoutLogin() {
         
         showMessage(errorMessage, 'error');
         return false;
+    } finally {
+        const loginButton = document.getElementById('login-button');
+        if (loginButton) {
+            loginButton.disabled = false;
+            loginButton.textContent = 'Login';
+        }
     }
 }
 
@@ -397,6 +480,20 @@ async function handleCheckoutSubmit(e) {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
         return;
+    }
+
+    // Capture services immediately so later cart cleanup cannot drop them.
+    let selectedExtraServices = [];
+    try {
+        const savedCartServices = localStorage.getItem('cartServices');
+        if (savedCartServices) {
+            const parsed = JSON.parse(savedCartServices);
+            if (Array.isArray(parsed)) {
+                selectedExtraServices = parsed.filter(service => service && service.name);
+            }
+        }
+    } catch (e) {
+        console.warn('Unable to read cart services at checkout start:', e);
     }
     
     // Get user info
@@ -601,9 +698,25 @@ async function handleCheckoutSubmit(e) {
         // Track room details for notes
         roomDetails.push(`${item.roomName} (${itemRooms} room${itemRooms > 1 ? 's' : ''}, ${itemGuests} guest${itemGuests !== 1 ? 's' : ''})`);
     }
+
+    // Merge room-level services with cart-level extras captured at submit start
+    allServices = allServices.concat(selectedExtraServices);
     
     // Calculate total guests
     const totalGuests = totalAdults + totalChildren;
+
+    // Deduplicate services once for notes + API payload
+    const uniqueServices = [];
+    const serviceMap = new Map();
+    allServices.forEach(service => {
+        if (!service || !service.name || serviceMap.has(service.name)) return;
+        const normalized = {
+            name: String(service.name).trim(),
+            cost: Number.isFinite(parseFloat(service.cost)) ? parseFloat(service.cost) : 0
+        };
+        serviceMap.set(normalized.name, normalized);
+        uniqueServices.push(normalized);
+    });
     
     // Build comprehensive notes with payment method, all rooms, and services
     let notes = `Payment Method: ${paymentMethod === 'pay_at_hotel' ? 'Pay at Hotel' : paymentMethod === 'card' ? 'Credit/Debit Card' : 'GCash'}`;
@@ -612,17 +725,12 @@ async function handleCheckoutSubmit(e) {
     notes += ` | Guests: ${totalAdults} Adult(s), ${totalChildren} Child(ren)`;
     
     // Add services to notes if any
-    if (allServices.length > 0) {
-        // Remove duplicate services
-        const uniqueServices = [];
-        const serviceMap = new Map();
-        allServices.forEach(service => {
-            if (!serviceMap.has(service.name)) {
-                serviceMap.set(service.name, service);
-                uniqueServices.push(service);
-            }
-        });
-        const serviceNames = uniqueServices.map(s => s.name).join(', ');
+    if (uniqueServices.length > 0) {
+        const serviceNames = uniqueServices.map(s => {
+            return Number.isFinite(s.cost)
+                ? `${s.name} (₱${s.cost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})})`
+                : s.name;
+        }).join(', ');
         notes += ` | Services: ${serviceNames}`;
     }
     
@@ -649,6 +757,7 @@ async function handleCheckoutSubmit(e) {
         check_out: firstCheckOut,
         guests: totalGuests > 0 ? totalGuests : 1, // Total guests across all cart rooms
         room_selections: roomSelections, // Array of room selections (same as admin panel)
+        extra_services: uniqueServices,
         notes: notes
     };
     
@@ -942,6 +1051,12 @@ function handlePaymentSubmit(e) {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    const pendingLoginMessage = sessionStorage.getItem('checkoutLoginMessage');
+    if (pendingLoginMessage) {
+        sessionStorage.removeItem('checkoutLoginMessage');
+        showMessage(pendingLoginMessage, 'success');
+    }
+
     // Setup registration form if on registration page
     if (document.getElementById('registration-form')) {
         setupRegistrationForm();
@@ -991,10 +1106,9 @@ async function checkUserLogin() {
         if (response.success && response.logged_in) {
             localStorage.setItem('user', JSON.stringify(response.user));
             
-            // If on checkout page, show payment section
-            if (document.getElementById('payment-section') && document.getElementById('login-fields')) {
-                document.getElementById('login-fields').style.display = 'none';
-                document.getElementById('payment-section').style.display = 'block';
+            // If on checkout, restore the complete authenticated state and profile.
+            if (document.getElementById('checkout-login-form')) {
+                await showAuthenticatedCheckout(response.user);
             }
             
             return response.user;

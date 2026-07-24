@@ -449,7 +449,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     else if (document.body.querySelector('.checkout-layout')) {
         populateCheckoutPage();
-        setupCheckoutLogin();
     }
     else if (document.body.querySelector('.gallery-grid')) {
         setupGalleryLightbox(); 
@@ -1080,30 +1079,6 @@ function formatDateDisplay(dateString) {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-function setupCheckoutLogin() {
-    const loginButton = document.getElementById('login-button');
-    const loginFields = document.getElementById('login-fields');
-    const paymentSection = document.getElementById('payment-section');
-    const loginHeader = document.querySelector('.checkout-auth-header h2');
-    const emailInput = document.getElementById('login-email');
-
-    if (loginButton && loginFields && paymentSection && loginHeader) {
-        
-        loginButton.addEventListener('click', (event) => {
-            event.preventDefault(); 
-            
-            loginFields.style.display = 'none';
-            paymentSection.style.display = 'block';
-
-            const email = emailInput.value.trim();
-            if (email !== '') {
-                loginHeader.textContent = 'Welcome, ' + email;
-            } else {
-                loginHeader.textContent = 'Welcome!';
-            }
-        });
-    }
-}
 
 // --- GALLERY PAGE FUNCTION ---
 

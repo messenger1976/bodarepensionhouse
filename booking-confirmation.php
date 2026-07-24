@@ -69,56 +69,6 @@ include __DIR__ . '/includes/site-head.php';
                             <p style="color: #155724; margin: 0; font-size: 1.125rem;">Booking Number: <strong>${booking.booking_number}</strong></p>
                         </div>
                         
-                        <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
-                            <h3 style="margin-top: 0;">Booking Details</h3>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
-                                <div>
-                                    <strong>Room:</strong><br>
-                                    ${booking.room_name} (${booking.room_type})
-                                </div>
-                                <div>
-                                    <strong>Check-In:</strong><br>
-                                    ${new Date(booking.check_in).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                                </div>
-                                <div>
-                                    <strong>Check-Out:</strong><br>
-                                    ${new Date(booking.check_out).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                                </div>
-                                <div>
-                                    <strong>Guests:</strong><br>
-                                    ${booking.guests} guest(s)
-                                </div>
-                                <div>
-                                    <strong>Status:</strong><br>
-                                    <span class="status-badge status-${booking.status}" style="
-                                        padding: 0.25rem 0.75rem;
-                                        border-radius: 15px;
-                                        font-size: 0.875rem;
-                                        font-weight: 600;
-                                        text-transform: uppercase;
-                                    ">${booking.status}</span>
-                                </div>
-                                <div>
-                                    <strong>Total Amount:</strong><br>
-                                    <span style="font-size: 1.25rem; font-weight: 600; color: #333;">₱${parseFloat(booking.total_amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
-                                </div>
-                            </div>
-                            
-                            <div style="border-top: 1px solid #ddd; padding-top: 1.5rem; margin-top: 1.5rem;">
-                                <h4>Guest Information</h4>
-                                <p><strong>Name:</strong> ${booking.guest_name}</p>
-                                <p><strong>Email:</strong> ${booking.guest_email}</p>
-                                <p><strong>Phone:</strong> ${booking.guest_phone}</p>
-                            </div>
-                            
-                            ${booking.notes ? `
-                                <div style="border-top: 1px solid #ddd; padding-top: 1.5rem; margin-top: 1.5rem;">
-                                    <h4>Special Requests</h4>
-                                    <p>${booking.notes}</p>
-                                </div>
-                            ` : ''}
-                        </div>
-                        
                         <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
                             <h4 style="margin-top: 0; color: #856404;">Important Information</h4>
                             <ul style="color: #856404; margin: 0; padding-left: 1.5rem;">

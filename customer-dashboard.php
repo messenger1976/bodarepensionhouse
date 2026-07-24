@@ -1178,6 +1178,34 @@ include __DIR__ . '/includes/site-head.php';
                                 </div>
                             `;
 
+                        const services = parseBookingServices(booking);
+                        const servicesHtml = services.length > 0
+                            ? `
+                                <div style="margin-bottom: 1rem;">
+                                    <strong style="color: #666; display: block; margin-bottom: 0.75rem;">Extra Services:</strong>
+                                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                        ${services.map(service => `
+                                            <div style="
+                                                padding: 0.75rem 1rem;
+                                                background: #f7f9fc;
+                                                border: 1px solid #eee;
+                                                border-radius: 6px;
+                                                display: flex;
+                                                justify-content: space-between;
+                                                gap: 1rem;
+                                                flex-wrap: wrap;
+                                            ">
+                                                <span style="color: #333;">${service.name}</span>
+                                                ${service.cost !== null
+                                                    ? `<span style="font-weight: 600; color: #b2945b;">₱${service.cost.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>`
+                                                    : ''}
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `
+                            : '';
+
                         const cancelButton = status === 'pending'
                             ? `<button type="button" class="cancel-booking-btn" data-booking-id="${booking.id}" data-booking-number="${bookingNumber}" style="
                                     padding: 0.45rem 1rem;
@@ -1238,6 +1266,7 @@ include __DIR__ . '/includes/site-head.php';
                                 </div>
                             </div>
                             ${itemsHtml}
+                            ${servicesHtml}
                             ${booking.notes ? `<p style="color: #666; font-style: italic; margin: 0; padding-top: 1rem; border-top: 1px solid #eee;"><strong>Notes:</strong> ${booking.notes}</p>` : ''}
                         </div>
                     `;
@@ -1280,6 +1309,40 @@ include __DIR__ . '/includes/site-head.php';
                 return `${total} person(s) (${adults} Adult(s), ${children} Child(ren))`;
             }
             return `${booking.guests || 1} person(s)`;
+        }
+
+        function parseBookingServices(booking) {
+            if (Array.isArray(booking.extra_services) && booking.extra_services.length > 0) {
+                return booking.extra_services.map(service => ({
+                    name: service.name || 'Service',
+                    cost: service.cost === null || service.cost === undefined || service.cost === ''
+                        ? null
+                        : parseFloat(service.cost)
+                })).filter(service => !!service.name);
+            }
+
+            const notes = booking.notes || '';
+            const servicesMatch = notes.match(/\|\s*Services:\s*(.+?)(?:\s*\|\s*|$)/i);
+            if (!servicesMatch) return [];
+
+            // Strip trailing card note if present, e.g. "(Card ending in 1234)"
+            const servicesText = servicesMatch[1].replace(/\s*\(Card ending in.*$/i, '').trim();
+            if (!servicesText) return [];
+
+            return servicesText.split(',').map(part => {
+                const trimmed = part.trim();
+                if (!trimmed) return null;
+
+                const withCost = trimmed.match(/^(.+?)\s*\(₱\s*([\d,]+(?:\.\d{1,2})?)\)\s*$/);
+                if (withCost) {
+                    return {
+                        name: withCost[1].trim(),
+                        cost: parseFloat(withCost[2].replace(/,/g, ''))
+                    };
+                }
+
+                return { name: trimmed, cost: null };
+            }).filter(Boolean);
         }
 
         async function cancelBooking(bookingId, bookingNumber, buttonEl) {

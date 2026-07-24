@@ -198,6 +198,26 @@ include __DIR__ . '/includes/site-head.php';
             
             // Save services to localStorage
             localStorage.setItem('cartServices', JSON.stringify(selectedServices));
+
+            // Also attach services to every cart room so they survive login/session refresh.
+            try {
+                const cart = typeof getCart === 'function' ? getCart() : JSON.parse(localStorage.getItem('bookingCart') || '[]');
+                if (Array.isArray(cart) && cart.length > 0) {
+                    const updatedCart = cart.map(item => ({
+                        ...item,
+                        services: selectedServices
+                    }));
+                    if (typeof withExpectedCartMutation === 'function') {
+                        withExpectedCartMutation('update-cart-services', () => {
+                            localStorage.setItem('bookingCart', JSON.stringify(updatedCart));
+                        });
+                    } else {
+                        localStorage.setItem('bookingCart', JSON.stringify(updatedCart));
+                    }
+                }
+            } catch (e) {
+                console.warn('Unable to attach services to cart items:', e);
+            }
             
             // Update services total display
             const servicesTotal = selectedServices.reduce((sum, s) => sum + s.cost, 0);

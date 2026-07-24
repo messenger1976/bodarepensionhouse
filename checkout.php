@@ -332,7 +332,8 @@ include __DIR__ . '/includes/site-head.php';
                 }
                 
                 // Setup logout button
-                if (logoutButton) {
+                if (logoutButton && !logoutButton.dataset.checkoutLogoutBound) {
+                    logoutButton.dataset.checkoutLogoutBound = 'true';
                     logoutButton.addEventListener('click', async () => {
                         try {
                             await API.auth.logout();
