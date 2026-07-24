@@ -247,6 +247,13 @@ const API = {
         async getMyBookings() {
             return API.request('booking/my-bookings');
         },
+
+        async cancel(bookingId) {
+            return API.request('booking/cancel', {
+                method: 'POST',
+                body: JSON.stringify({ booking_id: bookingId })
+            });
+        },
         
         async getByNumber(bookingNumber) {
             return API.request(`booking/number/${bookingNumber}`);

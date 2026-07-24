@@ -43,7 +43,7 @@ $pages = [
     ],
 ];
 
-foreach (array_keys(bodare_room_catalog()) as $roomKey) {
+foreach (bodare_room_codes() as $roomKey) {
     $pages[] = [
         'loc' => bodare_absolute_url('room-detail.php?room=' . rawurlencode($roomKey)),
         'lastmod' => $today,

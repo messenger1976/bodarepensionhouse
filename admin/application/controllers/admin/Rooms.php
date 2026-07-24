@@ -137,6 +137,93 @@ class Rooms extends Admin_Controller {
         }
         redirect('rooms');
     }
+
+    /**
+     * Duplicate an existing room (including images)
+     */
+    public function duplicate($id) {
+        $this->require_permission('add_rooms');
+
+        $room = $this->Room_model->get_room($id);
+        if (!$room) {
+            show_404();
+            return;
+        }
+
+        $base_code = !empty($room->room_code) ? $room->room_code : 'room';
+        $new_code = $base_code . '-copy';
+        $counter = 1;
+        while ($this->db->where('room_code', $new_code)->count_all_results('rooms') > 0) {
+            $counter++;
+            $new_code = $base_code . '-copy' . $counter;
+        }
+
+        $room_data = array(
+            'room_name' => $room->room_name . ' (Copy)',
+            'room_type' => $room->room_type,
+            'room_code' => $new_code,
+            'price' => $room->price,
+            'capacity' => $room->capacity,
+            'available_rooms' => $room->available_rooms,
+            'description' => $room->description,
+            'amenities' => $room->amenities,
+            'status' => $room->status
+        );
+
+        $this->db->trans_start();
+
+        $new_room_id = $this->Room_model->create_room($room_data);
+        if (!$new_room_id) {
+            $this->db->trans_rollback();
+            $this->session->set_flashdata('error', 'Failed to duplicate room');
+            redirect('rooms');
+            return;
+        }
+
+        $images = $this->Room_image_model->get_room_images($id);
+        foreach ($images as $image) {
+            $new_image_path = $image->image_path;
+            $source_path = FCPATH . $image->image_path;
+
+            if (!empty($image->image_path) && file_exists($source_path)) {
+                $path_info = pathinfo($image->image_path);
+                $directory = isset($path_info['dirname']) ? $path_info['dirname'] : 'img/rooms';
+                $extension = isset($path_info['extension']) ? $path_info['extension'] : 'jpg';
+                $new_filename = uniqid('room_', true) . '.' . $extension;
+                $new_image_path = rtrim($directory, '/\\') . '/' . $new_filename;
+                $destination_path = FCPATH . $new_image_path;
+
+                $dest_dir = dirname($destination_path);
+                if (!is_dir($dest_dir)) {
+                    mkdir($dest_dir, 0755, true);
+                }
+
+                if (!@copy($source_path, $destination_path)) {
+                    $new_image_path = $image->image_path;
+                }
+            }
+
+            $this->Room_image_model->add_image(array(
+                'room_id' => $new_room_id,
+                'image_path' => $new_image_path,
+                'image_name' => $image->image_name,
+                'alt_text' => $image->alt_text,
+                'display_order' => $image->display_order,
+                'is_primary' => $image->is_primary
+            ));
+        }
+
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === FALSE) {
+            $this->session->set_flashdata('error', 'Failed to duplicate room');
+            redirect('rooms');
+            return;
+        }
+
+        $this->session->set_flashdata('success', 'Room duplicated successfully. You can update the copy below.');
+        redirect('rooms/edit/' . $new_room_id);
+    }
     
     /**
      * Upload room image

@@ -240,7 +240,7 @@ class Booking extends CI_Controller {
         $first_room_id = null;
         $check_in = null;
         $check_out = null;
-        $guests = null;
+        $guests = 0;
         
         if ($room_selections && !empty($room_selections)) {
             // New format: multiple room selections with individual dates and guests
@@ -251,6 +251,9 @@ class Booking extends CI_Controller {
                     $sel_check_in = $selection['check_in'];
                     $sel_check_out = $selection['check_out'];
                     $sel_guests = isset($selection['guests']) ? (int)$selection['guests'] : 1;
+                    if ($sel_guests < 1) {
+                        $sel_guests = 1;
+                    }
                     
                     // Validate dates
                     if ($sel_check_out <= $sel_check_in) {
@@ -289,8 +292,10 @@ class Booking extends CI_Controller {
                         // Use first room's dates for main booking record
                         $check_in = $sel_check_in;
                         $check_out = $sel_check_out;
-                        $guests = $sel_guests;
                     }
+
+                    // Accumulate total guests across all room lines
+                    $guests += ($sel_guests * $sel_quantity);
                     
                     // Calculate nights for this specific room selection
                     $check_in_date = new DateTime($sel_check_in);
@@ -317,6 +322,14 @@ class Booking extends CI_Controller {
                     $total_amount += $subtotal;
                     $total_rooms_count += $sel_quantity;
                 }
+            }
+
+            // Prefer summed room guests; fall back to request total if needed
+            if ($guests < 1 && isset($data['guests']) && (int)$data['guests'] > 0) {
+                $guests = (int)$data['guests'];
+            }
+            if ($guests < 1) {
+                $guests = 1;
             }
         } else if ($room_id) {
             // Old format: single room with quantity
@@ -499,6 +512,7 @@ class Booking extends CI_Controller {
                     'check_out' => $item_check_out,
                     'price_per_night' => $room_selection['price_per_night'],
                     'nights' => $item_nights,
+                    'guests' => isset($room_selection['guests']) ? (int)$room_selection['guests'] : 1,
                     'subtotal' => $room_selection['price_per_night'] * $item_nights,
                     'status' => 'pending'
                 );
@@ -613,6 +627,28 @@ class Booking extends CI_Controller {
             $bookings_array = [];
             if ($bookings) {
                 foreach ($bookings as $booking) {
+                    $items_array = [];
+                    if ($this->db->table_exists('booking_items')) {
+                        $items = $this->Booking_item_model->get_booking_items($booking->id);
+                        if ($items) {
+                            foreach ($items as $item) {
+                                $items_array[] = [
+                                    'id' => $item->id,
+                                    'room_id' => $item->room_id,
+                                    'room_name' => isset($item->room_name) ? $item->room_name : 'Room',
+                                    'room_type' => isset($item->room_type) ? $item->room_type : '',
+                                    'check_in' => $item->check_in,
+                                    'check_out' => $item->check_out,
+                                    'price_per_night' => isset($item->price_per_night) ? floatval($item->price_per_night) : 0,
+                                    'nights' => isset($item->nights) ? intval($item->nights) : 1,
+                                    'guests' => isset($item->guests) ? intval($item->guests) : 1,
+                                    'subtotal' => isset($item->subtotal) ? floatval($item->subtotal) : 0,
+                                    'status' => isset($item->status) ? $item->status : 'pending'
+                                ];
+                            }
+                        }
+                    }
+
                     $bookings_array[] = [
                         'id' => $booking->id,
                         'booking_number' => isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT),
@@ -622,10 +658,12 @@ class Booking extends CI_Controller {
                         'check_in' => $booking->check_in,
                         'check_out' => $booking->check_out,
                         'guests' => $booking->guests,
+                        'rooms' => isset($booking->rooms) ? intval($booking->rooms) : count($items_array),
                         'total_amount' => isset($booking->total_amount) ? floatval($booking->total_amount) : 0,
                         'status' => isset($booking->status) ? $booking->status : 'pending',
                         'notes' => isset($booking->notes) ? $booking->notes : '',
-                        'created_at' => isset($booking->created_at) ? $booking->created_at : ''
+                        'created_at' => isset($booking->created_at) ? $booking->created_at : '',
+                        'items' => $items_array
                     ];
                 }
             }
@@ -650,6 +688,101 @@ class Booking extends CI_Controller {
         }
     }
     
+    /**
+     * Cancel a pending booking belonging to the logged-in user
+     */
+    public function cancel() {
+        $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Access-Control-Allow-Methods: POST, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Credentials: true');
+        header('Content-Type: application/json');
+
+        if ($this->input->method() === 'options') {
+            exit;
+        }
+
+        if ($this->input->method() !== 'post') {
+            $this->output->set_status_header(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+
+        if (!$this->session->userdata('user_logged_in')) {
+            $this->output->set_status_header(401);
+            echo json_encode(['success' => false, 'message' => 'Please login to cancel a booking']);
+            return;
+        }
+
+        $user_id = $this->session->userdata('user_id');
+        $data = json_decode($this->input->raw_input_stream, true);
+        if (!$data) {
+            $data = $this->input->post();
+        }
+
+        $booking_id = isset($data['booking_id']) ? intval($data['booking_id']) : 0;
+        if (!$booking_id) {
+            $this->output->set_status_header(400);
+            echo json_encode(['success' => false, 'message' => 'Booking ID is required']);
+            return;
+        }
+
+        $booking = $this->Booking_model->get_booking($booking_id);
+        if (!$booking) {
+            $this->output->set_status_header(404);
+            echo json_encode(['success' => false, 'message' => 'Booking not found']);
+            return;
+        }
+
+        if (!$booking->user_id || intval($booking->user_id) !== intval($user_id)) {
+            $this->output->set_status_header(403);
+            echo json_encode(['success' => false, 'message' => 'You do not have permission to cancel this booking']);
+            return;
+        }
+
+        if (strtolower($booking->status) !== 'pending') {
+            $this->output->set_status_header(400);
+            echo json_encode(['success' => false, 'message' => 'Only pending bookings can be cancelled']);
+            return;
+        }
+
+        $this->db->trans_start();
+
+        $updated = $this->Booking_model->update_booking($booking_id, ['status' => 'cancelled']);
+        if (!$updated) {
+            $this->db->trans_rollback();
+            $this->output->set_status_header(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to cancel booking. Please try again.']);
+            return;
+        }
+
+        if ($this->db->table_exists('booking_items')) {
+            $items = $this->Booking_item_model->get_booking_items($booking_id);
+            if ($items) {
+                foreach ($items as $item) {
+                    if (strtolower($item->status) === 'pending') {
+                        $this->Booking_item_model->update_booking_item($item->id, ['status' => 'cancelled']);
+                    }
+                }
+            }
+        }
+
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === FALSE) {
+            $this->output->set_status_header(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to cancel booking. Please try again.']);
+            return;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Booking cancelled successfully',
+            'booking_id' => $booking_id
+        ]);
+    }
+
     /**
      * Get booking by booking number
      */

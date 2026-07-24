@@ -1137,7 +1137,61 @@ include __DIR__ . '/includes/site-head.php';
                 const response = await API.booking.getMyBookings();
                 
                 if (response.success && response.bookings && response.bookings.length > 0) {
-                    container.innerHTML = response.bookings.map(booking => `
+                    container.innerHTML = response.bookings.map(booking => {
+                        const bookingNumber = booking.booking_number || booking.id;
+                        const status = (booking.status || 'pending').toLowerCase();
+                        const items = Array.isArray(booking.items) ? booking.items : [];
+                        const guestsLabel = formatBookingGuests(booking);
+                        const roomsCount = booking.rooms || items.length || 1;
+
+                        const itemsHtml = items.length > 0
+                            ? `
+                                <div style="margin-bottom: 1rem;">
+                                    <strong style="color: #666; display: block; margin-bottom: 0.75rem;">Room Details:</strong>
+                                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                        ${items.map((item, index) => `
+                                            <div style="
+                                                padding: 0.85rem 1rem;
+                                                background: #faf8f4;
+                                                border: 1px solid #eee;
+                                                border-radius: 6px;
+                                            ">
+                                                <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.35rem;">
+                                                    <strong style="color: #333;">${index + 1}. ${item.room_name || 'Room'}</strong>
+                                                    <span style="font-weight: 600; color: #b2945b;">₱${parseFloat(item.subtotal || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                                </div>
+                                                <div style="color: #666; font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem;">
+                                                    <span>Check-In: ${formatBookingDate(item.check_in)}</span>
+                                                    <span>Check-Out: ${formatBookingDate(item.check_out)}</span>
+                                                    <span>${item.nights || 1} night(s)</span>
+                                                    <span>₱${parseFloat(item.price_per_night || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}/night</span>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `
+                            : `
+                                <div style="margin-bottom: 1rem; color: #666;">
+                                    <strong style="display: block; margin-bottom: 0.25rem;">Room:</strong>
+                                    <span>${booking.room_name || 'Room'}</span>
+                                </div>
+                            `;
+
+                        const cancelButton = status === 'pending'
+                            ? `<button type="button" class="cancel-booking-btn" data-booking-id="${booking.id}" data-booking-number="${bookingNumber}" style="
+                                    padding: 0.45rem 1rem;
+                                    border: 1px solid #c62828;
+                                    background: #fff;
+                                    color: #c62828;
+                                    border-radius: 20px;
+                                    font-size: 0.875rem;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                ">Cancel</button>`
+                            : '';
+
+                        return `
                         <div class="booking-card" style="
                             border: 1px solid #ddd;
                             border-radius: 8px;
@@ -1148,38 +1202,50 @@ include __DIR__ . '/includes/site-head.php';
                         ">
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
                                 <div>
-                                    <h3 style="margin: 0 0 0.5rem 0; color: #333;">${booking.room_name || 'Room'}</h3>
-                                    <p style="color: #666; margin: 0; font-size: 0.9rem;">Booking #${booking.booking_number || booking.id}</p>
+                                    <h3 style="margin: 0; color: #333;">Booking #${bookingNumber}</h3>
                                 </div>
-                                <span class="status-badge status-${booking.status}" style="
-                                    padding: 0.5rem 1rem;
-                                    border-radius: 20px;
-                                    font-size: 0.875rem;
-                                    font-weight: 600;
-                                    text-transform: uppercase;
-                                ">${booking.status || 'pending'}</span>
+                                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                                    ${cancelButton}
+                                    <span class="status-badge status-${status}" style="
+                                        padding: 0.5rem 1rem;
+                                        border-radius: 20px;
+                                        font-size: 0.875rem;
+                                        font-weight: 600;
+                                        text-transform: uppercase;
+                                    ">${status}</span>
+                                </div>
                             </div>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                                 <div>
                                     <strong style="color: #666; display: block; margin-bottom: 0.25rem;">Check-In:</strong>
-                                    <span>${new Date(booking.check_in).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                    <span>${formatBookingDate(booking.check_in)}</span>
                                 </div>
                                 <div>
                                     <strong style="color: #666; display: block; margin-bottom: 0.25rem;">Check-Out:</strong>
-                                    <span>${new Date(booking.check_out).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                    <span>${formatBookingDate(booking.check_out)}</span>
                                 </div>
                                 <div>
                                     <strong style="color: #666; display: block; margin-bottom: 0.25rem;">Guests:</strong>
-                                    <span>${booking.guests || 1} person(s)</span>
+                                    <span>${guestsLabel}</span>
+                                </div>
+                                <div>
+                                    <strong style="color: #666; display: block; margin-bottom: 0.25rem;">Total Rooms:</strong>
+                                    <span>${roomsCount}</span>
                                 </div>
                                 <div>
                                     <strong style="color: #666; display: block; margin-bottom: 0.25rem;">Total Amount:</strong>
                                     <span style="font-weight: 600; color: #b2945b;">₱${parseFloat(booking.total_amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                                 </div>
                             </div>
+                            ${itemsHtml}
                             ${booking.notes ? `<p style="color: #666; font-style: italic; margin: 0; padding-top: 1rem; border-top: 1px solid #eee;"><strong>Notes:</strong> ${booking.notes}</p>` : ''}
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
+
+                    container.querySelectorAll('.cancel-booking-btn').forEach(btn => {
+                        btn.addEventListener('click', () => cancelBooking(btn.dataset.bookingId, btn.dataset.bookingNumber, btn));
+                    });
                 } else {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 3rem;">
@@ -1196,6 +1262,51 @@ include __DIR__ . '/includes/site-head.php';
                         <p>${error.message || 'Please try again later.'}</p>
                     </div>
                 `;
+            }
+        }
+
+        function formatBookingDate(dateValue) {
+            if (!dateValue) return '—';
+            return new Date(dateValue).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        function formatBookingGuests(booking) {
+            const notes = booking.notes || '';
+            const guestMatch = notes.match(/Guests:\s*(\d+)\s*Adult\(s\),\s*(\d+)\s*Child\(ren\)/i);
+            if (guestMatch) {
+                const adults = parseInt(guestMatch[1], 10) || 0;
+                const children = parseInt(guestMatch[2], 10) || 0;
+                const total = adults + children;
+                return `${total} person(s) (${adults} Adult(s), ${children} Child(ren))`;
+            }
+            return `${booking.guests || 1} person(s)`;
+        }
+
+        async function cancelBooking(bookingId, bookingNumber, buttonEl) {
+            if (!bookingId) return;
+            const confirmed = window.confirm(`Cancel Booking #${bookingNumber}? This cannot be undone.`);
+            if (!confirmed) return;
+
+            const originalText = buttonEl ? buttonEl.textContent : 'Cancel';
+            if (buttonEl) {
+                buttonEl.disabled = true;
+                buttonEl.textContent = 'Cancelling...';
+            }
+
+            try {
+                const response = await API.booking.cancel(parseInt(bookingId, 10));
+                if (response.success) {
+                    showMessage(response.message || 'Booking cancelled successfully.', 'success');
+                    await loadBookings();
+                } else {
+                    throw new Error(response.message || 'Failed to cancel booking.');
+                }
+            } catch (error) {
+                showMessage(error.message || 'Failed to cancel booking. Please try again.', 'error');
+                if (buttonEl) {
+                    buttonEl.disabled = false;
+                    buttonEl.textContent = originalText;
+                }
             }
         }
         

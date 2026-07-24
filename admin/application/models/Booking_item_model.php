@@ -26,6 +26,16 @@ class Booking_item_model extends CI_Model {
                 return false;
             }
         }
+
+        // Guests column is optional for older schemas
+        $fields = $this->db->list_fields('booking_items');
+        if (!in_array('guests', $fields)) {
+            unset($data['guests']);
+        } else if (!isset($data['guests']) || (int)$data['guests'] < 1) {
+            $data['guests'] = 1;
+        } else {
+            $data['guests'] = (int)$data['guests'];
+        }
         
         $result = $this->db->insert('booking_items', $data);
         

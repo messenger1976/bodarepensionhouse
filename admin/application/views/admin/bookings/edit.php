@@ -134,13 +134,16 @@
                     foreach ($existing_items as $item) {
                         $key = $item->room_id . '_' . $item->check_in . '_' . $item->check_out . '_' . $item->price_per_night;
                         if (!isset($grouped_items[$key])) {
+                            $item_guests = isset($item->guests) && (int)$item->guests > 0
+                                ? (int)$item->guests
+                                : (int)$booking->guests;
                             $grouped_items[$key] = array(
                                 'room_id' => $item->room_id,
                                 'room_name' => $item->room_name,
                                 'price_per_night' => $item->price_per_night,
                                 'check_in' => $item->check_in,
                                 'check_out' => $item->check_out,
-                                'guests' => $booking->guests, // Default to booking guests
+                                'guests' => $item_guests > 0 ? $item_guests : 1,
                                 'quantity' => 0
                             );
                         }

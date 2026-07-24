@@ -532,16 +532,17 @@ async function handleCheckoutSubmit(e) {
     const roomDetails = [];
     let firstCheckIn = null;
     let firstCheckOut = null;
-    let firstGuests = null;
     
     // Process each cart item separately
     for (const item of cart) {
-        // Find room ID by matching room name
-        const matchedRoom = roomsList.find(room => 
-            room.room_name === item.roomName || 
-            room.room_name.toLowerCase().includes(item.roomName.toLowerCase()) ||
-            item.roomName.toLowerCase().includes(room.room_name.toLowerCase())
-        );
+        // Prefer exact identifiers so similarly named rooms cannot be confused
+        const matchedRoom = (item.roomId && roomsList.find(room => String(room.id) === String(item.roomId)))
+            || (item.roomKey && roomsList.find(room => room.room_code === item.roomKey))
+            || roomsList.find(room => room.room_name === item.roomName)
+            || roomsList.find(room =>
+                room.room_name.toLowerCase().includes(item.roomName.toLowerCase()) ||
+                item.roomName.toLowerCase().includes(room.room_name.toLowerCase())
+            );
         
         if (!matchedRoom) {
             showMessage(`Room "${item.roomName}" not found in system.`, 'error');
@@ -573,11 +574,10 @@ async function handleCheckoutSubmit(e) {
         const itemChildren = parseInt(item.children) || 0;
         const itemGuests = itemAdults + itemChildren;
         
-        // Store first item's dates and guests for main booking record
+        // Store first item's dates for main booking record
         if (firstCheckIn === null) {
             firstCheckIn = itemCheckIn;
             firstCheckOut = itemCheckOut;
-            firstGuests = itemGuests;
         }
         
         // Add room selection (same format as admin panel)
@@ -586,7 +586,7 @@ async function handleCheckoutSubmit(e) {
             quantity: itemRooms,
             check_in: itemCheckIn,
             check_out: itemCheckOut,
-            guests: itemGuests
+            guests: itemGuests > 0 ? itemGuests : 1
         });
         
         totalRooms += itemRooms;
@@ -599,7 +599,7 @@ async function handleCheckoutSubmit(e) {
         }
         
         // Track room details for notes
-        roomDetails.push(`${item.roomName} (${itemRooms} room${itemRooms > 1 ? 's' : ''})`);
+        roomDetails.push(`${item.roomName} (${itemRooms} room${itemRooms > 1 ? 's' : ''}, ${itemGuests} guest${itemGuests !== 1 ? 's' : ''})`);
     }
     
     // Calculate total guests
@@ -647,7 +647,7 @@ async function handleCheckoutSubmit(e) {
         guest_zipcode: guestZipcode,
         check_in: firstCheckIn, // Use first item's dates for main booking record
         check_out: firstCheckOut,
-        guests: firstGuests, // Use first item's guests for main booking record
+        guests: totalGuests > 0 ? totalGuests : 1, // Total guests across all cart rooms
         room_selections: roomSelections, // Array of room selections (same as admin panel)
         notes: notes
     };

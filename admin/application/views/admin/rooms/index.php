@@ -91,6 +91,11 @@
                                     <i class="bi bi-trash"></i>
                                 </a>
                                 <?php endif; ?>
+                                <?php if (isset($can_add) && $can_add): ?>
+                                <a href="<?php echo base_url('rooms/duplicate/' . $room->id); ?>" class="btn btn-sm btn-info" onclick="return confirm('Duplicate this room?');" title="Duplicate">
+                                    <i class="bi bi-copy"></i>
+                                </a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

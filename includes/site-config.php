@@ -256,6 +256,50 @@ if (!function_exists('bodare_resolve_room_image')) {
     }
 }
 
+if (!function_exists('bodare_room_codes')) {
+    /**
+     * Active room codes from the database, falling back to the static catalog.
+     */
+    function bodare_room_codes()
+    {
+        static $codes = null;
+        if ($codes !== null) {
+            return $codes;
+        }
+
+        $codes = [];
+        $db = bodare_db();
+        if ($db) {
+            $result = $db->query(
+                'SELECT room_code FROM rooms WHERE status = "active" AND room_code IS NOT NULL AND room_code != "" ORDER BY id ASC'
+            );
+            if ($result) {
+                while ($row = $result->fetch_assoc()) {
+                    $code = strtolower(preg_replace('/[^a-z0-9_-]/i', '', (string) $row['room_code']));
+                    if ($code !== '') {
+                        $codes[] = $code;
+                    }
+                }
+                $result->free();
+            }
+        }
+
+        if (empty($codes)) {
+            $codes = array_keys(bodare_room_catalog());
+        }
+
+        return $codes;
+    }
+}
+
+if (!function_exists('bodare_room_price_unit')) {
+    function bodare_room_price_unit($roomCode, $roomType = '')
+    {
+        $haystack = strtolower($roomCode . ' ' . $roomType);
+        return strpos($haystack, 'dormitory') !== false ? 'per head' : 'per night';
+    }
+}
+
 if (!function_exists('bodare_live_room')) {
     /**
      * Merge catalog defaults with live API/database room data for SEO and schema.
@@ -263,12 +307,23 @@ if (!function_exists('bodare_live_room')) {
     function bodare_live_room($roomCode)
     {
         $roomCode = strtolower(preg_replace('/[^a-z0-9_-]/i', '', (string) $roomCode));
-        $catalog = bodare_room_catalog();
-        if ($roomCode === '' || !isset($catalog[$roomCode])) {
+        if ($roomCode === '') {
             return null;
         }
 
-        $room = $catalog[$roomCode];
+        $catalog = bodare_room_catalog();
+        $inCatalog = isset($catalog[$roomCode]);
+
+        // Rooms added in the admin panel are not part of the static catalog,
+        // so start from generic defaults and let live data fill them in.
+        $room = $inCatalog ? $catalog[$roomCode] : [
+            'title' => ucwords(trim(preg_replace('/[_-]+/', ' ', $roomCode))),
+            'description' => '',
+            'image' => '',
+            'price' => 0,
+            'price_unit' => 'per night',
+            'capacity' => '',
+        ];
         $room['code'] = $roomCode;
         $room['source'] = 'catalog';
 
@@ -292,6 +347,10 @@ if (!function_exists('bodare_live_room')) {
 
         if (!$live) {
             $live = bodare_fetch_room_via_api($roomCode);
+        }
+
+        if (!$live && !$inCatalog) {
+            return null;
         }
 
         if ($live) {
@@ -321,8 +380,14 @@ if (!function_exists('bodare_live_room')) {
             }
         }
 
+        if (empty($room['description'])) {
+            $room['description'] = $room['title'] . ' offers a comfortable and well-appointed space for your stay at BODARE Pension House.';
+        }
+        if (empty($room['capacity'])) {
+            $room['capacity'] = 'Capacity varies';
+        }
         if (empty($room['seo_description'])) {
-            $room['seo_description'] = $room['description'];
+            $room['seo_description'] = bodare_room_seo_description($room['title'], $room['description']);
         }
         if (empty($room['amenities'])) {
             $room['amenities'] = [];
@@ -331,7 +396,7 @@ if (!function_exists('bodare_live_room')) {
             $room['capacity_value'] = null;
         }
 
-        $room['price_unit'] = ($roomCode === 'dormitory') ? 'per head' : 'per night';
+        $room['price_unit'] = bodare_room_price_unit($roomCode, isset($room['room_type']) ? $room['room_type'] : '');
         $room['image'] = bodare_resolve_room_image($roomCode, $room['image']);
 
         return $room;

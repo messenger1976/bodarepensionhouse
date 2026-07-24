@@ -104,6 +104,7 @@ class Bookings extends Admin_Controller {
                 $selected_rooms = array();
                 $total_amount = 0;
                 $total_rooms_count = 0;
+                $total_guests_count = 0;
                 $first_room_id = null;
                 
                 if (!empty($room_selections) && is_array($room_selections)) {
@@ -115,6 +116,9 @@ class Bookings extends Admin_Controller {
                             $sel_check_in = $selection['check_in'];
                             $sel_check_out = $selection['check_out'];
                             $sel_guests = isset($selection['guests']) ? (int)$selection['guests'] : 1;
+                            if ($sel_guests < 1) {
+                                $sel_guests = 1;
+                            }
                             
                             // Validate dates
                             if ($sel_check_out <= $sel_check_in) {
@@ -144,8 +148,9 @@ class Bookings extends Admin_Controller {
                                 // Use first room's dates for main booking record
                                 $check_in = $sel_check_in;
                                 $check_out = $sel_check_out;
-                                $guests = $sel_guests;
                             }
+
+                            $total_guests_count += ($sel_guests * $sel_quantity);
                             
                             // Calculate nights for this specific room selection
                             $check_in_date = new DateTime($sel_check_in);
@@ -204,12 +209,17 @@ class Bookings extends Admin_Controller {
                         'room_id' => $room_id,
                         'room_name' => $room->room_name,
                         'quantity' => $rooms,
+                        'guests' => $guests ? (int)$guests : 1,
                         'price_per_night' => $room->price,
                         'nights' => $nights,
                         'subtotal' => $total_amount
                     );
                     
                     $first_room_id = $room_id;
+                }
+
+                if ($total_guests_count > 0) {
+                    $guests = $total_guests_count;
                 }
                 
                 if (empty($selected_rooms)) {
@@ -267,6 +277,7 @@ class Bookings extends Admin_Controller {
                                 'check_out' => $item_check_out,
                                 'price_per_night' => $room_selection['price_per_night'],
                                 'nights' => $item_nights,
+                                'guests' => isset($room_selection['guests']) ? (int)$room_selection['guests'] : 1,
                                 'subtotal' => $room_selection['price_per_night'] * $item_nights,
                                 'status' => $this->input->post('status')
                             );
@@ -361,6 +372,7 @@ class Bookings extends Admin_Controller {
                 $selected_rooms = array();
                 $total_amount = 0;
                 $total_rooms_count = 0;
+                $total_guests_count = 0;
                 $first_room_id = null;
                 
                 if (!empty($room_selections) && is_array($room_selections)) {
@@ -372,6 +384,9 @@ class Bookings extends Admin_Controller {
                             $sel_check_in = $selection['check_in'];
                             $sel_check_out = $selection['check_out'];
                             $sel_guests = isset($selection['guests']) ? (int)$selection['guests'] : 1;
+                            if ($sel_guests < 1) {
+                                $sel_guests = 1;
+                            }
                             
                             // Validate dates
                             if ($sel_check_out <= $sel_check_in) {
@@ -401,8 +416,9 @@ class Bookings extends Admin_Controller {
                                 // Use first room's dates for main booking record
                                 $check_in = $sel_check_in;
                                 $check_out = $sel_check_out;
-                                $guests = $sel_guests;
                             }
+
+                            $total_guests_count += ($sel_guests * $sel_quantity);
                             
                             // Calculate nights for this specific room selection
                             $check_in_date = new DateTime($sel_check_in);
@@ -461,12 +477,17 @@ class Bookings extends Admin_Controller {
                         'room_id' => $room_id,
                         'room_name' => $room->room_name,
                         'quantity' => $rooms,
+                        'guests' => $guests ? (int)$guests : 1,
                         'price_per_night' => $room->price,
                         'nights' => $nights,
                         'subtotal' => $total_amount
                     );
                     
                     $first_room_id = $room_id;
+                }
+
+                if ($total_guests_count > 0) {
+                    $guests = $total_guests_count;
                 }
                 
                 if (empty($selected_rooms)) {
@@ -525,6 +546,7 @@ class Bookings extends Admin_Controller {
                                 'check_out' => $item_check_out,
                                 'price_per_night' => $room_selection['price_per_night'],
                                 'nights' => $item_nights,
+                                'guests' => isset($room_selection['guests']) ? (int)$room_selection['guests'] : 1,
                                 'subtotal' => $room_selection['price_per_night'] * $item_nights,
                                 'status' => $this->input->post('status') ? $this->input->post('status') : 'pending'
                             );

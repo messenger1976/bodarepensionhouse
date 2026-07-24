@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS `booking_items` (
     `check_out` DATE NOT NULL,
     `price_per_night` DECIMAL(10,2) NOT NULL,
     `nights` INT(11) NOT NULL DEFAULT 1,
+    `guests` INT(11) NOT NULL DEFAULT 1,
     `subtotal` DECIMAL(10,2) NOT NULL,
     `status` ENUM('pending','confirmed','cancelled','completed') NOT NULL DEFAULT 'pending',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

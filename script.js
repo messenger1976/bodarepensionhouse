@@ -80,6 +80,46 @@ const roomData = {
     }
 };
 
+const DEFAULT_ROOM_IMAGE = 'img/og-default.jpg';
+
+// Uploaded room images are stored relative to the admin app root.
+function resolveRoomImagePath(imagePath) {
+    if (!imagePath) return null;
+    const clean = String(imagePath).trim().replace(/^\/+/, '');
+    if (clean === '') return null;
+    if (/^https?:\/\//i.test(clean)) return clean;
+    return clean.startsWith('img/rooms/') ? `admin/${clean}` : clean;
+}
+
+// Collect every usable image for a room, newest uploads first, then static art.
+function collectRoomImages(apiRoom, roomKey) {
+    const images = [];
+    const addImage = (path) => {
+        const resolved = resolveRoomImagePath(path);
+        if (resolved && !images.includes(resolved)) {
+            images.push(resolved);
+        }
+    };
+
+    if (apiRoom) {
+        if (apiRoom.primary_image) addImage(apiRoom.primary_image.image_path);
+        (apiRoom.images || []).forEach(image => addImage(image.image_path));
+    }
+
+    if (roomKey && roomData[roomKey]) {
+        addImage(roomData[roomKey].imageUrl);
+    } else if (roomKey) {
+        addImage(`img/${roomKey}.jpg`);
+    }
+
+    return images;
+}
+
+function resolveRoomImage(apiRoom, roomKey) {
+    const images = collectRoomImages(apiRoom, roomKey);
+    return images.length > 0 ? images[0] : DEFAULT_ROOM_IMAGE;
+}
+
 // --- CART MANAGEMENT FUNCTIONS ---
 
 let bookingCartMutationAllowed = false;
@@ -436,17 +476,69 @@ function formatDateLocal(date) {
     return `${year}-${month}-${day}`;
 }
 
-function populateRoomDetails() {
+// Parse YYYY-MM-DD as local midnight (avoids UTC shift from new Date('YYYY-MM-DD'))
+function parseDateLocal(dateString) {
+    if (!dateString) return null;
+    const parts = dateString.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(n => Number.isNaN(n))) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+async function fetchRoomByCode(roomKey) {
+    if (typeof API === 'undefined' || !API.booking || typeof API.booking.getRoomByCode !== 'function') {
+        return null;
+    }
+
+    try {
+        const response = await API.booking.getRoomByCode(roomKey);
+        return response && response.success && response.room ? response.room : null;
+    } catch (error) {
+        console.error('Unable to load room details from API:', error);
+        return null;
+    }
+}
+
+function buildRoomEntry(apiRoom, roomKey) {
+    const fallback = roomData[roomKey] || {};
+    const images = collectRoomImages(apiRoom, roomKey);
+    const price = parseFloat(apiRoom.price);
+    const capacity = parseInt(apiRoom.capacity, 10);
+    const title = apiRoom.room_name || fallback.title || 'Room';
+
+    return {
+        title: title,
+        price: Number.isFinite(price) ? price : (fallback.price || 0),
+        priceUnit: /dormitory/i.test(`${apiRoom.room_type || ''} ${roomKey}`) ? 'per head' : 'per night',
+        capacity: Number.isFinite(capacity) && capacity > 0
+            ? `Good for ${capacity} person${capacity > 1 ? 's' : ''}`
+            : (fallback.capacity || 'Capacity varies'),
+        description: apiRoom.description || fallback.description
+            || `${title} offers a comfortable and well-appointed space for your stay.`,
+        imageUrl: images[0] || DEFAULT_ROOM_IMAGE,
+        gridImages: images.length > 0 ? images : [DEFAULT_ROOM_IMAGE],
+        roomId: apiRoom.id || null
+    };
+}
+
+async function populateRoomDetails() {
     const params = new URLSearchParams(window.location.search);
     const roomKey = params.get('room');
-    if (!roomKey || !roomData[roomKey]) {
+
+    // Rooms added in the admin panel are not in the static roomData catalog,
+    // so always try the API before deciding a room does not exist.
+    const apiRoom = roomKey ? await fetchRoomByCode(roomKey) : null;
+    if (apiRoom) {
+        roomData[roomKey] = buildRoomEntry(apiRoom, roomKey);
+    }
+
+    const room = roomKey ? roomData[roomKey] : null;
+    if (!room) {
         document.getElementById('room-title').textContent = 'Room Not Found';
 
         const gridContainer = document.getElementById('room-image-grid-container');
         if (gridContainer) gridContainer.style.display = 'none';
         return;
     }
-    const room = roomData[roomKey];
 
     // Populate main details
     document.title = `${room.title} | BODARE Pension House Tagbilaran`;
@@ -458,7 +550,7 @@ function populateRoomDetails() {
     const widget = document.querySelector('.booking-widget');
     if (widget) {
         widget.dataset.basePrice = room.price;
-        console.log('Room price set:', room.price);
+        calculateTotalCost();
     }
 
     // --- START: NEW DYNAMIC GRID LOGIC ---
@@ -471,6 +563,7 @@ function populateRoomDetails() {
             img.src = imageUrl;
             img.alt = `${room.title} detail image`;
             img.classList.add('gallery-image');
+            img.addEventListener('error', () => img.remove());
             gridContainer.appendChild(img);
         });
     }
@@ -539,19 +632,21 @@ function setupBookingWidget() {
     // Add date validation event listeners
     if (checkinInput) {
         checkinInput.addEventListener('change', function() {
-            validateDates();
-            // Update checkout minimum date to be at least check-in date
+            // Auto-set checkout to check-in + 1 day before validating,
+            // so a temporary invalid range never shows an error
             if (this.value) {
-                const checkinDate = new Date(this.value);
+                const checkinDate = parseDateLocal(this.value);
                 const nextDay = new Date(checkinDate);
                 nextDay.setDate(nextDay.getDate() + 1);
-                checkoutInput.setAttribute('min', formatDateLocal(nextDay));
-                
-                // If checkout is before or equal to check-in, update it
-                if (checkoutInput.value && new Date(checkoutInput.value) <= checkinDate) {
-                    checkoutInput.value = formatDateLocal(nextDay);
+                const nextDayString = formatDateLocal(nextDay);
+                checkoutInput.setAttribute('min', nextDayString);
+
+                const checkoutDate = parseDateLocal(checkoutInput.value);
+                if (!checkoutDate || checkoutDate <= checkinDate) {
+                    checkoutInput.value = nextDayString;
                 }
             }
+            validateDates();
             calculateTotalCost();
         });
     }
@@ -603,13 +698,12 @@ function validateDates() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const checkinDate = checkinInput.value ? new Date(checkinInput.value) : null;
-    const checkoutDate = checkoutInput.value ? new Date(checkoutInput.value) : null;
+    const checkinDate = parseDateLocal(checkinInput.value);
+    const checkoutDate = parseDateLocal(checkoutInput.value);
     
     let error = '';
     
     if (checkinDate) {
-        checkinDate.setHours(0, 0, 0, 0);
         if (checkinDate < today) {
             error = 'Check-in date cannot be in the past. Please select today or a future date.';
             checkinInput.setCustomValidity(error);
@@ -619,7 +713,6 @@ function validateDates() {
     }
     
     if (checkoutDate) {
-        checkoutDate.setHours(0, 0, 0, 0);
         if (checkoutDate < today) {
             error = 'Check-out date cannot be in the past. Please select today or a future date.';
             checkoutInput.setCustomValidity(error);
@@ -660,8 +753,8 @@ function calculateTotalCost(newNights = null) {
         const checkoutInput = document.getElementById('checkout-widget');
         
         if (checkinInput && checkoutInput && checkinInput.value && checkoutInput.value) {
-            const checkinDate = new Date(checkinInput.value);
-            const checkoutDate = new Date(checkoutInput.value);
+            const checkinDate = parseDateLocal(checkinInput.value);
+            const checkoutDate = parseDateLocal(checkoutInput.value);
             
             // Calculate difference in days
             const timeDiff = checkoutDate - checkinDate;
@@ -768,8 +861,8 @@ async function handleBookingSubmit(event) {
         return;
     }
     
-    const checkinDate = new Date(checkinInput.value);
-    const checkoutDate = new Date(checkoutInput.value);
+    const checkinDate = parseDateLocal(checkinInput.value);
+    const checkoutDate = parseDateLocal(checkoutInput.value);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -794,18 +887,24 @@ async function handleBookingSubmit(event) {
     const params = new URLSearchParams(window.location.search);
     const roomKey = params.get('room');
     const room = roomData[roomKey];
+
+    if (!room) {
+        alert('This room is no longer available. Please pick another room.');
+        return;
+    }
     
     // Try to get room_id from API
-    let roomId = null;
-    if (typeof API !== 'undefined') {
+    let roomId = room.roomId || null;
+    if (!roomId && typeof API !== 'undefined') {
         try {
             const roomsResponse = await API.booking.getRooms();
             if (roomsResponse.success && roomsResponse.rooms) {
-                const matchedRoom = roomsResponse.rooms.find(r => 
-                    r.room_name === room.title || 
-                    r.room_name.toLowerCase().includes(room.title.toLowerCase()) ||
-                    room.title.toLowerCase().includes(r.room_name.toLowerCase())
-                );
+                const matchedRoom = roomsResponse.rooms.find(r => r.room_code === roomKey)
+                    || roomsResponse.rooms.find(r => r.room_name === room.title)
+                    || roomsResponse.rooms.find(r =>
+                        r.room_name.toLowerCase().includes(room.title.toLowerCase()) ||
+                        room.title.toLowerCase().includes(r.room_name.toLowerCase())
+                    );
                 if (matchedRoom) {
                     roomId = matchedRoom.id;
                 }

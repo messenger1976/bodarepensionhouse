@@ -45,7 +45,7 @@ include __DIR__ . '/includes/site-head.php';
                 <div class="room-grid" style="margin-top: 2rem;">
                     <?php
                     require_once __DIR__ . '/includes/site-config.php';
-                    foreach (array_keys(bodare_room_catalog()) as $roomKey):
+                    foreach (bodare_room_codes() as $roomKey):
                         $roomMeta = bodare_live_room($roomKey);
                         if (!$roomMeta) {
                             continue;
@@ -91,7 +91,7 @@ include __DIR__ . '/includes/site-head.php';
                     // Display each room
                     response.rooms.forEach(room => {
                         const roomCode = room.room_code || room.room_name.toLowerCase().replace(/\s+/g, '');
-                        const imagePath = `img/${roomCode}.jpg`;
+                        const imagePath = resolveRoomImage(room, roomCode);
                         
                         // Format price
                         const priceDisplay = room.price ? `₱${parseFloat(room.price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} per night` : 'Price on request';
@@ -109,7 +109,7 @@ include __DIR__ . '/includes/site-head.php';
                         const roomCard = document.createElement('div');
                         roomCard.className = 'room-detail-card';
                         roomCard.innerHTML = `
-                            <img src="${imagePath}" alt="${room.room_name}" onerror="this.src='img/default-room.jpg'">
+                            <img src="${imagePath}" alt="${room.room_name}" onerror="this.onerror=null; this.src='img/og-default.jpg'">
                             <div class="room-info">
                                 <h2>${room.room_name || 'Room'}</h2>
                                 <p class="room-price">${priceDisplay}</p>
