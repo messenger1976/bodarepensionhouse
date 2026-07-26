@@ -186,7 +186,7 @@ include __DIR__ . '/includes/site-head.php';
                     <p style="color: #666; margin-bottom: 1.5rem;">Have a question or need assistance? Fill out the form below and we'll get back to you as soon as possible.</p>
                     <form id="inquiry-form" class="minimal-form" novalidate>
                         <input type="hidden" id="inquiry-csrf-token" name="csrf_token" value="">
-                        <div class="hp-field" aria-hidden="true">
+                        <div class="hp-field" aria-hidden="true" style="position:absolute!important;left:-10000px!important;top:auto!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important;">
                             <label for="inquiry-company-url">Company Website</label>
                             <input type="text" id="inquiry-company-url" name="company_url" value="" tabindex="-1" autocomplete="off">
                         </div>

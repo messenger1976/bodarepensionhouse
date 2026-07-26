@@ -80,3 +80,21 @@ $footerConfig = isset($footerConfig) && is_array($footerConfig)
         <?php endif; ?>
     </div>
 </footer>
+<?php
+if (!function_exists('bodare_site_config')) {
+    require_once __DIR__ . '/site-config.php';
+}
+$messengerSite = bodare_site_config();
+$messengerUrl = !empty($messengerSite['messenger_url'])
+    ? $messengerSite['messenger_url']
+    : 'https://m.me/bodarepensionhouse';
+?>
+<a href="<?php echo htmlspecialchars($messengerUrl, ENT_QUOTES, 'UTF-8'); ?>"
+   class="floating-messenger-btn"
+   aria-label="Chat with us on Messenger"
+   target="_blank"
+   rel="noopener noreferrer">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M12 0C5.373 0 0 4.975 0 11.111c0 3.497 1.745 6.616 4.472 8.652V24l4.086-2.242c1.09.301 2.246.464 3.442.464 6.627 0 12-4.974 12-11.111C24 4.975 18.627 0 12 0zm1.193 14.963l-3.056-3.259-5.963 3.259L10.732 8.1l3.13 3.259L19.752 8.1l-6.559 6.863z"/>
+    </svg>
+</a>

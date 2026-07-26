@@ -61,7 +61,7 @@ include __DIR__ . '/includes/site-head.php';
                 <form id="contact-inquiry-form" action="#" class="minimal-form" novalidate autocomplete="on">
                     <input type="hidden" name="csrf_token" id="contact-csrf-token" value="">
                     <!-- Honeypot: leave empty. Hidden from humans, filled by many bots. -->
-                    <div class="hp-field" aria-hidden="true">
+                    <div class="hp-field" aria-hidden="true" style="position:absolute!important;left:-10000px!important;top:auto!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important;">
                         <label for="company_url">Company Website</label>
                         <input type="text" id="company_url" name="company_url" value="" tabindex="-1" autocomplete="off">
                     </div>

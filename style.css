@@ -2062,3 +2062,26 @@ textarea:focus {
         grid-template-columns: 1fr !important;
     }
 }
+
+/* ---------- Floating Messenger ---------- */
+.floating-messenger-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1030;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #0099ff, #a033ff, #ff5280);
+    color: #fff !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0, 153, 255, 0.4);
+    transition: transform 0.2s ease;
+}
+
+.floating-messenger-btn:hover {
+    transform: scale(1.08);
+    color: #fff !important;
+}

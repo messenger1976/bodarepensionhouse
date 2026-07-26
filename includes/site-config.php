@@ -77,6 +77,7 @@ if (!function_exists('bodare_site_config')) {
                 'https://www.facebook.com/bodarepensionhouse',
             ],
             'facebook_url' => 'https://www.facebook.com/bodarepensionhouse',
+            'messenger_url' => 'https://m.me/bodarepensionhouse',
         ];
 
         return $config;

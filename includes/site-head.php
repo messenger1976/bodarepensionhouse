@@ -110,7 +110,7 @@ if (!headers_sent()) {
     <link rel="apple-touch-icon" href="img/logo.png">
     <link rel="icon" type="image/png" href="img/logo.png">
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=<?php echo is_file(dirname(__DIR__) . '/style.css') ? filemtime(dirname(__DIR__) . '/style.css') : time(); ?>">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
 <?php if (!empty($pageSeo['include_bootstrap_icons'])): ?>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
