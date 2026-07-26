@@ -7,11 +7,42 @@ class Inquiry extends CI_Controller {
         parent::__construct();
         $this->load->library('session');
         $this->load->library('form_validation');
+        $this->load->library('form_security');
         $this->load->database();
         $this->load->helper('url');
         header('Content-Type: application/json');
     }
     
+    /**
+     * Issue CSRF + public security bootstrap for the contact form.
+     */
+    public function csrf() {
+        ob_start();
+        $this->form_security->apply_cors_headers();
+
+        if ($this->input->method() === 'options') {
+            ob_end_clean();
+            exit;
+        }
+
+        if ($this->input->method() !== 'get') {
+            $this->output->set_status_header(405);
+            echo json_encode(array('success' => FALSE, 'message' => 'Method not allowed'));
+            return;
+        }
+
+        $bootstrap = $this->form_security->public_bootstrap();
+        echo json_encode(array(
+            'success' => TRUE,
+            'csrf_token' => $bootstrap['csrf_token'],
+            'honeypot_field' => $bootstrap['honeypot_field'],
+            'recaptcha_enabled' => $bootstrap['recaptcha_enabled'],
+            'recaptcha_site_key' => $bootstrap['recaptcha_site_key'],
+            'recaptcha_action' => $bootstrap['recaptcha_action'],
+        ));
+        ob_end_flush();
+    }
+
     /**
      * Submit an inquiry (public Contact Us + logged-in customer).
      * Stores into inquiry table first, then sends best-effort emails.
@@ -19,12 +50,7 @@ class Inquiry extends CI_Controller {
     public function submit() {
         ob_start();
         
-        $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
-        header('Access-Control-Allow-Origin: ' . $origin);
-        header('Access-Control-Allow-Methods: POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
-        header('Access-Control-Allow-Credentials: true');
-        header('Content-Type: application/json');
+        $this->form_security->apply_cors_headers();
         
         if ($this->input->method() === 'options') {
             ob_end_clean();
@@ -33,13 +59,71 @@ class Inquiry extends CI_Controller {
         
         if ($this->input->method() !== 'post') {
             $this->output->set_status_header(405);
-            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            echo json_encode(array('success' => FALSE, 'message' => 'Method not allowed'));
             return;
         }
         
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = json_decode(file_get_contents('php://input'), TRUE);
         if (!$data) {
             $data = $this->input->post();
+        }
+        if (!is_array($data)) {
+            $data = array();
+        }
+
+        // 1) Honeypot — bots that fill hidden fields are rejected silently.
+        if (!$this->form_security->check_honeypot($data)) {
+            $this->form_security->log_event('inquiry_rejected_honeypot', array(
+                'ip' => $this->input->ip_address(),
+            ));
+            echo json_encode(array(
+                'success' => TRUE,
+                'message' => 'Your inquiry has been sent successfully! We will get back to you soon.',
+            ));
+            return;
+        }
+
+        // 2) Rate limiting / throttling by IP.
+        $rate = $this->form_security->check_rate_limit();
+        if (empty($rate['ok'])) {
+            $retry = isset($rate['retry_after']) ? (int) $rate['retry_after'] : 900;
+            header('Retry-After: ' . $retry);
+            $this->output->set_status_header(429);
+            echo json_encode(array(
+                'success' => FALSE,
+                'message' => isset($rate['message']) ? $rate['message'] : 'Too many submissions. Please try again later.',
+                'retry_after' => $retry,
+            ));
+            return;
+        }
+
+        // 3) CSRF token (body or header).
+        $csrfToken = '';
+        if (!empty($data['csrf_token']) && is_string($data['csrf_token'])) {
+            $csrfToken = $data['csrf_token'];
+        } elseif (!empty($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+            $csrfToken = (string) $_SERVER['HTTP_X_CSRF_TOKEN'];
+        }
+        $csrf = $this->form_security->verify_csrf($csrfToken);
+        if (empty($csrf['ok'])) {
+            $this->output->set_status_header(403);
+            echo json_encode(array(
+                'success' => FALSE,
+                'message' => isset($csrf['message']) ? $csrf['message'] : 'Invalid security token.',
+            ));
+            return;
+        }
+
+        // 4) reCAPTCHA v3 (when configured).
+        $recaptchaToken = isset($data['recaptcha_token']) ? $data['recaptcha_token'] : '';
+        $captcha = $this->form_security->verify_recaptcha($recaptchaToken);
+        if (empty($captcha['ok'])) {
+            $this->output->set_status_header(403);
+            echo json_encode(array(
+                'success' => FALSE,
+                'message' => isset($captcha['message']) ? $captcha['message'] : 'CAPTCHA verification failed.',
+            ));
+            return;
         }
         
         $logged_in = (bool) $this->session->userdata('user_logged_in');
@@ -53,7 +137,7 @@ class Inquiry extends CI_Controller {
             $user = $this->User_model->get_user($user_id);
             if (!$user) {
                 $this->output->set_status_header(401);
-                echo json_encode(['success' => false, 'message' => 'User not found. Please log in again.']);
+                echo json_encode(array('success' => FALSE, 'message' => 'User not found. Please log in again.'));
                 return;
             }
             $name = trim($user->first_name . ' ' . $user->last_name);
@@ -71,21 +155,33 @@ class Inquiry extends CI_Controller {
         $this->form_validation->set_rules('email', 'Email', 'required|trim|valid_email|max_length[255]');
         $this->form_validation->set_rules('subject', 'Subject', 'required|trim|max_length[255]');
         $this->form_validation->set_rules('message', 'Message', 'required|trim|max_length[5000]');
+        $this->form_validation->set_rules('phone', 'Phone', 'trim|max_length[50]');
 
         if ($this->form_validation->run() == FALSE) {
             $this->output->set_status_header(400);
-            echo json_encode([
-                'success' => false,
+            echo json_encode(array(
+                'success' => FALSE,
                 'message' => 'Please check the form fields and ensure all information is entered correctly.',
                 'errors' => $this->form_validation->error_array()
-            ]);
+            ));
             return;
         }
 
-        $name = $this->security->xss_clean($data['name']);
-        $email = $this->security->xss_clean($data['email']);
-        $subject = $this->security->xss_clean($data['subject']);
-        $body = trim(strip_tags($data['message']));
+        // 5) Extra sanitization / format checks (injection & spam hardening).
+        $clean = $this->form_security->sanitize_inquiry_fields($data);
+        if (empty($clean['ok'])) {
+            $this->output->set_status_header(400);
+            echo json_encode(array(
+                'success' => FALSE,
+                'message' => isset($clean['message']) ? $clean['message'] : 'Invalid form data.',
+            ));
+            return;
+        }
+
+        $name = $clean['data']['name'];
+        $email = $clean['data']['email'];
+        $subject = $clean['data']['subject'];
+        $body = $clean['data']['message'];
         $now = date('Y-m-d H:i:s');
         
         $inquiry = array(
@@ -106,33 +202,42 @@ class Inquiry extends CI_Controller {
             
             if (!$this->db->table_exists('inquiry')) {
                 $this->output->set_status_header(500);
-                echo json_encode(['success' => false, 'message' => 'Inquiry storage is not available.']);
+                echo json_encode(array('success' => FALSE, 'message' => 'Inquiry storage is not available.'));
                 return;
             }
             
+            // Query Builder uses escaped bindings (parameterized) for inserts.
             $inserted = $this->db->insert('inquiry', $inquiry);
             if (!$inserted) {
                 $this->output->set_status_header(500);
-                echo json_encode(['success' => false, 'message' => 'Sorry, we could not save your message. Please try again.']);
+                echo json_encode(array('success' => FALSE, 'message' => 'Sorry, we could not save your message. Please try again.'));
                 return;
             }
             
             $inquiryid = (int) $this->db->insert_id();
+
+            $this->form_security->log_event('inquiry_accepted', array(
+                'inquiry_id' => $inquiryid,
+                'ip' => $this->input->ip_address(),
+                'email' => $email,
+                'recaptcha_score' => isset($captcha['score']) ? $captcha['score'] : NULL,
+            ));
+
             $this->sendInquiryEmails($inquiryid, $name, $email, $subject, $body);
             
-            echo json_encode([
-                'success' => true,
+            echo json_encode(array(
+                'success' => TRUE,
                 'message' => 'Your inquiry has been sent successfully! We will get back to you soon.',
                 'inquiry_id' => $inquiryid
-            ]);
+            ));
         } catch (Exception $e) {
             ob_clean();
             log_message('error', 'Inquiry creation error: ' . $e->getMessage());
             $this->output->set_status_header(500);
-            echo json_encode([
-                'success' => false,
+            echo json_encode(array(
+                'success' => FALSE,
                 'message' => 'We encountered an issue sending your inquiry. Please try again.'
-            ]);
+            ));
         } finally {
             ob_end_flush();
         }

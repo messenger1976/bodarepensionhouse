@@ -184,14 +184,19 @@ include __DIR__ . '/includes/site-head.php';
                 <div class="registration-container">
                     <h2>Send Us an Inquiry</h2>
                     <p style="color: #666; margin-bottom: 1.5rem;">Have a question or need assistance? Fill out the form below and we'll get back to you as soon as possible.</p>
-                    <form id="inquiry-form" class="minimal-form">
+                    <form id="inquiry-form" class="minimal-form" novalidate>
+                        <input type="hidden" id="inquiry-csrf-token" name="csrf_token" value="">
+                        <div class="hp-field" aria-hidden="true">
+                            <label for="inquiry-company-url">Company Website</label>
+                            <input type="text" id="inquiry-company-url" name="company_url" value="" tabindex="-1" autocomplete="off">
+                        </div>
                         <div class="form-group-contact">
                             <label for="inquiry-subject">Subject</label>
-                            <input type="text" id="inquiry-subject" placeholder="What is your inquiry about?" required>
+                            <input type="text" id="inquiry-subject" placeholder="What is your inquiry about?" required maxlength="255">
                         </div>
                         <div class="form-group-contact">
                             <label for="inquiry-message">Message</label>
-                            <textarea id="inquiry-message" rows="6" placeholder="Please provide details about your inquiry..." required style="
+                            <textarea id="inquiry-message" rows="6" placeholder="Please provide details about your inquiry..." required maxlength="5000" style="
                                 width: 100%;
                                 padding: 0.75rem;
                                 border: 1px solid #ddd;
@@ -1092,10 +1097,79 @@ include __DIR__ . '/includes/site-head.php';
             });
         }
         
-        // Setup inquiry form
+        // Setup inquiry form (CSRF + honeypot + optional reCAPTCHA)
         function setupInquiryForm() {
             const form = document.getElementById('inquiry-form');
             if (!form) return;
+
+            const csrfInput = document.getElementById('inquiry-csrf-token');
+            const honeypotInput = document.getElementById('inquiry-company-url');
+            let security = {
+                csrf_token: '',
+                honeypot_field: 'company_url',
+                recaptcha_enabled: false,
+                recaptcha_site_key: '',
+                recaptcha_action: 'contact_submit',
+                ready: false
+            };
+
+            function loadRecaptcha(siteKey) {
+                return new Promise((resolve, reject) => {
+                    if (window.grecaptcha && window.grecaptcha.execute) {
+                        resolve();
+                        return;
+                    }
+                    const existing = document.querySelector('script[data-recaptcha-v3]');
+                    if (existing) {
+                        existing.addEventListener('load', () => resolve());
+                        existing.addEventListener('error', () => reject(new Error('Failed to load CAPTCHA.')));
+                        return;
+                    }
+                    const s = document.createElement('script');
+                    s.src = 'https://www.google.com/recaptcha/api.js?render=' + encodeURIComponent(siteKey);
+                    s.async = true;
+                    s.defer = true;
+                    s.setAttribute('data-recaptcha-v3', '1');
+                    s.onload = () => resolve();
+                    s.onerror = () => reject(new Error('Failed to load CAPTCHA.'));
+                    document.head.appendChild(s);
+                });
+            }
+
+            async function getRecaptchaToken() {
+                if (!security.recaptcha_enabled || !security.recaptcha_site_key) return '';
+                await loadRecaptcha(security.recaptcha_site_key);
+                return await new Promise((resolve, reject) => {
+                    window.grecaptcha.ready(() => {
+                        window.grecaptcha.execute(security.recaptcha_site_key, {
+                            action: security.recaptcha_action || 'contact_submit'
+                        }).then(resolve).catch(reject);
+                    });
+                });
+            }
+
+            async function refreshSecurity() {
+                const result = await API.inquiry.csrf();
+                if (!result || !result.success || !result.csrf_token) {
+                    throw new Error('Could not initialize form security. Please refresh.');
+                }
+                security = {
+                    csrf_token: result.csrf_token,
+                    honeypot_field: result.honeypot_field || 'company_url',
+                    recaptcha_enabled: !!result.recaptcha_enabled,
+                    recaptcha_site_key: result.recaptcha_site_key || '',
+                    recaptcha_action: result.recaptcha_action || 'contact_submit',
+                    ready: true
+                };
+                if (csrfInput) csrfInput.value = security.csrf_token;
+                if (security.recaptcha_enabled) {
+                    try { await loadRecaptcha(security.recaptcha_site_key); } catch (e) { /* loaded on submit */ }
+                }
+            }
+
+            refreshSecurity().catch((err) => {
+                console.error(err);
+            });
             
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -1104,13 +1178,27 @@ include __DIR__ . '/includes/site-head.php';
                 const originalText = submitBtn.textContent;
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Sending...';
-                
-                const inquiryData = {
-                    subject: document.getElementById('inquiry-subject').value.trim(),
-                    message: document.getElementById('inquiry-message').value.trim()
-                };
+
+                if (honeypotInput && honeypotInput.value) {
+                    showMessage('Your inquiry has been sent successfully! We will get back to you soon.', 'success');
+                    form.reset();
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                    return;
+                }
                 
                 try {
+                    if (!security.ready || !security.csrf_token) {
+                        await refreshSecurity();
+                    }
+                    const inquiryData = {
+                        subject: document.getElementById('inquiry-subject').value.trim(),
+                        message: document.getElementById('inquiry-message').value.trim(),
+                        csrf_token: security.csrf_token,
+                        recaptcha_token: await getRecaptchaToken()
+                    };
+                    inquiryData[security.honeypot_field || 'company_url'] = honeypotInput ? honeypotInput.value : '';
+
                     const response = await API.inquiry.submit(inquiryData);
                     if (response.success) {
                         showMessage('Your inquiry has been sent successfully! We will get back to you soon.', 'success');
@@ -1119,6 +1207,7 @@ include __DIR__ . '/includes/site-head.php';
                 } catch (error) {
                     showMessage(error.message || 'Failed to send inquiry. Please try again.', 'error');
                 } finally {
+                    try { await refreshSecurity(); } catch (e) { /* ignore */ }
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                 }

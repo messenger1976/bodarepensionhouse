@@ -160,6 +160,7 @@ $route['api/user/update'] = 'api/user/update';
 $route['api/user/change_password'] = 'api/user/change_password';
 
 $route['api/inquiry/submit'] = 'api/inquiry/submit';
+$route['api/inquiry/csrf'] = 'api/inquiry/csrf';
 
 // Customer Dashboard routes
 $route['customer/dashboard'] = 'customer/dashboard/index';

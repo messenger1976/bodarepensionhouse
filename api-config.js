@@ -277,9 +277,22 @@ const API = {
     
     // Inquiry endpoints
     inquiry: {
+        async csrf() {
+            return API.request('inquiry/csrf', {
+                method: 'GET'
+            });
+        },
+
         async submit(inquiryData) {
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            if (inquiryData && inquiryData.csrf_token) {
+                headers['X-CSRF-Token'] = inquiryData.csrf_token;
+            }
             return API.request('inquiry/submit', {
                 method: 'POST',
+                headers,
                 body: JSON.stringify(inquiryData)
             });
         }
