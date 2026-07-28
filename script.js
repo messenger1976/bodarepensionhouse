@@ -462,8 +462,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Register SW once globally and refresh users when updates are available.
     setupServiceWorkerAutoUpdate();
+
+    // Landing page scroll reveals and soft motion
+    setupLandingPageMotion();
 });
 
+function setupLandingPageMotion() {
+    const landing = document.querySelector('.lp');
+    if (!landing) {
+        return;
+    }
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reveals = landing.querySelectorAll('.lp-reveal');
+
+    if (reduceMotion || !('IntersectionObserver' in window)) {
+        reveals.forEach((el) => el.classList.add('is-visible'));
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) {
+                return;
+            }
+            entry.target.classList.add('is-visible');
+            obs.unobserve(entry.target);
+        });
+    }, {
+        threshold: 0.12,
+        rootMargin: '0px 0px -8% 0px'
+    });
+
+    reveals.forEach((el) => observer.observe(el));
+}
 
 // --- ROOM DETAIL PAGE FUNCTIONS ---
 
