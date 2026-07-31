@@ -101,6 +101,8 @@ include __DIR__ . '/includes/site-head.php';
         </div>
     </section>
 
+    <?php adsense_render_unit('in_content', 'adsense-in-content container'); ?>
+
     <section id="rooms" class="content-section bg-light">
         <div class="container">
             <h2 class="section-title">Rooms & Suites</h2>

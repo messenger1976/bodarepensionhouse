@@ -63,6 +63,7 @@ include __DIR__ . '/includes/site-head.php';
                 </div>
             </noscript>
 
+            <?php adsense_render_unit('in_content', 'adsense-in-content'); ?>
         </div>
     </main>
 

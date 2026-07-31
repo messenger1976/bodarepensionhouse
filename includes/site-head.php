@@ -1,5 +1,11 @@
 <?php
 require_once __DIR__ . '/site-config.php';
+require_once __DIR__ . '/adsense.php';
+
+if (!isset($enableAds)) {
+    $enableAds = true;
+}
+$GLOBALS['enableAds'] = $enableAds;
 
 $site = bodare_site_config();
 
@@ -121,4 +127,5 @@ if (!headers_sent()) {
 <?php foreach ($jsonLdBlocks as $jsonLdBlock): ?>
     <script type="application/ld+json"><?php echo json_encode($jsonLdBlock, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS); ?></script>
 <?php endforeach; ?>
+<?php adsense_render_head(); ?>
 </head>

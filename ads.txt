@@ -1,0 +1,4 @@
+# Google AdSense authorization
+# Keep this pub- ID in sync with includes/adsense-config.php (ca-pub-…)
+# Get the exact line from AdSense → Sites → ads.txt if Google provides one
+google.com, pub-1060012311865896, DIRECT, f08c47fec0942fa0

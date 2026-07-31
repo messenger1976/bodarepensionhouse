@@ -5,6 +5,7 @@ $pageSeo = [
     'canonical_path' => 'customer-dashboard.php',
     'robots' => 'noindex,nofollow',
 ];
+$enableAds = false;
 include __DIR__ . '/includes/site-head.php';
 ?>
 <body>

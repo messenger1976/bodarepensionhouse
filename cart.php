@@ -5,6 +5,7 @@ $pageSeo = [
     'canonical_path' => 'cart.php',
     'robots' => 'noindex,nofollow',
 ];
+$enableAds = false;
 include __DIR__ . '/includes/site-head.php';
 ?>
 <body>

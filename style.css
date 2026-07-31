@@ -2804,3 +2804,22 @@ textarea:focus {
         min-height: 280px;
     }
 }
+
+/* Google AdSense placements */
+.adsense-wrap {
+    overflow: hidden;
+    text-align: center;
+    min-height: 0;
+}
+.adsense-in-content {
+    margin: 1.5rem auto;
+    padding: 0.5rem 0;
+}
+.adsense-sidebar {
+    margin-top: 1.25rem;
+}
+.adsense-footer {
+    max-width: 970px;
+    margin-left: auto;
+    margin-right: auto;
+}

@@ -6,6 +6,7 @@ $pageSeo = [
     'robots' => 'noindex,nofollow',
     'include_bootstrap_icons' => false,
 ];
+$enableAds = false;
 include __DIR__ . '/includes/site-head.php';
 ?>
 <body>

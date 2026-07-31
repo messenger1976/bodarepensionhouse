@@ -6,6 +6,11 @@ $defaultFooterConfig = [
 $footerConfig = isset($footerConfig) && is_array($footerConfig)
     ? array_merge($defaultFooterConfig, $footerConfig)
     : $defaultFooterConfig;
+
+if (!function_exists('adsense_render_unit')) {
+    require_once __DIR__ . '/adsense.php';
+}
+adsense_render_unit('footer', 'adsense-footer container my-4');
 ?>
 <footer id="contact" class="site-footer">
     <div class="container">

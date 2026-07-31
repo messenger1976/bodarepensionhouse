@@ -6,6 +6,7 @@ $pageSeo = [
     'robots' => 'noindex,nofollow',
     'extra_head' => '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">',
 ];
+$enableAds = false;
 include __DIR__ . '/includes/site-head.php';
 ?>
 <body>

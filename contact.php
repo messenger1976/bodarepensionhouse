@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/site-config.php';
+$enableAds = false;
 $pageSeo = [
     'title' => 'Contact Us | BODARE Pension House Tagbilaran City',
     'description' => 'Contact BODARE Pension House for reservations and inquiries. Visit us at J.A. Clarin St., Dao District, Tagbilaran City, Bohol, or call 0950 533 7480.',

@@ -123,6 +123,8 @@ $amenityItems = !empty($room['amenities'])
                         <?php echo htmlspecialchars($initialDescription, ENT_QUOTES, 'UTF-8'); ?>
                     </p>
 
+                    <?php adsense_render_unit('in_content', 'adsense-in-content'); ?>
+
                     <h3>Room Amenities</h3>
                     <div class="amenities-grid">
                         <?php foreach ($amenityItems as $amenity): ?>
@@ -193,6 +195,7 @@ $amenityItems = !empty($room['amenities'])
 
                         <button type="submit" class="cta-button">Add to Cart</button>
                     </form>
+                    <?php adsense_render_unit('sidebar', 'adsense-sidebar'); ?>
                 </aside>
             </div>
         </section>
