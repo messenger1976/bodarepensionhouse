@@ -240,11 +240,30 @@ function updateCartItem(cartId, updates) {
     return cart;
 }
 
+function formatPeso(amount) {
+    return `₱${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function getCartItemExtraBedTotal(item) {
+    const extraBeds = parseInt(item.extraBeds, 10) || 0;
+    const extraBedCost = parseFloat(item.extraBedCost) || 0;
+    const nights = parseInt(item.nights, 10) || 1;
+    if (extraBeds <= 0 || extraBedCost <= 0) {
+        return 0;
+    }
+    return extraBeds * extraBedCost * nights;
+}
+
+function getCartItemRoomSubtotal(item) {
+    const total = item.totalAmount || parseFloat(String(item.total || '').replace(/[₱,]/g, '')) || 0;
+    return Math.max(0, total - getCartItemExtraBedTotal(item));
+}
+
 // Get cart total
 function getCartTotal() {
     const cart = getCart();
     return cart.reduce((total, item) => {
-        const itemTotal = parseFloat(item.total.replace(/[₱,]/g, '')) || 0;
+        const itemTotal = item.totalAmount || parseFloat(String(item.total || '').replace(/[₱,]/g, '')) || 0;
         return total + itemTotal;
     }, 0);
 }
@@ -1035,7 +1054,22 @@ function populateCheckoutPage() {
     let totalAmount = 0;
     
     cart.forEach((item, index) => {
-        totalAmount += item.totalAmount || 0;
+        const roomSubtotal = getCartItemRoomSubtotal(item);
+        const extraBedTotal = getCartItemExtraBedTotal(item);
+        totalAmount += item.totalAmount || (roomSubtotal + extraBedTotal);
+
+        let extraBedRow = '';
+        if (extraBedTotal > 0) {
+            const extraBeds = parseInt(item.extraBeds, 10) || 0;
+            const extraBedCost = parseFloat(item.extraBedCost) || 0;
+            extraBedRow = `
+                <div class="summary-item">
+                    <span>Extra Bed (${extraBeds} × ${item.nights} night${item.nights > 1 ? 's' : ''} @ ${formatPeso(extraBedCost)})</span>
+                    <strong>${formatPeso(extraBedTotal)}</strong>
+                </div>
+            `;
+        }
+
         summaryHTML += `
             <div style="border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 1rem;">
                 <h4 style="margin-bottom: 0.5rem; color: var(--dark-blue);">${item.roomName}</h4>
@@ -1060,9 +1094,10 @@ function populateCheckoutPage() {
                     <strong>${item.rooms}</strong>
                 </div>
                 <div class="summary-item">
-                    <span>Subtotal</span>
-                    <strong>${item.total}</strong>
+                    <span>Room Rate</span>
+                    <strong>${formatPeso(roomSubtotal)}</strong>
                 </div>
+                ${extraBedRow}
             </div>
         `;
     });

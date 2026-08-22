@@ -677,13 +677,18 @@ async function handleCheckoutSubmit(e) {
             firstCheckOut = itemCheckOut;
         }
         
+        const extraBeds = parseInt(item.extraBeds, 10) || 0;
+        const extraBedPrice = parseFloat(item.extraBedCost) || 0;
+
         // Add room selection (same format as admin panel)
         roomSelections.push({
             room_id: matchedRoom.id,
             quantity: itemRooms,
             check_in: itemCheckIn,
             check_out: itemCheckOut,
-            guests: itemGuests > 0 ? itemGuests : 1
+            guests: itemGuests > 0 ? itemGuests : 1,
+            extra_beds: extraBeds,
+            extra_bed_price: extraBedPrice
         });
         
         totalRooms += itemRooms;
@@ -696,7 +701,11 @@ async function handleCheckoutSubmit(e) {
         }
         
         // Track room details for notes
-        roomDetails.push(`${item.roomName} (${itemRooms} room${itemRooms > 1 ? 's' : ''}, ${itemGuests} guest${itemGuests !== 1 ? 's' : ''})`);
+        let roomDetail = `${item.roomName} (${itemRooms} room${itemRooms > 1 ? 's' : ''}, ${itemGuests} guest${itemGuests !== 1 ? 's' : ''})`;
+        if (extraBeds > 0) {
+            roomDetail += `, ${extraBeds} extra bed${extraBeds > 1 ? 's' : ''}`;
+        }
+        roomDetails.push(roomDetail);
     }
 
     // Merge room-level services with cart-level extras captured at submit start

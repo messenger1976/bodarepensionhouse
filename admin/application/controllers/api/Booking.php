@@ -241,6 +241,7 @@ class Booking extends CI_Controller {
         $check_in = null;
         $check_out = null;
         $guests = 0;
+        $extra_services = array();
         
         if ($room_selections && !empty($room_selections)) {
             // New format: multiple room selections with individual dates and guests
@@ -306,6 +307,20 @@ class Booking extends CI_Controller {
                     // Calculate subtotal for this room selection
                     $base_total = $this->Booking_model->calculate_total_amount($sel_room_id, $sel_check_in, $sel_check_out, $sel_guests);
                     $subtotal = $base_total * $sel_quantity;
+
+                    $extra_beds = isset($selection['extra_beds']) ? max(0, (int)$selection['extra_beds']) : 0;
+                    $extra_bed_price = isset($selection['extra_bed_price']) ? max(0, floatval($selection['extra_bed_price'])) : 0;
+                    $extra_bed_total = 0;
+                    if ($extra_beds > 0 && $extra_bed_price > 0) {
+                        $extra_bed_total = $extra_beds * $extra_bed_price * $nights;
+                        $total_amount += $extra_bed_total;
+                        $bed_label = $extra_beds === 1 ? 'bed' : 'beds';
+                        $night_label = $nights === 1 ? 'night' : 'nights';
+                        $extra_services[] = array(
+                            'name' => "Extra Bed ({$extra_beds} {$bed_label} × {$nights} {$night_label} — {$room->room_name})",
+                            'cost' => $extra_bed_total
+                        );
+                    }
                     
                     $selected_rooms[] = array(
                         'room_id' => $sel_room_id,
@@ -316,7 +331,10 @@ class Booking extends CI_Controller {
                         'guests' => $sel_guests,
                         'price_per_night' => $room->price,
                         'nights' => $nights,
-                        'subtotal' => $subtotal
+                        'subtotal' => $subtotal,
+                        'extra_beds' => $extra_beds,
+                        'extra_bed_price' => $extra_bed_price,
+                        'extra_bed_total' => $extra_bed_total
                     );
                     
                     $total_amount += $subtotal;
@@ -434,8 +452,7 @@ class Booking extends CI_Controller {
             return;
         }
 
-        // Normalize and total extra services from the cart
-        $extra_services = array();
+        // Merge cart extra services (pet, spa, laundry, etc.)
         $services_total = 0;
         if (isset($data['extra_services']) && is_array($data['extra_services'])) {
             foreach ($data['extra_services'] as $service) {
@@ -870,10 +887,66 @@ class Booking extends CI_Controller {
                 ]);
                 return;
             }
+
+            $items_array = array();
+            if ($this->db->table_exists('booking_items')) {
+                $items = $this->Booking_item_model->get_booking_items($booking->id);
+                if ($items) {
+                    foreach ($items as $item) {
+                        $items_array[] = array(
+                            'id' => $item->id,
+                            'room_id' => $item->room_id,
+                            'room_name' => isset($item->room_name) ? $item->room_name : 'Room',
+                            'room_type' => isset($item->room_type) ? $item->room_type : '',
+                            'check_in' => $item->check_in,
+                            'check_out' => $item->check_out,
+                            'price_per_night' => isset($item->price_per_night) ? floatval($item->price_per_night) : 0,
+                            'nights' => isset($item->nights) ? intval($item->nights) : 1,
+                            'guests' => isset($item->guests) ? intval($item->guests) : 1,
+                            'subtotal' => isset($item->subtotal) ? floatval($item->subtotal) : 0,
+                            'status' => isset($item->status) ? $item->status : 'pending'
+                        );
+                    }
+                }
+            }
+
+            $extra_services = array();
+            if (!empty($booking->extra_services)) {
+                $decoded = json_decode($booking->extra_services, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $service) {
+                        if (!is_array($service) || empty($service['name'])) {
+                            continue;
+                        }
+                        $extra_services[] = array(
+                            'name' => $service['name'],
+                            'cost' => isset($service['cost']) ? floatval($service['cost']) : null
+                        );
+                    }
+                }
+            }
+
+            $booking_array = array(
+                'id' => $booking->id,
+                'booking_number' => isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT),
+                'room_id' => $booking->room_id,
+                'room_name' => isset($booking->room_name) ? $booking->room_name : 'Room',
+                'room_type' => isset($booking->room_type) ? $booking->room_type : '',
+                'check_in' => $booking->check_in,
+                'check_out' => $booking->check_out,
+                'guests' => $booking->guests,
+                'rooms' => isset($booking->rooms) ? intval($booking->rooms) : count($items_array),
+                'total_amount' => isset($booking->total_amount) ? floatval($booking->total_amount) : 0,
+                'status' => isset($booking->status) ? $booking->status : 'pending',
+                'notes' => isset($booking->notes) ? $booking->notes : '',
+                'extra_services' => $extra_services,
+                'created_at' => isset($booking->created_at) ? $booking->created_at : '',
+                'items' => $items_array
+            );
             
             echo json_encode([
                 'success' => true,
-                'booking' => $booking
+                'booking' => $booking_array
             ]);
         } else {
             $this->output->set_status_header(404);

@@ -138,6 +138,18 @@ include __DIR__ . '/includes/site-head.php';
             const servicesList = item.services && item.services.length > 0 
                 ? item.services.map(s => `${s.name} (₱${s.cost.toLocaleString()})`).join(', ')
                 : 'None';
+
+            const roomSubtotal = typeof getCartItemRoomSubtotal === 'function'
+                ? getCartItemRoomSubtotal(item)
+                : (item.totalAmount || 0);
+            const extraBedTotal = typeof getCartItemExtraBedTotal === 'function'
+                ? getCartItemExtraBedTotal(item)
+                : 0;
+            const extraBeds = parseInt(item.extraBeds, 10) || 0;
+            const extraBedCost = parseFloat(item.extraBedCost) || 0;
+            const extraBedLine = extraBedTotal > 0
+                ? `<p><strong>Extra Bed:</strong> ${extraBeds} × ${item.nights} night${item.nights > 1 ? 's' : ''} @ ₱${extraBedCost.toLocaleString()} = ₱${extraBedTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>`
+                : '';
             
             div.innerHTML = `
                 <div class="cart-item-image">
@@ -151,7 +163,8 @@ include __DIR__ . '/includes/site-head.php';
                         <p><strong>Nights:</strong> ${item.nights}</p>
                         <p><strong>Guests:</strong> ${item.adults} Adult(s), ${item.children} Child(ren)</p>
                         <p><strong>Rooms:</strong> ${item.rooms}</p>
-                        ${item.extraBeds > 0 ? `<p><strong>Extra Beds:</strong> ${item.extraBeds}</p>` : ''}
+                        <p><strong>Room Rate:</strong> ₱${roomSubtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                        ${extraBedLine}
                         <p style="color: #999; font-size: 0.85rem;"><em>Services can be added below</em></p>
                     </div>
                 </div>
