@@ -258,6 +258,63 @@ class Users extends Admin_Controller {
         
         redirect('users');
     }
+
+    /**
+     * Delete multiple admin users
+     */
+    public function batch_delete() {
+        $this->require_permission('delete_users');
+
+        if ($this->input->method() !== 'post') {
+            redirect('users');
+            return;
+        }
+
+        $user_ids = $this->input->post('user_ids');
+        if (empty($user_ids) || !is_array($user_ids)) {
+            $this->session->set_flashdata('error', 'No users selected for deletion.');
+            redirect('users');
+            return;
+        }
+
+        $deleted = 0;
+        $skipped = 0;
+        $failed = 0;
+
+        foreach ($user_ids as $id) {
+            $id = (int) $id;
+            if ($id <= 0) {
+                $skipped++;
+                continue;
+            }
+
+            if ($id == $this->admin_id) {
+                $skipped++;
+                continue;
+            }
+
+            if ($this->Admin_model->delete($id)) {
+                $deleted++;
+            } else {
+                $failed++;
+            }
+        }
+
+        if ($deleted > 0) {
+            $message = $deleted . ' user(s) deleted successfully.';
+            if ($skipped > 0) {
+                $message .= ' ' . $skipped . ' user(s) were skipped.';
+            }
+            if ($failed > 0) {
+                $message .= ' ' . $failed . ' user(s) could not be deleted.';
+            }
+            $this->session->set_flashdata('success', $message);
+        } else {
+            $this->session->set_flashdata('error', 'No users were deleted. You cannot delete your own account.');
+        }
+
+        redirect('users');
+    }
     
     /**
      * View user details

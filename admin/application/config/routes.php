@@ -110,6 +110,7 @@ $route['users'] = 'admin/users/index';
 $route['users/add'] = 'admin/users/add';
 $route['users/edit/(:num)'] = 'admin/users/edit/$1';
 $route['users/delete/(:num)'] = 'admin/users/delete/$1';
+$route['users/batch_delete'] = 'admin/users/batch_delete';
 $route['users/view/(:num)'] = 'admin/users/view/$1';
 
 // Group Management routes
