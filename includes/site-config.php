@@ -282,6 +282,203 @@ if (!function_exists('bodare_room_setting')) {
     }
 }
 
+if (!function_exists('bodare_format_peso')) {
+    function bodare_format_peso($amount)
+    {
+        return '₱' . number_format((float) $amount, 2);
+    }
+}
+
+if (!function_exists('bodare_parse_booking_extra_services')) {
+    function bodare_parse_booking_extra_services($raw)
+    {
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+
+        $decoded = is_array($raw) ? $raw : json_decode((string) $raw, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $services = [];
+        foreach ($decoded as $service) {
+            if (!is_array($service) || empty($service['name'])) {
+                continue;
+            }
+            $services[] = [
+                'name' => trim((string) $service['name']),
+                'cost' => isset($service['cost']) ? (float) $service['cost'] : null,
+            ];
+        }
+
+        return $services;
+    }
+}
+
+if (!function_exists('bodare_is_extra_bed_service')) {
+    function bodare_is_extra_bed_service($name)
+    {
+        return is_string($name) && stripos($name, 'extra bed') === 0;
+    }
+}
+
+if (!function_exists('bodare_parse_extra_beds_from_notes')) {
+    function bodare_parse_extra_beds_from_notes($notes)
+    {
+        if (!is_string($notes) || $notes === '') {
+            return 0;
+        }
+
+        if (preg_match('/,\s*(\d+)\s+extra\s+beds?\b/i', $notes, $matches)) {
+            return max(0, (int) $matches[1]);
+        }
+
+        if (preg_match('/Extra\s+Beds?:\s*(\d+)/i', $notes, $matches)) {
+            return max(0, (int) $matches[1]);
+        }
+
+        if (preg_match('/Extra\s+Beds?:[^|]*?(\d+)\s+bed\(s\)/i', $notes, $matches)) {
+            return max(0, (int) $matches[1]);
+        }
+
+        return 0;
+    }
+}
+
+if (!function_exists('bodare_get_booking_confirmation')) {
+    /**
+     * Load booking details for the public confirmation page.
+     */
+    function bodare_get_booking_confirmation($booking_number)
+    {
+        $booking_number = trim((string) $booking_number);
+        if ($booking_number === '') {
+            return null;
+        }
+
+        $db = bodare_db();
+        if (!$db) {
+            return null;
+        }
+
+        $stmt = $db->prepare(
+            'SELECT b.*, r.room_name, r.room_type
+             FROM bookings b
+             LEFT JOIN rooms r ON r.id = b.room_id
+             WHERE b.booking_number = ?
+             LIMIT 1'
+        );
+        if (!$stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('s', $booking_number);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $booking = $result ? $result->fetch_assoc() : null;
+        $stmt->close();
+
+        if (!$booking) {
+            return null;
+        }
+
+        $items = [];
+        $itemsStmt = $db->prepare(
+            'SELECT room_id, room_name, check_in, check_out, price_per_night, nights, guests, subtotal, status
+             FROM booking_items
+             WHERE booking_id = ?
+             ORDER BY id ASC'
+        );
+        if ($itemsStmt) {
+            $bookingId = (int) $booking['id'];
+            $itemsStmt->bind_param('i', $bookingId);
+            $itemsStmt->execute();
+            $itemsResult = $itemsStmt->get_result();
+            if ($itemsResult) {
+                while ($row = $itemsResult->fetch_assoc()) {
+                    $items[] = $row;
+                }
+                $itemsResult->free();
+            }
+            $itemsStmt->close();
+        }
+
+        $services = bodare_parse_booking_extra_services($booking['extra_services'] ?? null);
+        $extraBedLines = [];
+        $otherServices = [];
+
+        foreach ($services as $service) {
+            if (bodare_is_extra_bed_service($service['name'])) {
+                $extraBedLines[] = $service;
+            } else {
+                $otherServices[] = $service;
+            }
+        }
+
+        $roomsSubtotal = 0.0;
+        foreach ($items as $item) {
+            $roomsSubtotal += (float) ($item['subtotal'] ?? 0);
+        }
+
+        $otherServicesTotal = 0.0;
+        foreach ($otherServices as $service) {
+            $otherServicesTotal += (float) ($service['cost'] ?? 0);
+        }
+
+        $extraBedTotal = 0.0;
+        foreach ($extraBedLines as $line) {
+            $extraBedTotal += (float) ($line['cost'] ?? 0);
+        }
+
+        if (empty($extraBedLines)) {
+            $extraBedsFromNotes = bodare_parse_extra_beds_from_notes($booking['notes'] ?? '');
+            $totalAmount = (float) ($booking['total_amount'] ?? 0);
+            $gap = round($totalAmount - $roomsSubtotal - $otherServicesTotal - $extraBedTotal, 2);
+
+            if ($gap > 0) {
+                $extraBedLines[] = [
+                    'name' => 'Extra Bed',
+                    'cost' => $gap,
+                ];
+                $extraBedTotal += $gap;
+            } elseif ($extraBedsFromNotes > 0) {
+                $nights = 1;
+                if (!empty($items[0]['nights'])) {
+                    $nights = max(1, (int) $items[0]['nights']);
+                } elseif (!empty($booking['check_in']) && !empty($booking['check_out'])) {
+                    $checkIn = new DateTime($booking['check_in']);
+                    $checkOut = new DateTime($booking['check_out']);
+                    $nights = max(1, (int) $checkIn->diff($checkOut)->days);
+                }
+
+                $extraBedPrice = (float) bodare_room_setting('extra_bed_price', 199);
+                $computedExtraBedTotal = $extraBedsFromNotes * $extraBedPrice * $nights;
+                $bedLabel = $extraBedsFromNotes === 1 ? 'bed' : 'beds';
+                $nightLabel = $nights === 1 ? 'night' : 'nights';
+                $roomLabel = !empty($items[0]['room_name']) ? $items[0]['room_name'] : ($booking['room_name'] ?? 'Room');
+
+                $extraBedLines[] = [
+                    'name' => "Extra Bed ({$extraBedsFromNotes} {$bedLabel} × {$nights} {$nightLabel} @ " . bodare_format_peso($extraBedPrice) . " — {$roomLabel})",
+                    'cost' => $computedExtraBedTotal,
+                ];
+                $extraBedTotal += $computedExtraBedTotal;
+            }
+        }
+
+        return [
+            'booking' => $booking,
+            'items' => $items,
+            'extra_bed_lines' => $extraBedLines,
+            'other_services' => $otherServices,
+            'rooms_subtotal' => $roomsSubtotal,
+            'extra_bed_total' => $extraBedTotal,
+            'other_services_total' => $otherServicesTotal,
+            'display_total' => $roomsSubtotal + $extraBedTotal + $otherServicesTotal,
+        ];
+    }
+}
+
 if (!function_exists('bodare_room_codes')) {
     /**
      * Active room codes from the database, falling back to the static catalog.

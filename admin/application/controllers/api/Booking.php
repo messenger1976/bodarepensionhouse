@@ -926,6 +926,35 @@ class Booking extends CI_Controller {
                 }
             }
 
+            $extra_services = $this->append_inferred_extra_bed_services(
+                $extra_services,
+                isset($booking->notes) ? $booking->notes : '',
+                $items_array,
+                isset($booking->total_amount) ? floatval($booking->total_amount) : 0,
+                isset($booking->room_name) ? $booking->room_name : 'Room',
+                $booking->check_in,
+                $booking->check_out
+            );
+
+            $rooms_subtotal = 0;
+            foreach ($items_array as $item) {
+                $rooms_subtotal += floatval($item['subtotal']);
+            }
+            $extra_bed_total = 0;
+            $other_services_total = 0;
+            foreach ($extra_services as $service) {
+                $cost = isset($service['cost']) ? floatval($service['cost']) : 0;
+                if ($this->is_extra_bed_service_name($service['name'])) {
+                    $extra_bed_total += $cost;
+                } else {
+                    $other_services_total += $cost;
+                }
+            }
+            $display_total = max(
+                floatval($booking->total_amount),
+                $rooms_subtotal + $extra_bed_total + $other_services_total
+            );
+
             $booking_array = array(
                 'id' => $booking->id,
                 'booking_number' => isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT),
@@ -936,7 +965,7 @@ class Booking extends CI_Controller {
                 'check_out' => $booking->check_out,
                 'guests' => $booking->guests,
                 'rooms' => isset($booking->rooms) ? intval($booking->rooms) : count($items_array),
-                'total_amount' => isset($booking->total_amount) ? floatval($booking->total_amount) : 0,
+                'total_amount' => $display_total,
                 'status' => isset($booking->status) ? $booking->status : 'pending',
                 'notes' => isset($booking->notes) ? $booking->notes : '',
                 'extra_services' => $extra_services,
@@ -955,6 +984,93 @@ class Booking extends CI_Controller {
                 'message' => 'Booking not found'
             ]);
         }
+    }
+    
+    private function is_extra_bed_service_name($name)
+    {
+        return is_string($name) && stripos($name, 'extra bed') === 0;
+    }
+
+    private function parse_extra_beds_from_notes($notes)
+    {
+        if (!is_string($notes) || $notes === '') {
+            return 0;
+        }
+
+        if (preg_match('/,\s*(\d+)\s+extra\s+beds?\b/i', $notes, $matches)) {
+            return max(0, (int) $matches[1]);
+        }
+
+        if (preg_match('/Extra\s+Beds?:\s*(\d+)/i', $notes, $matches)) {
+            return max(0, (int) $matches[1]);
+        }
+
+        if (preg_match('/Extra\s+Beds?:[^|]*?(\d+)\s+bed\(s\)/i', $notes, $matches)) {
+            return max(0, (int) $matches[1]);
+        }
+
+        return 0;
+    }
+
+    private function get_extra_bed_price_setting()
+    {
+        $this->load->model('Room_settings_model');
+        $price = $this->Room_settings_model->get_setting('extra_bed_price', 199);
+        return max(0, floatval($price));
+    }
+
+    private function append_inferred_extra_bed_services($extra_services, $notes, $items_array, $total_amount, $fallback_room_name, $check_in, $check_out)
+    {
+        foreach ($extra_services as $service) {
+            if ($this->is_extra_bed_service_name($service['name'])) {
+                return $extra_services;
+            }
+        }
+
+        $rooms_subtotal = 0;
+        $other_services_total = 0;
+        foreach ($items_array as $item) {
+            $rooms_subtotal += floatval($item['subtotal']);
+        }
+        foreach ($extra_services as $service) {
+            $other_services_total += isset($service['cost']) ? floatval($service['cost']) : 0;
+        }
+
+        $gap = round(floatval($total_amount) - $rooms_subtotal - $other_services_total, 2);
+        if ($gap > 0) {
+            $extra_services[] = array(
+                'name' => 'Extra Bed',
+                'cost' => $gap
+            );
+            return $extra_services;
+        }
+
+        $extra_beds = $this->parse_extra_beds_from_notes($notes);
+        if ($extra_beds <= 0) {
+            return $extra_services;
+        }
+
+        $nights = 1;
+        if (!empty($items_array[0]['nights'])) {
+            $nights = max(1, (int) $items_array[0]['nights']);
+        } elseif (!empty($check_in) && !empty($check_out)) {
+            $check_in_date = new DateTime($check_in);
+            $check_out_date = new DateTime($check_out);
+            $nights = max(1, (int) $check_in_date->diff($check_out_date)->days);
+        }
+
+        $extra_bed_price = $this->get_extra_bed_price_setting();
+        $extra_bed_total = $extra_beds * $extra_bed_price * $nights;
+        $room_name = !empty($items_array[0]['room_name']) ? $items_array[0]['room_name'] : $fallback_room_name;
+        $bed_label = $extra_beds === 1 ? 'bed' : 'beds';
+        $night_label = $nights === 1 ? 'night' : 'nights';
+
+        $extra_services[] = array(
+            'name' => "Extra Bed ({$extra_beds} {$bed_label} × {$nights} {$night_label} @ ₱" . number_format($extra_bed_price, 2) . " — {$room_name})",
+            'cost' => $extra_bed_total
+        );
+
+        return $extra_services;
     }
     
     /**

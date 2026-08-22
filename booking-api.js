@@ -732,6 +732,20 @@ async function handleCheckoutSubmit(e) {
     notes += ` | Total Rooms: ${totalRooms}`;
     notes += ` | Room Details: ${roomDetails.join(', ')}`;
     notes += ` | Guests: ${totalAdults} Adult(s), ${totalChildren} Child(ren)`;
+
+    const extraBedSummary = cart
+        .filter(item => (parseInt(item.extraBeds, 10) || 0) > 0)
+        .map(item => {
+            const extraBeds = parseInt(item.extraBeds, 10) || 0;
+            const extraBedPrice = parseFloat(item.extraBedCost) || 0;
+            const extraBedTotal = typeof getCartItemExtraBedTotal === 'function'
+                ? getCartItemExtraBedTotal(item)
+                : (extraBeds * extraBedPrice * (parseInt(item.nights, 10) || 1));
+            return `${item.roomName}: ${extraBeds} bed(s) × ${item.nights} night(s) @ ₱${extraBedPrice.toLocaleString()} = ₱${extraBedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        });
+    if (extraBedSummary.length > 0) {
+        notes += ` | Extra Beds: ${extraBedSummary.join('; ')}`;
+    }
     
     // Add services to notes if any
     if (uniqueServices.length > 0) {
@@ -813,10 +827,40 @@ async function handleCheckoutSubmit(e) {
             }
             
             // Store booking result for confirmation page
+            const confirmationItems = cart.map(item => {
+                const extraBeds = parseInt(item.extraBeds, 10) || 0;
+                const extraBedCost = parseFloat(item.extraBedCost) || 0;
+                const extraBedTotal = typeof getCartItemExtraBedTotal === 'function'
+                    ? getCartItemExtraBedTotal(item)
+                    : (extraBeds * extraBedCost * (parseInt(item.nights, 10) || 1));
+                const roomSubtotal = typeof getCartItemRoomSubtotal === 'function'
+                    ? getCartItemRoomSubtotal(item)
+                    : ((item.totalAmount || 0) - extraBedTotal);
+
+                return {
+                    roomName: item.roomName,
+                    checkin: item.checkin,
+                    checkout: item.checkout,
+                    nights: item.nights,
+                    adults: item.adults,
+                    children: item.children,
+                    rooms: item.rooms,
+                    extraBeds,
+                    extraBedCost,
+                    roomSubtotal,
+                    extraBedTotal,
+                    total: item.totalAmount || (roomSubtotal + extraBedTotal)
+                };
+            });
+
             localStorage.setItem('bookingResult', JSON.stringify({
                 booking_number: response.booking_number,
                 total_rooms: savedRooms || totalRooms,
-                room_details: roomDetails
+                room_details: roomDetails,
+                items: confirmationItems,
+                extra_services: uniqueServices,
+                total_amount: confirmationItems.reduce((sum, item) => sum + (item.total || 0), 0)
+                    + uniqueServices.reduce((sum, service) => sum + (parseFloat(service.cost) || 0), 0)
             }));
             
             // Small delay to ensure cart is cleared before redirect
