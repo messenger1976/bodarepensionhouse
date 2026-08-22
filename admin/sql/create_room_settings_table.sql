@@ -18,6 +18,7 @@ INSERT INTO `room_settings` (`setting_key`, `setting_value`) VALUES
 ('max_capacity', '10'),
 ('price_currency', '₱'),
 ('price_display_format', 'per_night'),
+('extra_bed_price', '199'),
 ('room_types', 'Standard
 Deluxe
 Executive

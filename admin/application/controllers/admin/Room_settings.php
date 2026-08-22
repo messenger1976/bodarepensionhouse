@@ -31,6 +31,7 @@ class Room_settings extends Admin_Controller {
                 'max_capacity' => $this->input->post('max_capacity'),
                 'price_currency' => $this->input->post('price_currency'),
                 'price_display_format' => $this->input->post('price_display_format'),
+                'extra_bed_price' => $this->input->post('extra_bed_price'),
                 'room_types' => $this->input->post('room_types'),
                 'amenities_list' => $this->input->post('amenities_list'),
                 'image_upload_path' => $this->input->post('image_upload_path'),

@@ -92,6 +92,7 @@ $initialPriceHtml = $room
 $amenityItems = !empty($room['amenities'])
     ? $room['amenities']
     : ['Cable TV', 'Shower', 'Safe box', 'Free WiFi', 'Work Desk', 'Bathtub'];
+$extraBedPrice = (float) bodare_room_setting('extra_bed_price', 199);
 ?>
 <body>
 
@@ -179,8 +180,8 @@ $amenityItems = !empty($room['amenities'])
                                 </div>
                             </div>
                             <div class="guest-inputs">
-                                <label>Extra Bed</label>
-                                <div class="counter" data-min="0" data-cost="500">
+                                <label>Extra Bed (₱<?php echo number_format($extraBedPrice); ?>/night)</label>
+                                <div class="counter" data-min="0" data-cost="<?php echo htmlspecialchars((string) $extraBedPrice, ENT_QUOTES, 'UTF-8'); ?>">
                                     <button type="button">-</button>
                                     <input type="text" value="0" readonly>
                                     <button type="button">+</button>

@@ -257,6 +257,31 @@ if (!function_exists('bodare_resolve_room_image')) {
     }
 }
 
+if (!function_exists('bodare_room_setting')) {
+    /**
+     * Get a room setting from the database, with fallback default.
+     */
+    function bodare_room_setting($key, $default = null)
+    {
+        static $cache = null;
+        if ($cache === null) {
+            $cache = [];
+            $db = bodare_db();
+            if ($db) {
+                $result = $db->query('SELECT setting_key, setting_value FROM room_settings');
+                if ($result) {
+                    while ($row = $result->fetch_assoc()) {
+                        $cache[$row['setting_key']] = $row['setting_value'];
+                    }
+                    $result->free();
+                }
+            }
+        }
+
+        return array_key_exists($key, $cache) ? $cache[$key] : $default;
+    }
+}
+
 if (!function_exists('bodare_room_codes')) {
     /**
      * Active room codes from the database, falling back to the static catalog.

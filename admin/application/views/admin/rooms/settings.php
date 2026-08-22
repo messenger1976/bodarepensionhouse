@@ -80,6 +80,16 @@
                             </select>
                             <small class="form-text text-muted">How prices are displayed</small>
                         </div>
+                        
+                        <div class="mb-3">
+                            <label for="extra_bed_price" class="form-label">Extra Bed Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><?php echo isset($settings['price_currency']) ? htmlspecialchars($settings['price_currency']) : '₱'; ?></span>
+                                <input type="number" class="form-control" id="extra_bed_price" name="extra_bed_price" 
+                                    value="<?php echo isset($settings['extra_bed_price']) ? htmlspecialchars($settings['extra_bed_price']) : '199'; ?>" min="0" step="1" required>
+                            </div>
+                            <small class="form-text text-muted">Price per extra bed per night</small>
+                        </div>
                     </div>
                 </div>
             </div>
