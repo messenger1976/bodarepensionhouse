@@ -128,4 +128,5 @@ if (!headers_sent()) {
     <script type="application/ld+json"><?php echo json_encode($jsonLdBlock, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS); ?></script>
 <?php endforeach; ?>
 <?php adsense_render_head(); ?>
+    <script>window.BODARE_EXTRA_BED_PRICE = <?php echo json_encode((float) bodare_room_setting('extra_bed_price', 199)); ?>;</script>
 </head>

@@ -310,16 +310,12 @@ class Booking extends CI_Controller {
 
                     $extra_beds = isset($selection['extra_beds']) ? max(0, (int)$selection['extra_beds']) : 0;
                     $extra_bed_price = isset($selection['extra_bed_price']) ? max(0, floatval($selection['extra_bed_price'])) : 0;
+                    if ($extra_beds > 0 && $extra_bed_price <= 0) {
+                        $extra_bed_price = $this->get_extra_bed_price_setting();
+                    }
                     $extra_bed_total = 0;
                     if ($extra_beds > 0 && $extra_bed_price > 0) {
                         $extra_bed_total = $extra_beds * $extra_bed_price * $nights;
-                        $total_amount += $extra_bed_total;
-                        $bed_label = $extra_beds === 1 ? 'bed' : 'beds';
-                        $night_label = $nights === 1 ? 'night' : 'nights';
-                        $extra_services[] = array(
-                            'name' => "Extra Bed ({$extra_beds} {$bed_label} × {$nights} {$night_label} — {$room->room_name})",
-                            'cost' => $extra_bed_total
-                        );
                     }
                     
                     $selected_rooms[] = array(
@@ -452,7 +448,7 @@ class Booking extends CI_Controller {
             return;
         }
 
-        // Merge cart extra services (pet, spa, laundry, etc.)
+        // Merge cart extra services (pet, spa, laundry, extra bed, etc.)
         $services_total = 0;
         if (isset($data['extra_services']) && is_array($data['extra_services'])) {
             foreach ($data['extra_services'] as $service) {
@@ -467,6 +463,37 @@ class Booking extends CI_Controller {
                 $services_total += $cost;
             }
         }
+
+        // Fallback: charge extra beds from room selections if frontend did not send service rows
+        $has_extra_bed_service = false;
+        foreach ($extra_services as $service) {
+            if ($this->is_extra_bed_service_name($service['name'])) {
+                $has_extra_bed_service = true;
+                break;
+            }
+        }
+        if (!$has_extra_bed_service) {
+            foreach ($selected_rooms as $room_selection) {
+                if (empty($room_selection['extra_bed_total'])) {
+                    continue;
+                }
+                $extra_bed_total = floatval($room_selection['extra_bed_total']);
+                if ($extra_bed_total <= 0) {
+                    continue;
+                }
+                $extra_beds = isset($room_selection['extra_beds']) ? (int)$room_selection['extra_beds'] : 0;
+                $nights = isset($room_selection['nights']) ? (int)$room_selection['nights'] : 1;
+                $bed_label = $extra_beds === 1 ? 'bed' : 'beds';
+                $night_label = $nights === 1 ? 'night' : 'nights';
+                $room_name = isset($room_selection['room_name']) ? $room_selection['room_name'] : 'Room';
+                $extra_services[] = array(
+                    'name' => "Extra Bed ({$extra_beds} {$bed_label} × {$nights} {$night_label} — {$room_name})",
+                    'cost' => $extra_bed_total
+                );
+                $services_total += $extra_bed_total;
+            }
+        }
+
         $total_amount = floatval($total_amount) + $services_total;
         
         // Prepare main booking data

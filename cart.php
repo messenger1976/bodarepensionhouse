@@ -107,7 +107,11 @@ include __DIR__ . '/includes/site-head.php';
     <script>
         // Load and display cart items
         function loadCartItems() {
-            const cart = getCart();
+            let cart = getCart();
+            if (Array.isArray(cart) && cart.length > 0 && typeof applyCartItemPricing === 'function') {
+                cart = cart.map(item => applyCartItemPricing(item));
+                saveCart(cart);
+            }
             const cartItemsContainer = document.querySelector('.cart-items');
             const emptyCartMessage = document.getElementById('empty-cart-message');
             const cartItemsDiv = document.getElementById('cart-items-container');
@@ -146,9 +150,19 @@ include __DIR__ . '/includes/site-head.php';
                 ? getCartItemExtraBedTotal(item)
                 : 0;
             const extraBeds = parseInt(item.extraBeds, 10) || 0;
-            const extraBedCost = parseFloat(item.extraBedCost) || 0;
+            const extraBedCost = parseFloat(item.extraBedCost) || (typeof getDefaultExtraBedPrice === 'function' ? getDefaultExtraBedPrice() : 199);
+            const extraBedControls = `
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem;">
+                    <strong>Extra Bed (₱${extraBedCost.toLocaleString()}/night):</strong>
+                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid #ddd; border-radius: 4px; padding: 0.25rem 0.5rem;">
+                        <button type="button" onclick="changeCartExtraBeds('${item.cartId}', -1)" style="border: none; background: none; cursor: pointer; font-size: 1rem;">-</button>
+                        <span>${extraBeds}</span>
+                        <button type="button" onclick="changeCartExtraBeds('${item.cartId}', 1)" style="border: none; background: none; cursor: pointer; font-size: 1rem;">+</button>
+                    </div>
+                </div>
+            `;
             const extraBedLine = extraBedTotal > 0
-                ? `<p><strong>Extra Bed:</strong> ${extraBeds} × ${item.nights} night${item.nights > 1 ? 's' : ''} @ ₱${extraBedCost.toLocaleString()} = ₱${extraBedTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>`
+                ? `<p><strong>Extra Bed Total:</strong> ₱${extraBedTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>`
                 : '';
             
             div.innerHTML = `
@@ -164,6 +178,7 @@ include __DIR__ . '/includes/site-head.php';
                         <p><strong>Guests:</strong> ${item.adults} Adult(s), ${item.children} Child(ren)</p>
                         <p><strong>Rooms:</strong> ${item.rooms}</p>
                         <p><strong>Room Rate:</strong> ₱${roomSubtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                        ${extraBedControls}
                         ${extraBedLine}
                         <p style="color: #999; font-size: 0.85rem;"><em>Services can be added below</em></p>
                     </div>
@@ -187,6 +202,13 @@ include __DIR__ . '/includes/site-head.php';
         function removeCartItem(cartId) {
             if (confirm('Are you sure you want to remove this item from your cart?')) {
                 removeFromCart(cartId);
+                loadCartItems();
+            }
+        }
+
+        function changeCartExtraBeds(cartId, delta) {
+            if (typeof updateCartExtraBeds === 'function') {
+                updateCartExtraBeds(cartId, delta);
                 loadCartItems();
             }
         }

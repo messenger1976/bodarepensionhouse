@@ -244,19 +244,111 @@ function formatPeso(amount) {
     return `₱${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function getCartItemExtraBedTotal(item) {
-    const extraBeds = parseInt(item.extraBeds, 10) || 0;
-    const extraBedCost = parseFloat(item.extraBedCost) || 0;
-    const nights = parseInt(item.nights, 10) || 1;
-    if (extraBeds <= 0 || extraBedCost <= 0) {
-        return 0;
+function getDefaultExtraBedPrice() {
+    const value = parseFloat(window.BODARE_EXTRA_BED_PRICE);
+    return Number.isFinite(value) && value > 0 ? value : 199;
+}
+
+function computeRoomSubtotal(item) {
+    const nights = Math.max(1, parseInt(item.nights, 10) || 1);
+    const rooms = Math.max(1, parseInt(item.rooms, 10) || 1);
+    const adults = parseInt(item.adults, 10) || 0;
+    const children = parseInt(item.children, 10) || 0;
+    const guests = Math.max(1, adults + children);
+    const price = parseFloat(item.price) || 0;
+    const priceUnit = String(item.priceUnit || 'per night').toLowerCase();
+
+    if (priceUnit.includes('head')) {
+        return price * guests * nights * rooms;
     }
-    return extraBeds * extraBedCost * nights;
+
+    return price * nights * rooms;
+}
+
+function resolveCartItemExtraBed(item) {
+    let extraBeds = parseInt(item.extraBeds ?? item.extra_beds, 10) || 0;
+    let extraBedCost = parseFloat(item.extraBedCost ?? item.extra_bed_cost ?? item.extraBedPrice) || 0;
+    if (extraBedCost <= 0) {
+        extraBedCost = getDefaultExtraBedPrice();
+    }
+
+    const nights = Math.max(1, parseInt(item.nights, 10) || 1);
+    const roomTotal = computeRoomSubtotal(item);
+    const itemTotal = item.totalAmount || parseFloat(String(item.total || '').replace(/[₱,]/g, '')) || 0;
+
+    if (extraBeds > 0) {
+        const extraBedTotal = extraBeds * extraBedCost * nights;
+        return {
+            extraBeds,
+            extraBedCost,
+            extraBedTotal,
+            roomSubtotal: roomTotal,
+            itemTotal: roomTotal + extraBedTotal
+        };
+    }
+
+    if (itemTotal > roomTotal + 0.009) {
+        const diff = Math.round((itemTotal - roomTotal) * 100) / 100;
+        const perBedNight = extraBedCost * nights;
+        if (perBedNight > 0) {
+            extraBeds = Math.max(1, Math.round(diff / perBedNight));
+            const extraBedTotal = extraBeds * extraBedCost * nights;
+            return {
+                extraBeds,
+                extraBedCost,
+                extraBedTotal,
+                roomSubtotal: roomTotal,
+                itemTotal: roomTotal + extraBedTotal
+            };
+        }
+    }
+
+    return {
+        extraBeds: 0,
+        extraBedCost,
+        extraBedTotal: 0,
+        roomSubtotal: itemTotal || roomTotal,
+        itemTotal: itemTotal || roomTotal
+    };
+}
+
+function applyCartItemPricing(item) {
+    const pricing = resolveCartItemExtraBed(item);
+    return {
+        ...item,
+        extraBeds: pricing.extraBeds,
+        extraBedCost: pricing.extraBedCost,
+        totalAmount: pricing.itemTotal,
+        total: formatPeso(pricing.itemTotal)
+    };
+}
+
+function updateCartExtraBeds(cartId, delta) {
+    const cart = getCart();
+    const itemIndex = cart.findIndex(item => item.cartId === cartId);
+    if (itemIndex === -1) {
+        return;
+    }
+
+    const item = cart[itemIndex];
+    const current = parseInt(item.extraBeds, 10) || 0;
+    const next = Math.max(0, current + delta);
+    const updated = applyCartItemPricing({
+        ...item,
+        extraBeds: next,
+        extraBedCost: parseFloat(item.extraBedCost) || getDefaultExtraBedPrice()
+    });
+
+    cart[itemIndex] = updated;
+    saveCart(cart);
+}
+
+function getCartItemExtraBedTotal(item) {
+    return resolveCartItemExtraBed(item).extraBedTotal;
 }
 
 function getCartItemRoomSubtotal(item) {
-    const total = item.totalAmount || parseFloat(String(item.total || '').replace(/[₱,]/g, '')) || 0;
-    return Math.max(0, total - getCartItemExtraBedTotal(item));
+    return resolveCartItemExtraBed(item).roomSubtotal;
 }
 
 // Get cart total
@@ -835,7 +927,10 @@ function calculateTotalCost(newNights = null) {
     const extraBedCounter = widget.querySelector('.counter[data-cost]');
     if (extraBedCounter) {
         const extraBedCount = parseInt(extraBedCounter.querySelector('input').value) || 0;
-        const extraBedCost = parseFloat(extraBedCounter.dataset.cost) || 0;
+        let extraBedCost = parseFloat(extraBedCounter.dataset.cost) || 0;
+        if (extraBedCost <= 0) {
+            extraBedCost = getDefaultExtraBedPrice();
+        }
         roomCost += extraBedCount * extraBedCost * nights;
     }
 
@@ -969,16 +1064,22 @@ async function handleBookingSubmit(event) {
     
     // Get extra beds
     const widget = document.querySelector('.booking-widget');
+    const extraBedInput = document.getElementById('extra-bed-count');
     const extraBedCounter = widget?.querySelector('.counter[data-cost]');
-    const extraBeds = extraBedCounter ? parseInt(extraBedCounter.querySelector('input').value) || 0 : 0;
-    const extraBedCost = extraBedCounter ? parseFloat(extraBedCounter.dataset.cost) || 0 : 0;
+    const extraBeds = extraBedInput
+        ? parseInt(extraBedInput.value, 10) || 0
+        : (extraBedCounter ? parseInt(extraBedCounter.querySelector('input').value, 10) || 0 : 0);
+    let extraBedCost = extraBedCounter ? parseFloat(extraBedCounter.dataset.cost) || 0 : 0;
+    if (extraBedCost <= 0) {
+        extraBedCost = getDefaultExtraBedPrice();
+    }
     
     // Calculate nights
     const checkin = new Date(checkinInput.value);
     const checkout = new Date(checkoutInput.value);
     const nights = Math.ceil((checkout - checkin) / (1000 * 60 * 60 * 24));
     
-    const cartItem = {
+    let cartItem = {
         roomKey: roomKey,
         roomId: roomId,
         roomName: room.title,
@@ -997,6 +1098,8 @@ async function handleBookingSubmit(event) {
         total: document.getElementById('total-cost-display').textContent,
         totalAmount: parseFloat(document.getElementById('total-cost-display').textContent.replace(/[₱,]/g, '')) || 0
     };
+
+    cartItem = applyCartItemPricing(cartItem);
     
     // Add to cart
     addToCart(cartItem);

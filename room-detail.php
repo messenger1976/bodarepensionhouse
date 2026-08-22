@@ -183,7 +183,7 @@ $extraBedPrice = (float) bodare_room_setting('extra_bed_price', 199);
                                 <label>Extra Bed (₱<?php echo number_format($extraBedPrice); ?>/night)</label>
                                 <div class="counter" data-min="0" data-cost="<?php echo htmlspecialchars((string) $extraBedPrice, ENT_QUOTES, 'UTF-8'); ?>">
                                     <button type="button">-</button>
-                                    <input type="text" value="0" readonly>
+                                    <input type="text" value="0" readonly id="extra-bed-count">
                                     <button type="button">+</button>
                                 </div>
                             </div>

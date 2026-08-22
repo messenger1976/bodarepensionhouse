@@ -474,7 +474,18 @@ async function handleCheckoutSubmit(e) {
         console.log('Cart cleared successfully');
     }
     
-    const cart = getCartLocal();
+    const cart = getCartLocal().map(item => (
+        typeof applyCartItemPricing === 'function' ? applyCartItemPricing(item) : item
+    ));
+
+    if (typeof withExpectedCartMutation === 'function') {
+        withExpectedCartMutation('normalize-cart-before-checkout', () => {
+            localStorage.setItem('bookingCart', JSON.stringify(cart));
+        });
+    } else {
+        localStorage.setItem('bookingCart', JSON.stringify(cart));
+    }
+
     if (!cart || cart.length === 0) {
         showMessage('Your cart is empty. Please add rooms to your cart first.', 'error');
         submitBtn.disabled = false;
@@ -677,8 +688,16 @@ async function handleCheckoutSubmit(e) {
             firstCheckOut = itemCheckOut;
         }
         
-        const extraBeds = parseInt(item.extraBeds, 10) || 0;
-        const extraBedPrice = parseFloat(item.extraBedCost) || 0;
+        const extraBedInfo = typeof resolveCartItemExtraBed === 'function'
+            ? resolveCartItemExtraBed(item)
+            : {
+                extraBeds: parseInt(item.extraBeds, 10) || 0,
+                extraBedCost: parseFloat(item.extraBedCost) || 199,
+                extraBedTotal: 0,
+                roomSubtotal: item.totalAmount || 0
+            };
+        const extraBeds = extraBedInfo.extraBeds;
+        const extraBedPrice = extraBedInfo.extraBedCost;
 
         // Add room selection (same format as admin panel)
         roomSelections.push({
@@ -690,6 +709,13 @@ async function handleCheckoutSubmit(e) {
             extra_beds: extraBeds,
             extra_bed_price: extraBedPrice
         });
+
+        if (extraBeds > 0 && extraBedInfo.extraBedTotal > 0) {
+            allServices.push({
+                name: `Extra Bed (${extraBeds} bed${extraBeds > 1 ? 's' : ''} × ${item.nights} night${item.nights > 1 ? 's' : ''} @ ₱${extraBedPrice.toLocaleString()} — ${item.roomName})`,
+                cost: extraBedInfo.extraBedTotal
+            });
+        }
         
         totalRooms += itemRooms;
         totalAdults += itemAdults;
@@ -734,15 +760,14 @@ async function handleCheckoutSubmit(e) {
     notes += ` | Guests: ${totalAdults} Adult(s), ${totalChildren} Child(ren)`;
 
     const extraBedSummary = cart
-        .filter(item => (parseInt(item.extraBeds, 10) || 0) > 0)
         .map(item => {
-            const extraBeds = parseInt(item.extraBeds, 10) || 0;
-            const extraBedPrice = parseFloat(item.extraBedCost) || 0;
-            const extraBedTotal = typeof getCartItemExtraBedTotal === 'function'
-                ? getCartItemExtraBedTotal(item)
-                : (extraBeds * extraBedPrice * (parseInt(item.nights, 10) || 1));
-            return `${item.roomName}: ${extraBeds} bed(s) × ${item.nights} night(s) @ ₱${extraBedPrice.toLocaleString()} = ₱${extraBedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        });
+            const info = typeof resolveCartItemExtraBed === 'function' ? resolveCartItemExtraBed(item) : null;
+            if (!info || info.extraBeds <= 0 || info.extraBedTotal <= 0) {
+                return null;
+            }
+            return `${item.roomName}: ${info.extraBeds} bed(s) × ${item.nights} night(s) @ ₱${info.extraBedCost.toLocaleString()} = ₱${info.extraBedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        })
+        .filter(Boolean);
     if (extraBedSummary.length > 0) {
         notes += ` | Extra Beds: ${extraBedSummary.join('; ')}`;
     }
@@ -828,14 +853,14 @@ async function handleCheckoutSubmit(e) {
             
             // Store booking result for confirmation page
             const confirmationItems = cart.map(item => {
-                const extraBeds = parseInt(item.extraBeds, 10) || 0;
-                const extraBedCost = parseFloat(item.extraBedCost) || 0;
-                const extraBedTotal = typeof getCartItemExtraBedTotal === 'function'
-                    ? getCartItemExtraBedTotal(item)
-                    : (extraBeds * extraBedCost * (parseInt(item.nights, 10) || 1));
-                const roomSubtotal = typeof getCartItemRoomSubtotal === 'function'
-                    ? getCartItemRoomSubtotal(item)
-                    : ((item.totalAmount || 0) - extraBedTotal);
+                const info = typeof resolveCartItemExtraBed === 'function'
+                    ? resolveCartItemExtraBed(item)
+                    : {
+                        extraBeds: parseInt(item.extraBeds, 10) || 0,
+                        extraBedCost: parseFloat(item.extraBedCost) || 199,
+                        extraBedTotal: 0,
+                        roomSubtotal: item.totalAmount || 0
+                    };
 
                 return {
                     roomName: item.roomName,
@@ -845,11 +870,11 @@ async function handleCheckoutSubmit(e) {
                     adults: item.adults,
                     children: item.children,
                     rooms: item.rooms,
-                    extraBeds,
-                    extraBedCost,
-                    roomSubtotal,
-                    extraBedTotal,
-                    total: item.totalAmount || (roomSubtotal + extraBedTotal)
+                    extraBeds: info.extraBeds,
+                    extraBedCost: info.extraBedCost,
+                    roomSubtotal: info.roomSubtotal,
+                    extraBedTotal: info.extraBedTotal,
+                    total: info.roomSubtotal + info.extraBedTotal
                 };
             });
 
