@@ -274,13 +274,17 @@
                     <label class="form-label small fw-bold">Total Guests</label>
                     <div class="form-control bg-white" id="total-guests-display">0</div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold">Earliest Check-In</label>
                     <div class="form-control bg-white" id="earliest-checkin-display">-</div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold">Latest Check-Out</label>
                     <div class="form-control bg-white" id="latest-checkout-display">-</div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Rooms Subtotal</label>
+                    <div class="form-control bg-white" id="rooms-subtotal-display">₱0.00</div>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-bold">Total Amount</label>
@@ -288,7 +292,28 @@
                 </div>
             </div>
             <div class="row g-3 mt-2">
-                <div class="col-md-12">
+                <div class="col-md-3">
+                    <label for="extra_beds" class="form-label small fw-bold">Extra Beds</label>
+                    <input type="number" class="form-control" id="extra_beds" name="extra_beds"
+                        value="<?php echo set_value('extra_beds', isset($extra_beds) ? (int) $extra_beds : 0); ?>"
+                        min="0" step="1">
+                    <small class="text-muted">Number of extra beds</small>
+                </div>
+                <div class="col-md-3">
+                    <label for="extra_bed_price" class="form-label small fw-bold">Extra Bed Price / Night</label>
+                    <div class="input-group">
+                        <span class="input-group-text">₱</span>
+                        <input type="number" class="form-control" id="extra_bed_price" name="extra_bed_price"
+                            value="<?php echo set_value('extra_bed_price', isset($extra_bed_price) ? number_format((float) $extra_bed_price, 2, '.', '') : '199.00'); ?>"
+                            min="0" step="0.01">
+                    </div>
+                    <small class="text-muted">Default from Room Settings</small>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Extra Bed Total</label>
+                    <div class="form-control bg-white fw-bold text-primary" id="extra-bed-total-display">₱0.00</div>
+                </div>
+                <div class="col-md-3">
                     <label for="status" class="form-label small fw-bold">Booking Status *</label>
                     <select class="form-select" id="status" name="status" required>
                         <option value="pending" <?php echo set_select('status', 'pending', $booking->status == 'pending'); ?>>⏳ Pending</option>
@@ -582,9 +607,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Calculate total rooms, guests, amount, and date ranges
         let totalRooms = 0;
         let totalGuests = 0;
-        let totalAmount = 0;
+        let roomsSubtotal = 0;
         let earliestCheckIn = null;
         let latestCheckOut = null;
+        let maxNights = 1;
         
         document.querySelectorAll('.room-row').forEach(row => {
             const roomSelect = row.querySelector('.room-select');
@@ -601,7 +627,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 totalGuests += guests * quantity;
                 
                 const subtotalText = subtotalDisplay.value.replace(/[₱,]/g, '');
-                totalAmount += parseFloat(subtotalText) || 0;
+                roomsSubtotal += parseFloat(subtotalText) || 0;
                 
                 // Track earliest check-in and latest check-out
                 const checkIn = checkInInput.value;
@@ -613,14 +639,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!latestCheckOut || checkOut > latestCheckOut) {
                     latestCheckOut = checkOut;
                 }
+
+                const nights = Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
+                if (nights > maxNights) {
+                    maxNights = nights;
+                }
             }
         });
+
+        const extraBeds = parseInt(document.getElementById('extra_beds')?.value, 10) || 0;
+        const extraBedPrice = parseFloat(document.getElementById('extra_bed_price')?.value) || 0;
+        const extraBedTotal = extraBeds * extraBedPrice * maxNights;
+        const totalAmount = roomsSubtotal + extraBedTotal;
         
         // Update displays
         document.getElementById('total-rooms-display').textContent = totalRooms;
         document.getElementById('total-guests-display').textContent = totalGuests;
-        document.getElementById('earliest-checkin-display').textContent = earliestCheckIn ? new Date(earliestCheckIn).toLocaleDateString() : '-';
-        document.getElementById('latest-checkout-display').textContent = latestCheckOut ? new Date(latestCheckOut).toLocaleDateString() : '-';
+        document.getElementById('earliest-checkin-display').textContent = earliestCheckIn ? new Date(earliestCheckIn + 'T12:00:00').toLocaleDateString() : '-';
+        document.getElementById('latest-checkout-display').textContent = latestCheckOut ? new Date(latestCheckOut + 'T12:00:00').toLocaleDateString() : '-';
+        const roomsSubtotalEl = document.getElementById('rooms-subtotal-display');
+        if (roomsSubtotalEl) {
+            roomsSubtotalEl.textContent = '₱' + roomsSubtotal.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+        const extraBedTotalEl = document.getElementById('extra-bed-total-display');
+        if (extraBedTotalEl) {
+            extraBedTotalEl.textContent = '₱' + extraBedTotal.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
         document.getElementById('total-amount-display').textContent = '₱' + totalAmount.toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
@@ -654,6 +704,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Attach events to initial room rows
     document.querySelectorAll('.room-row').forEach(row => attachRoomRowEvents(row));
+
+    ['extra_beds', 'extra_bed_price'].forEach(function(fieldId) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('input', calculateTotals);
+            field.addEventListener('change', calculateTotals);
+        }
+    });
     
     // Customer selection handler
     const customerSelect = document.getElementById('customer_id');

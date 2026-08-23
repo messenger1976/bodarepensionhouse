@@ -117,6 +117,29 @@
                     <th>Total Amount:</th>
                     <td><strong>₱<?php echo number_format($booking->total_amount, 2); ?></strong></td>
                 </tr>
+                <?php
+                $extra_services_list = array();
+                if (!empty($booking->extra_services)) {
+                    $decoded_services = json_decode($booking->extra_services, true);
+                    if (is_array($decoded_services)) {
+                        $extra_services_list = $decoded_services;
+                    }
+                }
+                ?>
+                <?php if (!empty($extra_services_list)): ?>
+                <tr>
+                    <th>Extra Services:</th>
+                    <td>
+                        <?php foreach ($extra_services_list as $service): ?>
+                            <?php if (empty($service['name'])) continue; ?>
+                            <div class="d-flex justify-content-between gap-3">
+                                <span><?php echo htmlspecialchars($service['name']); ?></span>
+                                <strong>₱<?php echo number_format(isset($service['cost']) ? (float) $service['cost'] : 0, 2); ?></strong>
+                            </div>
+                        <?php endforeach; ?>
+                    </td>
+                </tr>
+                <?php endif; ?>
             </table>
         </div>
     </div>
@@ -172,6 +195,32 @@
                         <?php endforeach; ?>
                     </tbody>
                     <tfoot>
+                        <?php
+                        $rooms_items_subtotal = 0;
+                        if (!empty($booking_items)) {
+                            foreach ($booking_items as $item) {
+                                $rooms_items_subtotal += (float) $item->subtotal;
+                            }
+                        }
+                        $view_extra_services = array();
+                        if (!empty($booking->extra_services)) {
+                            $decoded = json_decode($booking->extra_services, true);
+                            if (is_array($decoded)) {
+                                $view_extra_services = $decoded;
+                            }
+                        }
+                        ?>
+                        <tr>
+                            <td colspan="7" class="text-end"><strong>Rooms Subtotal:</strong></td>
+                            <td colspan="2"><strong>₱<?php echo number_format($rooms_items_subtotal, 2); ?></strong></td>
+                        </tr>
+                        <?php foreach ($view_extra_services as $service): ?>
+                            <?php if (empty($service['name'])) continue; ?>
+                            <tr>
+                                <td colspan="7" class="text-end"><?php echo htmlspecialchars($service['name']); ?>:</td>
+                                <td colspan="2">₱<?php echo number_format(isset($service['cost']) ? (float) $service['cost'] : 0, 2); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
                         <tr class="table-info">
                             <td colspan="7" class="text-end"><strong>Total Amount:</strong></td>
                             <td colspan="2"><strong>₱<?php echo number_format($booking->total_amount, 2); ?></strong></td>

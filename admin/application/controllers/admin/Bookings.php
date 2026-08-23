@@ -14,7 +14,64 @@ class Bookings extends Admin_Controller {
         $this->load->model('Booking_item_model');
         $this->load->model('Room_model');
         $this->load->model('Customer_model');
+        $this->load->model('Room_settings_model');
         $this->load->library('form_validation');
+    }
+
+    /**
+     * Parse Extra Bed qty/price from booking.extra_services JSON.
+     */
+    private function parse_extra_bed_from_services($raw_services, $nights = 1, $default_price = 199)
+    {
+        $extra_beds = 0;
+        $extra_bed_price = (float) $default_price;
+        $extra_bed_total = 0.0;
+        $other_services = array();
+
+        $decoded = is_array($raw_services) ? $raw_services : json_decode((string) $raw_services, true);
+        if (!is_array($decoded)) {
+            return array(
+                'extra_beds' => 0,
+                'extra_bed_price' => $extra_bed_price,
+                'extra_bed_total' => 0.0,
+                'other_services' => array(),
+                'all_services' => array()
+            );
+        }
+
+        $nights = max(1, (int) $nights);
+        foreach ($decoded as $service) {
+            if (!is_array($service) || empty($service['name'])) {
+                continue;
+            }
+
+            $name = trim((string) $service['name']);
+            $cost = isset($service['cost']) ? (float) $service['cost'] : 0.0;
+            $normalized = array('name' => $name, 'cost' => $cost);
+
+            if (stripos($name, 'extra bed') === 0) {
+                $qty = 1;
+                if (preg_match('/\((\d+)\s+beds?/i', $name, $matches)) {
+                    $qty = max(1, (int) $matches[1]);
+                }
+                $extra_beds += $qty;
+                $extra_bed_total += $cost;
+            } else {
+                $other_services[] = $normalized;
+            }
+        }
+
+        if ($extra_beds > 0 && $extra_bed_total > 0) {
+            $extra_bed_price = $extra_bed_total / ($extra_beds * $nights);
+        }
+
+        return array(
+            'extra_beds' => $extra_beds,
+            'extra_bed_price' => round($extra_bed_price, 2),
+            'extra_bed_total' => $extra_bed_total,
+            'other_services' => $other_services,
+            'all_services' => $decoded
+        );
     }
     
     public function index() {
@@ -80,6 +137,25 @@ class Bookings extends Admin_Controller {
         } else {
             $data['booking_items'] = array();
         }
+
+        $default_extra_bed_price = (float) $this->Room_settings_model->get_setting('extra_bed_price', 199);
+        $booking_nights = 1;
+        if (!empty($data['booking']->check_in) && !empty($data['booking']->check_out)) {
+            $ci = new DateTime($data['booking']->check_in);
+            $co = new DateTime($data['booking']->check_out);
+            $booking_nights = max(1, (int) $ci->diff($co)->days);
+        }
+        $parsed_extra = $this->parse_extra_bed_from_services(
+            isset($data['booking']->extra_services) ? $data['booking']->extra_services : null,
+            $booking_nights,
+            $default_extra_bed_price
+        );
+        $data['extra_beds'] = $parsed_extra['extra_beds'];
+        $data['extra_bed_price'] = $parsed_extra['extra_bed_price'] > 0
+            ? $parsed_extra['extra_bed_price']
+            : $default_extra_bed_price;
+        $data['other_extra_services'] = $parsed_extra['other_services'];
+        $data['default_extra_bed_price'] = $default_extra_bed_price;
         
         if ($this->input->post()) {
             $this->form_validation->set_rules('guest_name', 'Guest Name', 'required');
@@ -227,6 +303,43 @@ class Bookings extends Admin_Controller {
                     redirect('bookings/edit/' . $id);
                     return;
                 }
+
+                // Extra bed charge
+                $extra_beds = max(0, (int) $this->input->post('extra_beds'));
+                $extra_bed_price = max(0, (float) $this->input->post('extra_bed_price'));
+                if ($extra_beds > 0 && $extra_bed_price <= 0) {
+                    $extra_bed_price = (float) $this->Room_settings_model->get_setting('extra_bed_price', 199);
+                }
+
+                $booking_nights_for_extra = 1;
+                if (!empty($check_in) && !empty($check_out)) {
+                    $ci_extra = new DateTime($check_in);
+                    $co_extra = new DateTime($check_out);
+                    $booking_nights_for_extra = max(1, (int) $ci_extra->diff($co_extra)->days);
+                }
+
+                $extra_services = array();
+                $existing_parsed = $this->parse_extra_bed_from_services(
+                    isset($data['booking']->extra_services) ? $data['booking']->extra_services : null,
+                    $booking_nights_for_extra,
+                    $extra_bed_price > 0 ? $extra_bed_price : 199
+                );
+                foreach ($existing_parsed['other_services'] as $other_service) {
+                    $extra_services[] = $other_service;
+                    $total_amount += (float) $other_service['cost'];
+                }
+
+                if ($extra_beds > 0 && $extra_bed_price > 0) {
+                    $extra_bed_total = $extra_beds * $extra_bed_price * $booking_nights_for_extra;
+                    $bed_label = $extra_beds === 1 ? 'bed' : 'beds';
+                    $night_label = $booking_nights_for_extra === 1 ? 'night' : 'nights';
+                    $room_label = !empty($selected_rooms[0]['room_name']) ? $selected_rooms[0]['room_name'] : 'Room';
+                    $extra_services[] = array(
+                        'name' => "Extra Bed ({$extra_beds} {$bed_label} × {$booking_nights_for_extra} {$night_label} @ ₱" . number_format($extra_bed_price, 2) . " — {$room_label})",
+                        'cost' => $extra_bed_total
+                    );
+                    $total_amount += $extra_bed_total;
+                }
                 
                 // Start transaction
                 $this->db->trans_start();
@@ -249,6 +362,7 @@ class Bookings extends Admin_Controller {
                     'total_amount' => $total_amount,
                     'status' => $this->input->post('status'),
                     'notes' => $this->input->post('notes'),
+                    'extra_services' => !empty($extra_services) ? json_encode($extra_services) : null,
                     'admin_id' => $this->admin_id
                 );
                 
