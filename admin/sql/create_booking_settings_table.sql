@@ -23,6 +23,9 @@ INSERT INTO `booking_settings` (`setting_key`, `setting_value`) VALUES
 ('require_payment', '0'),
 ('send_email_notifications', '0'),
 ('auto_confirm_bookings', '0'),
+('auto_create_invoice', '0'),
+('auto_issue_invoice', '1'),
+('auto_email_invoice', '0'),
 ('tax_rate', '0'),
 ('service_charge', '0'),
 ('booking_notes', '')

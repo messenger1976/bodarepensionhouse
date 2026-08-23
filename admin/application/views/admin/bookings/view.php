@@ -5,7 +5,12 @@
             <a href="<?php echo base_url('bookings'); ?>" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Back to List
             </a>
-            <?php if (isset($can_manage) && $can_manage): ?>
+            <?php if (!empty($can_create_invoice)): ?>
+            <a href="<?php echo base_url('invoices/from_booking/' . $booking->id); ?>" class="btn btn-success">
+                <i class="bi bi-receipt"></i> Create Invoice
+            </a>
+            <?php endif; ?>
+            <?php if (isset($can_edit) && $can_edit): ?>
             <a href="<?php echo base_url('bookings/edit/' . $booking->id); ?>" class="btn btn-primary">
                 <i class="bi bi-pencil"></i> Edit
             </a>
@@ -143,6 +148,36 @@
             </table>
         </div>
     </div>
+
+    <?php if (!empty($booking_invoices)): ?>
+    <div class="mt-4">
+        <h6 class="text-muted mb-3"><i class="bi bi-receipt"></i> Linked Invoices</h6>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th>Balance</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($booking_invoices as $inv): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($inv->invoice_number); ?></td>
+                        <td><span class="badge bg-secondary"><?php echo ucfirst($inv->status); ?></span></td>
+                        <td>₱<?php echo number_format($inv->total_amount, 2); ?></td>
+                        <td>₱<?php echo number_format($inv->balance_due, 2); ?></td>
+                        <td><a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <?php endif; ?>
     
     <?php if (!empty($booking->notes)): ?>
         <div class="mt-4">

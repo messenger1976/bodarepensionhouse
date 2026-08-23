@@ -158,7 +158,48 @@
                                 <label class="form-check-label" for="auto_confirm_bookings">
                                     Auto-Confirm Bookings
                                 </label>
-                                <small class="form-text text-muted d-block">Automatically confirm new bookings</small>
+                                <small class="form-text text-muted d-block">Automatically confirm new online bookings</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Billing / Invoice Settings -->
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="bi bi-receipt"></i> Billing &amp; Invoice Settings</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="auto_create_invoice" name="auto_create_invoice" value="1"
+                                    <?php echo (isset($settings['auto_create_invoice']) && $settings['auto_create_invoice'] == '1') ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="auto_create_invoice">
+                                    Auto-Create Invoice on Confirmation
+                                </label>
+                                <small class="form-text text-muted d-block">When a booking is confirmed, automatically create a linked room billing invoice with room charges and extra services</small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="auto_issue_invoice" name="auto_issue_invoice" value="1"
+                                    <?php echo (!isset($settings['auto_issue_invoice']) || $settings['auto_issue_invoice'] == '1') ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="auto_issue_invoice">
+                                    Auto-Issue Invoice
+                                </label>
+                                <small class="form-text text-muted d-block">Mark auto-created invoices as issued immediately (guest can view in My Invoices)</small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="auto_email_invoice" name="auto_email_invoice" value="1"
+                                    <?php echo (isset($settings['auto_email_invoice']) && $settings['auto_email_invoice'] == '1') ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="auto_email_invoice">
+                                    Auto-Email Invoice to Guest
+                                </label>
+                                <small class="form-text text-muted d-block">Email the invoice to the guest when auto-created (requires SMTP configured)</small>
                             </div>
                         </div>
                     </div>

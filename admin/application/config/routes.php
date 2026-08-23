@@ -134,6 +134,32 @@ $route['reports'] = 'admin/reports/daily_sales';
 $route['reports/daily_sales'] = 'admin/reports/daily_sales';
 $route['reports/export_excel'] = 'admin/reports/export_excel';
 
+// Billing & Payment routes
+$route['invoices'] = 'admin/invoices/index';
+$route['invoices/add'] = 'admin/invoices/add';
+$route['invoices/view/(:num)'] = 'admin/invoices/view/$1';
+$route['invoices/edit/(:num)'] = 'admin/invoices/edit/$1';
+$route['invoices/print/(:num)'] = 'admin/invoices/print_invoice/$1';
+$route['invoices/issue/(:num)'] = 'admin/invoices/issue/$1';
+$route['invoices/void/(:num)'] = 'admin/invoices/void/$1';
+$route['invoices/delete/(:num)'] = 'admin/invoices/delete/$1';
+$route['invoices/add_charge/(:num)'] = 'admin/invoices/add_charge/$1';
+$route['invoices/from_booking/(:num)'] = 'admin/invoices/from_booking/$1';
+$route['invoices/send_email/(:num)'] = 'admin/invoices/send_email/$1';
+
+$route['payments'] = 'admin/payments/index';
+$route['payments/add'] = 'admin/payments/add';
+$route['payments/view/(:num)'] = 'admin/payments/view/$1';
+$route['payments/edit/(:num)'] = 'admin/payments/edit/$1';
+$route['payments/delete/(:num)'] = 'admin/payments/delete/$1';
+
+$route['events'] = 'admin/events/index';
+$route['events/add'] = 'admin/events/add';
+$route['events/view/(:num)'] = 'admin/events/view/$1';
+$route['events/edit/(:num)'] = 'admin/events/edit/$1';
+$route['events/delete/(:num)'] = 'admin/events/delete/$1';
+$route['events/create_invoice/(:num)'] = 'admin/events/create_invoice/$1';
+
 // API Routes for Frontend
 $route['api/auth/register'] = 'api/auth/register';
 $route['api/auth/login'] = 'api/auth/login';
@@ -162,6 +188,10 @@ $route['api/user/change_password'] = 'api/user/change_password';
 
 $route['api/inquiry/submit'] = 'api/inquiry/submit';
 $route['api/inquiry/csrf'] = 'api/inquiry/csrf';
+
+$route['api/invoice/my-invoices'] = 'api/invoice/my_invoices';
+$route['api/invoice/view/(:num)'] = 'api/invoice/view/$1';
+$route['api/invoice/number/(:any)'] = 'api/invoice/by_number/$1';
 
 // Customer Dashboard routes
 $route['customer/dashboard'] = 'customer/dashboard/index';

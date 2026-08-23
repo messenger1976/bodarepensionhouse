@@ -111,6 +111,14 @@ class Bookings extends Admin_Controller {
         
         $data['can_edit'] = $this->has_permission('edit_bookings');
         $data['can_delete'] = $this->has_permission('delete_bookings');
+        $data['can_create_invoice'] = $this->has_permission('add_invoices');
+        
+        if ($this->db->table_exists('invoices')) {
+            $this->load->model('Invoice_model');
+            $data['booking_invoices'] = $this->Invoice_model->get_invoices_for_booking($id);
+        } else {
+            $data['booking_invoices'] = array();
+        }
         
         $this->load->view('admin/layout/header', $data);
         $this->load->view('admin/bookings/view', $data);
@@ -405,7 +413,16 @@ class Bookings extends Admin_Controller {
                     if ($this->db->trans_status() === FALSE) {
                         $this->session->set_flashdata('error', 'Failed to update booking items.');
                     } else {
-                        $this->session->set_flashdata('success', 'Booking updated successfully with ' . $total_rooms_count . ' room(s).');
+                        $success_msg = 'Booking updated successfully with ' . $total_rooms_count . ' room(s).';
+                        $new_status = $this->input->post('status');
+                        if ($new_status === 'confirmed') {
+                            $this->load->library('billing_service');
+                            $auto = $this->billing_service->maybe_create_invoice_for_booking($id, $this->admin_id);
+                            if ($auto && !empty($auto['created'])) {
+                                $success_msg .= ' Invoice ' . $auto['invoice_number'] . ' was auto-created.';
+                            }
+                        }
+                        $this->session->set_flashdata('success', $success_msg);
                         redirect('bookings');
                     }
                 } else {
@@ -674,7 +691,16 @@ class Bookings extends Admin_Controller {
                     if ($this->db->trans_status() === FALSE) {
                         $this->session->set_flashdata('error', 'Failed to create booking items.');
                     } else {
-                        $this->session->set_flashdata('success', 'Booking created successfully with ' . $total_rooms_count . ' room(s).');
+                        $success_msg = 'Booking created successfully with ' . $total_rooms_count . ' room(s).';
+                        $booking_status = $this->input->post('status') ? $this->input->post('status') : 'pending';
+                        if ($booking_status === 'confirmed') {
+                            $this->load->library('billing_service');
+                            $auto = $this->billing_service->maybe_create_invoice_for_booking($booking_id, $this->admin_id);
+                            if ($auto && !empty($auto['created'])) {
+                                $success_msg .= ' Invoice ' . $auto['invoice_number'] . ' was auto-created.';
+                            }
+                        }
+                        $this->session->set_flashdata('success', $success_msg);
                         redirect('bookings');
                     }
                 } else {

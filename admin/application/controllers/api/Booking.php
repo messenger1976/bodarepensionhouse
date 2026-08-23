@@ -11,6 +11,7 @@ class Booking extends CI_Controller {
         $this->load->model('Room_model');
         $this->load->model('Room_image_model');
         $this->load->model('User_model');
+        $this->load->model('Booking_settings_model');
         $this->load->library('form_validation');
         header('Content-Type: application/json');
     }
@@ -495,6 +496,9 @@ class Booking extends CI_Controller {
         }
 
         $total_amount = floatval($total_amount) + $services_total;
+
+        $this->load->library('billing_service');
+        $booking_status = $this->billing_service->resolve_initial_booking_status();
         
         // Prepare main booking data
         // Include room_id for backward compatibility (use first room's ID)
@@ -514,7 +518,7 @@ class Booking extends CI_Controller {
             'guests' => $guests,
             'rooms' => $total_rooms_count, // Total number of rooms (for backward compatibility)
             'total_amount' => $total_amount,
-            'status' => 'pending',
+            'status' => $booking_status,
             'notes' => isset($data['notes']) ? $data['notes'] : '',
             'extra_services' => !empty($extra_services) ? json_encode($extra_services) : null,
             'booking_number' => $this->Booking_model->generate_booking_number()
@@ -577,7 +581,7 @@ class Booking extends CI_Controller {
                     'nights' => $item_nights,
                     'guests' => isset($room_selection['guests']) ? (int)$room_selection['guests'] : 1,
                     'subtotal' => $room_selection['price_per_night'] * $item_nights,
-                    'status' => 'pending'
+                    'status' => $booking_status
                 );
                 
                 error_log('Creating booking item: ' . print_r($booking_item_data, true));
@@ -614,6 +618,11 @@ class Booking extends CI_Controller {
             ]);
             return;
         }
+
+        $auto_invoice = null;
+        if ($booking_status === 'confirmed') {
+            $auto_invoice = $this->billing_service->maybe_create_invoice_for_booking($booking_id, null);
+        }
         
         // Get booking with room details
         $booking = $this->Booking_model->get_booking($booking_id);
@@ -634,7 +643,11 @@ class Booking extends CI_Controller {
             'booking_number' => $booking->booking_number,
             'rooms_booked' => $total_rooms_count,
             'booking_items' => $booking_items,
-            'items_count' => count($booking_items)
+            'items_count' => count($booking_items),
+            'invoice' => ($auto_invoice && !empty($auto_invoice['created'])) ? array(
+                'id' => $auto_invoice['invoice_id'],
+                'invoice_number' => $auto_invoice['invoice_number']
+            ) : null
         ]);
     }
     

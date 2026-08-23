@@ -36,6 +36,9 @@ class Booking_settings extends Admin_Controller {
                 'require_payment' => $this->input->post('require_payment') ? '1' : '0',
                 'send_email_notifications' => $this->input->post('send_email_notifications') ? '1' : '0',
                 'auto_confirm_bookings' => $this->input->post('auto_confirm_bookings') ? '1' : '0',
+                'auto_create_invoice' => $this->input->post('auto_create_invoice') ? '1' : '0',
+                'auto_issue_invoice' => $this->input->post('auto_issue_invoice') ? '1' : '0',
+                'auto_email_invoice' => $this->input->post('auto_email_invoice') ? '1' : '0',
                 'tax_rate' => $this->input->post('tax_rate'),
                 'service_charge' => $this->input->post('service_charge'),
                 'booking_notes' => $this->input->post('booking_notes')

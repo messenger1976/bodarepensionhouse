@@ -296,6 +296,21 @@ const API = {
                 body: JSON.stringify(inquiryData)
             });
         }
+    },
+
+    // Invoice / billing endpoints
+    invoice: {
+        async getMyInvoices() {
+            return API.request('invoice/my-invoices');
+        },
+
+        async getInvoice(invoiceId) {
+            return API.request(`invoice/view/${invoiceId}`);
+        },
+
+        async getByNumber(invoiceNumber) {
+            return API.request(`invoice/number/${encodeURIComponent(invoiceNumber)}`);
+        }
     }
 };
 

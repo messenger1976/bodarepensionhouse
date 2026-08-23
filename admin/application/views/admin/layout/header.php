@@ -3339,6 +3339,52 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             </div>
             <?php endif; ?>
             
+            <!-- Billing & Payments -->
+            <?php
+            $has_billing_menu = $admin_id && (
+                $this->Admin_model->has_permission($admin_id, 'view_invoices') ||
+                $this->Admin_model->has_permission($admin_id, 'view_payments') ||
+                $this->Admin_model->has_permission($admin_id, 'view_events')
+            );
+            $is_billing_active = (
+                strpos($current_uri, 'invoices') !== false ||
+                strpos($current_uri, 'payments') !== false ||
+                strpos($current_uri, 'events') !== false
+            );
+            ?>
+            <?php if ($has_billing_menu): ?>
+            <div class="nk-menu-item has-submenu <?php echo $is_billing_active ? 'active' : ''; ?>">
+                <a href="#" class="nk-menu-link <?php echo $is_billing_active ? 'active' : ''; ?>" onclick="event.preventDefault(); this.closest('.nk-menu-item').classList.toggle('active');">
+                    <span class="nk-menu-icon"><i class="bi bi-credit-card"></i></span>
+                    <span class="nk-menu-text">Billing & Payments</span>
+                    <span class="nk-menu-toggle"><i class="bi bi-chevron-right"></i></span>
+                </a>
+                <div class="nk-menu-sub">
+                    <?php if ($this->Admin_model->has_permission($admin_id, 'view_invoices')): ?>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('invoices'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'invoices') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-receipt me-2"></i> Invoices
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($this->Admin_model->has_permission($admin_id, 'view_payments')): ?>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('payments'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'payments') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-cash-coin me-2"></i> Payments
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($this->Admin_model->has_permission($admin_id, 'view_events')): ?>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('events'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'events') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-calendar-event me-2"></i> Events
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+            
             <!-- Reports -->
             <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'view_reports')): ?>
             <?php 
