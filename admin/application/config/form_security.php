@@ -3,12 +3,15 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 /*
 |--------------------------------------------------------------------------
-| Public form security (Contact / Inquiry)
+| Public form security (Contact / Inquiry / Admin Register)
 |--------------------------------------------------------------------------
 |
 | Get free reCAPTCHA v3 keys at: https://www.google.com/recaptcha/admin
-| Register domain: bodarepensionhouse.com (and www if used).
+| Register domain: bodarepensionhouse.com (and www / localhost if used).
 | Leave keys empty to skip reCAPTCHA while other protections still apply.
+|
+| Default expected action is contact_submit. Admin register passes
+| admin_register explicitly when verifying.
 |
 */
 $config['form_security'] = array(

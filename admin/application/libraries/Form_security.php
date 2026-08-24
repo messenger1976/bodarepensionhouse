@@ -56,13 +56,17 @@ class Form_security {
 			&& $this->settings['recaptcha_secret_key'] !== '';
 	}
 
-	public function public_bootstrap() {
+	public function public_bootstrap($action = NULL) {
+		$action = ($action !== NULL && $action !== '')
+			? (string) $action
+			: (string) $this->settings['recaptcha_expected_action'];
+
 		return array(
 			'csrf_token' => $this->issue_csrf_token(),
 			'honeypot_field' => $this->honeypot_field(),
 			'recaptcha_enabled' => $this->is_recaptcha_configured(),
 			'recaptcha_site_key' => $this->is_recaptcha_configured() ? $this->settings['recaptcha_site_key'] : '',
-			'recaptcha_action' => $this->settings['recaptcha_expected_action'],
+			'recaptcha_action' => $action,
 		);
 	}
 
@@ -193,9 +197,10 @@ class Form_security {
 	/**
 	 * Verify Google reCAPTCHA v3 token. Skips when not configured.
 	 *
-	 * @return array{ok:bool,message?:string,score?:float}
+	 * @param string|null $expectedAction Override expected action (e.g. admin_register). NULL uses config default.
+	 * @return array{ok:bool,message?:string,score?:float,skipped?:bool}
 	 */
-	public function verify_recaptcha($token, $remoteIp = NULL) {
+	public function verify_recaptcha($token, $remoteIp = NULL, $expectedAction = NULL) {
 		if (!$this->is_recaptcha_configured()) {
 			return array('ok' => TRUE, 'skipped' => TRUE);
 		}
@@ -226,10 +231,14 @@ class Form_security {
 		$score = isset($result['score']) ? (float) $result['score'] : 0.0;
 		$action = isset($result['action']) ? (string) $result['action'] : '';
 		$minScore = (float) $this->settings['recaptcha_min_score'];
-		$expectedAction = (string) $this->settings['recaptcha_expected_action'];
+		if ($expectedAction === NULL) {
+			$expectedAction = (string) $this->settings['recaptcha_expected_action'];
+		} else {
+			$expectedAction = (string) $expectedAction;
+		}
 
 		if ($expectedAction !== '' && $action !== $expectedAction) {
-			$this->log_event('recaptcha_bad_action', array('ip' => $remoteIp, 'action' => $action, 'score' => $score));
+			$this->log_event('recaptcha_bad_action', array('ip' => $remoteIp, 'action' => $action, 'expected' => $expectedAction, 'score' => $score));
 			return array('ok' => FALSE, 'message' => 'CAPTCHA verification failed. Please try again.');
 		}
 

@@ -188,8 +188,43 @@ class Auth extends CI_Controller {
         if ($this->session->userdata('admin_logged_in')) {
             redirect('dashboard');
         }
+
+        $this->load->library('form_security');
+        $recaptcha_action = 'admin_register';
         
         if ($this->input->post()) {
+            $post = $this->input->post();
+            if (!is_array($post)) {
+                $post = array();
+            }
+
+            // Honeypot — bots that fill the hidden field get a fake success (no account created).
+            if (!$this->form_security->check_honeypot($post)) {
+                $this->form_security->log_event('admin_register_rejected_honeypot', array(
+                    'ip' => $this->input->ip_address(),
+                ));
+                $this->session->set_flashdata('success', 'Your account has been created. Please check your email and click the activation link to activate your account before logging in.');
+                redirect('login');
+                return;
+            }
+
+            // Rate limit by IP to slow automated spam.
+            $rate = $this->form_security->check_rate_limit();
+            if (empty($rate['ok'])) {
+                $this->session->set_flashdata('error', isset($rate['message']) ? $rate['message'] : 'Too many submissions. Please try again later.');
+                redirect('register');
+                return;
+            }
+
+            // Google reCAPTCHA v3 (when keys are configured).
+            $recaptcha_token = $this->input->post('recaptcha_token');
+            $captcha = $this->form_security->verify_recaptcha($recaptcha_token, NULL, $recaptcha_action);
+            if (empty($captcha['ok'])) {
+                $this->session->set_flashdata('error', isset($captcha['message']) ? $captcha['message'] : 'CAPTCHA verification failed. Please try again.');
+                redirect('register');
+                return;
+            }
+
             $this->load->library('form_validation');
             $this->form_validation->set_rules('name', 'Full Name', 'required|trim|max_length[100]');
             $this->form_validation->set_rules('username', 'Username', 'required|trim|min_length[3]|max_length[50]|alpha_dash');
@@ -245,8 +280,13 @@ class Auth extends CI_Controller {
                 }
             }
         }
-        
+
         $data['title'] = 'Create Account';
+        $data['recaptcha_enabled'] = $this->form_security->is_recaptcha_configured();
+        $settings = $this->form_security->get_settings();
+        $data['recaptcha_site_key'] = $data['recaptcha_enabled'] ? $settings['recaptcha_site_key'] : '';
+        $data['recaptcha_action'] = $recaptcha_action;
+        $data['honeypot_field'] = $this->form_security->honeypot_field();
         $this->load->view('admin/auth/register', $data);
     }
     
