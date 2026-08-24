@@ -192,10 +192,12 @@
                 <div class="col-md-12">
                     <label for="status" class="form-label small fw-bold">Booking Status *</label>
                     <select class="form-select" id="status" name="status" required>
-                        <option value="pending" <?php echo set_select('status', 'pending', TRUE); ?>>⏳ Pending</option>
-                        <option value="confirmed" <?php echo set_select('status', 'confirmed'); ?>>✅ Confirmed</option>
-                        <option value="cancelled" <?php echo set_select('status', 'cancelled'); ?>>❌ Cancelled</option>
-                        <option value="completed" <?php echo set_select('status', 'completed'); ?>>✔️ Completed</option>
+                        <option value="pending" <?php echo set_select('status', 'pending', TRUE); ?>>Pending</option>
+                        <option value="confirmed" <?php echo set_select('status', 'confirmed'); ?>>Confirmed</option>
+                        <option value="checked_in" <?php echo set_select('status', 'checked_in'); ?>>Checked In</option>
+                        <option value="checked_out" <?php echo set_select('status', 'checked_out'); ?>>Checked Out</option>
+                        <option value="completed" <?php echo set_select('status', 'completed'); ?>>Completed</option>
+                        <option value="cancelled" <?php echo set_select('status', 'cancelled'); ?>>Cancelled</option>
                     </select>
                 </div>
             </div>

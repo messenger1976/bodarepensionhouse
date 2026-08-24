@@ -11,11 +11,16 @@ class Booking_model extends CI_Model {
     /**
      * Get all bookings with room information
      * Includes earliest check-in and latest check-out from booking_items
+     *
+     * @param string|null $status Optional booking status filter
      */
-    public function get_all_bookings() {
+    public function get_all_bookings($status = null) {
         $this->db->select('bookings.*, rooms.room_name, rooms.room_type, rooms.room_code');
         $this->db->from('bookings');
         $this->db->join('rooms', 'rooms.id = bookings.room_id', 'left');
+        if ($status) {
+            $this->db->where('bookings.status', $status);
+        }
         $this->db->order_by('bookings.created_at', 'DESC');
         $bookings = $this->db->get()->result();
         
@@ -95,6 +100,28 @@ class Booking_model extends CI_Model {
     public function update_booking($id, $data) {
         $this->db->where('id', $id);
         return $this->db->update('bookings', $data);
+    }
+
+    /**
+     * Set booking status and sync non-cancelled booking_items.
+     */
+    public function set_booking_status($id, $status) {
+        $allowed = array('pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'completed');
+        if (!in_array($status, $allowed, true)) {
+            return false;
+        }
+
+        $this->db->trans_start();
+        $this->update_booking($id, array('status' => $status));
+
+        if ($this->db->table_exists('booking_items')) {
+            $this->db->where('booking_id', $id);
+            $this->db->where('status !=', 'cancelled');
+            $this->db->update('booking_items', array('status' => $status));
+        }
+
+        $this->db->trans_complete();
+        return $this->db->trans_status() !== FALSE;
     }
     
     /**
@@ -884,6 +911,150 @@ class Booking_model extends CI_Model {
         $this->db->group_by('rooms.room_type, rooms.room_name');
         $this->db->order_by('total_revenue', 'DESC');
         return $this->db->get()->result();
+    }
+
+    /**
+     * FullCalendar feed entries for room bookings (hotel engine stays).
+     * Prefers booking_items for multi-room stays when that table exists.
+     */
+    public function get_calendar_feed($start_date, $end_date, $room_id = null, $status = null, $include_cancelled = false) {
+        $this->load->helper('url');
+        $entries = array();
+        $start_date = date('Y-m-d', strtotime($start_date));
+        $end_date = date('Y-m-d', strtotime($end_date));
+
+        if ($this->db->table_exists('booking_items')) {
+            $this->db->select('
+                booking_items.id as item_id,
+                booking_items.room_id,
+                booking_items.room_name as item_room_name,
+                booking_items.check_in as item_check_in,
+                booking_items.check_out as item_check_out,
+                booking_items.guests as item_guests,
+                booking_items.subtotal as item_subtotal,
+                booking_items.status as item_status,
+                bookings.id as booking_id,
+                bookings.booking_number,
+                bookings.guest_name,
+                bookings.guest_email,
+                bookings.guest_phone,
+                bookings.status as booking_status,
+                bookings.total_amount,
+                bookings.rooms,
+                bookings.check_in as booking_check_in,
+                bookings.check_out as booking_check_out,
+                rooms.room_name,
+                rooms.room_code,
+                rooms.room_type
+            ', FALSE);
+            $this->db->from('booking_items');
+            $this->db->join('bookings', 'bookings.id = booking_items.booking_id', 'inner');
+            $this->db->join('rooms', 'rooms.id = booking_items.room_id', 'left');
+            $this->db->where("DATE(booking_items.check_in) <= '{$end_date}'", NULL, FALSE);
+            $this->db->where("DATE(booking_items.check_out) >= '{$start_date}'", NULL, FALSE);
+
+            if (!$include_cancelled) {
+                $this->db->where('bookings.status !=', 'cancelled');
+                $this->db->where('booking_items.status !=', 'cancelled');
+            }
+            if ($status) {
+                $this->db->where('bookings.status', $status);
+            }
+            if ($room_id) {
+                $this->db->where('booking_items.room_id', (int) $room_id);
+            }
+
+            $this->db->order_by('booking_items.check_in', 'ASC');
+            $rows = $this->db->get()->result();
+
+            foreach ($rows as $row) {
+                $check_in = date('Y-m-d', strtotime($row->item_check_in));
+                $check_out = date('Y-m-d', strtotime($row->item_check_out));
+                $display_status = $row->booking_status ? $row->booking_status : 'pending';
+                $room_name = $row->room_name ? $row->room_name : ($row->item_room_name ? $row->item_room_name : 'Room');
+                $booking_number = !empty($row->booking_number)
+                    ? $row->booking_number
+                    : str_pad($row->booking_id, 6, '0', STR_PAD_LEFT);
+
+                $entries[] = array(
+                    'id' => 'booking-' . $row->booking_id . '-item-' . $row->item_id,
+                    'title' => $row->guest_name . ' · ' . $room_name,
+                    'start' => $check_in,
+                    'end' => date('Y-m-d', strtotime($check_out . ' +1 day')),
+                    'allDay' => true,
+                    'classNames' => array('cal-room', 'cal-status-' . $display_status),
+                    'extendedProps' => array(
+                        'source' => 'room',
+                        'bookingId' => (int) $row->booking_id,
+                        'bookingNumber' => $booking_number,
+                        'guestName' => $row->guest_name,
+                        'guestEmail' => $row->guest_email,
+                        'guestPhone' => $row->guest_phone,
+                        'roomName' => $room_name,
+                        'roomCode' => $row->room_code ? $row->room_code : '-',
+                        'roomType' => $row->room_type ? $row->room_type : '-',
+                        'status' => $display_status,
+                        'amount' => number_format((float) ($row->item_subtotal !== null ? $row->item_subtotal : $row->total_amount), 2),
+                        'checkIn' => $check_in,
+                        'checkOut' => $check_out,
+                        'guests' => (int) ($row->item_guests ? $row->item_guests : 1),
+                        'url' => site_url('bookings/' . $row->booking_id)
+                    )
+                );
+            }
+
+            return $entries;
+        }
+
+        // Fallback: single-room bookings table
+        $bookings = $this->get_bookings_for_calendar($start_date, $end_date);
+        foreach ($bookings as $booking) {
+            if ($status && $booking->status !== $status) {
+                continue;
+            }
+            if (!$include_cancelled && $booking->status === 'cancelled') {
+                continue;
+            }
+            if ($room_id && (int) $booking->room_id !== (int) $room_id) {
+                continue;
+            }
+
+            $check_in = date('Y-m-d', strtotime($booking->check_in));
+            $check_out = date('Y-m-d', strtotime($booking->check_out));
+            $room_name = isset($booking->room_name) ? $booking->room_name : 'Room';
+            $booking_number = !empty($booking->booking_number)
+                ? $booking->booking_number
+                : str_pad($booking->id, 6, '0', STR_PAD_LEFT);
+
+            $entries[] = array(
+                'id' => 'booking-' . $booking->id,
+                'title' => $booking->guest_name . ' · ' . $room_name,
+                'start' => $check_in,
+                'end' => date('Y-m-d', strtotime($check_out . ' +1 day')),
+                'allDay' => true,
+                'classNames' => array('cal-room', 'cal-status-' . $booking->status),
+                'extendedProps' => array(
+                    'source' => 'room',
+                    'bookingId' => (int) $booking->id,
+                    'bookingNumber' => $booking_number,
+                    'guestName' => $booking->guest_name,
+                    'guestEmail' => isset($booking->guest_email) ? $booking->guest_email : '',
+                    'guestPhone' => isset($booking->guest_phone) ? $booking->guest_phone : '',
+                    'roomName' => $room_name,
+                    'roomCode' => isset($booking->room_code) ? $booking->room_code : '-',
+                    'roomType' => isset($booking->room_type) ? $booking->room_type : '-',
+                    'status' => $booking->status,
+                    'amount' => number_format((float) $booking->total_amount, 2),
+                    'checkIn' => $check_in,
+                    'checkOut' => $check_out,
+                    'guests' => isset($booking->guests) ? (int) $booking->guests : 1,
+                    'rooms' => isset($booking->rooms) ? (int) $booking->rooms : 1,
+                    'url' => site_url('bookings/' . $booking->id)
+                )
+            );
+        }
+
+        return $entries;
     }
 }
 

@@ -128,7 +128,7 @@ class Billing_service {
         }
 
         $default = $this->CI->Booking_settings_model->get_setting('default_status', 'pending');
-        $allowed = array('pending', 'confirmed', 'cancelled', 'completed');
+        $allowed = array('pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'completed');
         return in_array($default, $allowed, true) ? $default : 'pending';
     }
 }

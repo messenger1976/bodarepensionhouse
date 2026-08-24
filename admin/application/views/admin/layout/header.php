@@ -2892,7 +2892,8 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
         
         /* FullCalendar - Dashlite Style */
         #booking-calendar,
-        #availability-calendar {
+        #availability-calendar,
+        #hotel-calendar {
             margin-top: 0;
         }
         
@@ -3057,6 +3058,63 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
         .fc-event.cancelled {
             background: linear-gradient(135deg, var(--bs-danger) 0%, #dc2626 100%);
             color: #fff;
+        }
+
+        .fc-event.completed {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: #fff;
+        }
+
+        /* Unified Hotel Calendar entries */
+        .fc-event.cal-room {
+            border-left: 3px solid rgba(255, 255, 255, 0.55) !important;
+        }
+
+        .fc-event.cal-event {
+            border-left: 3px solid rgba(255, 255, 255, 0.85) !important;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: #fff;
+        }
+
+        .fc-event.cal-status-confirmed {
+            background: linear-gradient(135deg, var(--bs-success) 0%, #059669 100%);
+            color: #fff;
+        }
+
+        .fc-event.cal-status-pending,
+        .fc-event.cal-status-inquiry {
+            background: linear-gradient(135deg, var(--bs-warning) 0%, #d97706 100%);
+            color: #fff;
+        }
+
+        .fc-event.cal-status-cancelled {
+            background: linear-gradient(135deg, var(--bs-danger) 0%, #dc2626 100%);
+            color: #fff;
+            opacity: 0.75;
+            text-decoration: line-through;
+        }
+
+        .fc-event.cal-status-completed {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: #fff;
+        }
+
+        .fc-event.cal-event.cal-status-confirmed,
+        .fc-event.cal-event.cal-status-completed {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        }
+
+        .fc-event.cal-event.cal-status-inquiry,
+        .fc-event.cal-event.cal-status-pending {
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+        }
+
+        .cal-legend-room {
+            background: linear-gradient(135deg, var(--bs-success) 0%, #059669 100%);
+        }
+
+        .cal-legend-event {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
         }
         
         /* More Link */
@@ -3290,6 +3348,23 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                 </a>
             </div>
             <?php endif; ?>
+
+            <!-- Calendar -->
+            <?php
+            $has_calendar_menu = $admin_id && (
+                $this->Admin_model->has_permission($admin_id, 'view_calendar') ||
+                $this->Admin_model->has_permission($admin_id, 'view_bookings') ||
+                $this->Admin_model->has_permission($admin_id, 'view_events')
+            );
+            ?>
+            <?php if ($has_calendar_menu): ?>
+            <div class="nk-menu-item">
+                <a href="<?php echo base_url('calendar'); ?>" class="nk-menu-link <?php echo (strpos($current_uri, 'calendar') === 0 || $current_uri === 'calendar') ? 'active' : ''; ?>">
+                    <span class="nk-menu-icon"><i class="bi bi-calendar3"></i></span>
+                    <span class="nk-menu-text">Calendar</span>
+                </a>
+            </div>
+            <?php endif; ?>
             
             <!-- Rooms -->
             <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'view_rooms')): ?>
@@ -3398,8 +3473,23 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                 </a>
                 <div class="nk-menu-sub">
                     <div class="nk-menu-sub-item">
-                        <a href="<?php echo base_url('reports/daily_sales'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'reports/daily_sales') !== false ? 'active' : ''; ?>">
+                        <a href="<?php echo base_url('reports/daily_sales'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'reports/daily_sales') !== false || $current_uri === 'reports' ? 'active' : ''; ?>">
                             <i class="bi bi-calendar-day me-2"></i> Daily Sales Report
+                        </a>
+                    </div>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('reports/billing'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'reports/billing') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-receipt me-2"></i> Billing &amp; Collections
+                        </a>
+                    </div>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('reports/payments'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'reports/payments') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-cash-coin me-2"></i> Payments Report
+                        </a>
+                    </div>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('reports/events'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'reports/events') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-calendar-event me-2"></i> Events Revenue
                         </a>
                     </div>
                 </div>

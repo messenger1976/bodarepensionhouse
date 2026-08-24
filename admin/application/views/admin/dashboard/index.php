@@ -62,7 +62,7 @@
 </div>
 
 <?php
-$status_totals = array('pending' => 0, 'confirmed' => 0, 'cancelled' => 0, 'completed' => 0);
+$status_totals = array('pending' => 0, 'confirmed' => 0, 'checked_in' => 0, 'checked_out' => 0, 'cancelled' => 0, 'completed' => 0);
 if (!empty($today_status_analytics) && is_array($today_status_analytics)) {
     foreach ($status_totals as $status_key => $status_value) {
         if (isset($today_status_analytics[$status_key]['bookings_count'])) {
@@ -337,10 +337,12 @@ $inventory_summary_today = isset($inventory_summary_today) && is_array($inventor
                                                 <?php
                                                 $badge_class = 'secondary';
                                                 if ($booking->status == 'confirmed') $badge_class = 'success';
+                                                if ($booking->status == 'checked_in') $badge_class = 'info';
+                                                if ($booking->status == 'checked_out' || $booking->status == 'completed') $badge_class = 'primary';
                                                 if ($booking->status == 'cancelled') $badge_class = 'danger';
                                                 if ($booking->status == 'pending') $badge_class = 'warning';
                                                 ?>
-                                                <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucfirst($booking->status); ?></span>
+                                                <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucwords(str_replace('_', ' ', $booking->status)); ?></span>
                                             </td>
                                             <td>₱<?php echo number_format($booking->total_amount, 2); ?></td>
                                             <td>
@@ -424,7 +426,7 @@ $inventory_summary_today = isset($inventory_summary_today) && is_array($inventor
             }
 
             function getStatusValues(statusAnalytics) {
-                var keys = ['pending', 'confirmed', 'cancelled', 'completed'];
+                var keys = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'completed'];
                 return keys.map(function(key) {
                     return statusAnalytics && statusAnalytics[key] ? Number(statusAnalytics[key].bookings_count || 0) : 0;
                 });
@@ -571,7 +573,7 @@ $inventory_summary_today = isset($inventory_summary_today) && is_array($inventor
                 upsertChart('statusMixChart', {
                     type: 'bar',
                     data: {
-                        labels: ['Pending', 'Confirmed', 'Cancelled', 'Completed'],
+                        labels: ['Pending', 'Confirmed', 'Checked In', 'Checked Out', 'Cancelled', 'Completed'],
                         datasets: [{
                             label: 'Bookings',
                             data: statusValues,
@@ -816,7 +818,7 @@ $inventory_summary_today = isset($inventory_summary_today) && is_array($inventor
                 if (chartId === 'statusMixChart') {
                     headers = ['Status', 'Bookings'];
                     var statusMap = latestPayload.status_analytics || {};
-                    [['pending', 'Pending'], ['confirmed', 'Confirmed'], ['cancelled', 'Cancelled'], ['completed', 'Completed']].forEach(function(item) {
+                    [['pending', 'Pending'], ['confirmed', 'Confirmed'], ['checked_in', 'Checked In'], ['checked_out', 'Checked Out'], ['cancelled', 'Cancelled'], ['completed', 'Completed']].forEach(function(item) {
                         rows.push([item[1], statusMap[item[0]] ? Number(statusMap[item[0]].bookings_count || 0) : 0]);
                     });
                 } else if (chartId === 'topRoomsChart') {

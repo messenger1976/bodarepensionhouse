@@ -34,8 +34,10 @@
                             <select class="form-control" id="default_status" name="default_status" required>
                                 <option value="pending" <?php echo (isset($settings['default_status']) && $settings['default_status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
                                 <option value="confirmed" <?php echo (isset($settings['default_status']) && $settings['default_status'] == 'confirmed') ? 'selected' : ''; ?>>Confirmed</option>
-                                <option value="cancelled" <?php echo (isset($settings['default_status']) && $settings['default_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
+                                <option value="checked_in" <?php echo (isset($settings['default_status']) && $settings['default_status'] == 'checked_in') ? 'selected' : ''; ?>>Checked In</option>
+                                <option value="checked_out" <?php echo (isset($settings['default_status']) && $settings['default_status'] == 'checked_out') ? 'selected' : ''; ?>>Checked Out</option>
                                 <option value="completed" <?php echo (isset($settings['default_status']) && $settings['default_status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
+                                <option value="cancelled" <?php echo (isset($settings['default_status']) && $settings['default_status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
                             </select>
                             <small class="form-text text-muted">Status assigned to new bookings</small>
                         </div>

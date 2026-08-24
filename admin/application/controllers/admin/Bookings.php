@@ -78,11 +78,24 @@ class Bookings extends Admin_Controller {
         // Require permission to view bookings
         $this->require_permission('view_bookings');
         
+        $allowed_statuses = array('pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'completed');
+        $status = $this->input->get('status');
+        if (!$status || !in_array($status, $allowed_statuses, true)) {
+            $status = '';
+        }
+
         $data['title'] = 'Manage Bookings';
-        $data['bookings'] = $this->Booking_model->get_all_bookings();
+        $data['bookings'] = $this->Booking_model->get_all_bookings($status ?: null);
+        $data['filter_status'] = $status;
         $data['can_add'] = $this->has_permission('add_bookings');
         $data['can_edit'] = $this->has_permission('edit_bookings');
         $data['can_delete'] = $this->has_permission('delete_bookings');
+
+        $data['payment_status_map'] = array();
+        if ($this->db->table_exists('invoices')) {
+            $this->load->model('Invoice_model');
+            $data['payment_status_map'] = $this->Invoice_model->get_payment_status_map();
+        }
         
         $this->load->view('admin/layout/header', $data);
         $this->load->view('admin/bookings/index', $data);
@@ -112,12 +125,22 @@ class Bookings extends Admin_Controller {
         $data['can_edit'] = $this->has_permission('edit_bookings');
         $data['can_delete'] = $this->has_permission('delete_bookings');
         $data['can_create_invoice'] = $this->has_permission('add_invoices');
+        $data['can_add_payment'] = $this->has_permission('add_payments');
         
         if ($this->db->table_exists('invoices')) {
             $this->load->model('Invoice_model');
             $data['booking_invoices'] = $this->Invoice_model->get_invoices_for_booking($id);
+            $data['payment_status'] = $this->Invoice_model->get_booking_payment_status($id);
         } else {
             $data['booking_invoices'] = array();
+            $data['payment_status'] = array(
+                'label' => 'no_invoice',
+                'display' => 'No Invoice',
+                'badge' => 'secondary',
+                'balance' => 0,
+                'amount_paid' => 0,
+                'primary_invoice_id' => null
+            );
         }
         
         $this->load->view('admin/layout/header', $data);
@@ -471,6 +494,56 @@ class Bookings extends Admin_Controller {
             $this->session->set_flashdata('error', $error_message);
         }
         redirect('bookings');
+    }
+
+    /**
+     * Mark booking as checked in (guest arrived / in-house).
+     */
+    public function check_in($id) {
+        $this->require_permission('edit_bookings');
+        $this->change_booking_status($id, 'checked_in', array('confirmed'), 'Guest checked in successfully.');
+    }
+
+    /**
+     * Mark booking as checked out (stay finished / closed).
+     */
+    public function check_out($id) {
+        $this->require_permission('edit_bookings');
+        $this->change_booking_status($id, 'checked_out', array('checked_in', 'confirmed'), 'Guest checked out successfully. Booking is now closed.');
+    }
+
+    /**
+     * Update booking + room-item status with validation.
+     */
+    private function change_booking_status($id, $new_status, $allowed_from, $success_message) {
+        if (empty($id) || !is_numeric($id)) {
+            $this->session->set_flashdata('error', 'Invalid booking ID');
+            redirect('bookings');
+            return;
+        }
+
+        $booking = $this->Booking_model->get_booking($id);
+        if (!$booking) {
+            $this->session->set_flashdata('error', 'Booking not found');
+            redirect('bookings');
+            return;
+        }
+
+        if (!in_array($booking->status, $allowed_from, true)) {
+            $from_label = ucwords(str_replace('_', ' ', $booking->status));
+            $to_label = ucwords(str_replace('_', ' ', $new_status));
+            $this->session->set_flashdata('error', "Cannot mark as {$to_label} from status: {$from_label}.");
+            redirect('bookings/' . $id);
+            return;
+        }
+
+        if ($this->Booking_model->set_booking_status($id, $new_status)) {
+            $this->session->set_flashdata('success', $success_message);
+        } else {
+            $this->session->set_flashdata('error', 'Failed to update booking status.');
+        }
+
+        redirect('bookings/' . $id);
     }
     
     public function add() {

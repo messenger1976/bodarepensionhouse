@@ -44,6 +44,15 @@
         </div>
     <?php endif; ?>
     
+    <div class="mb-3">
+        <div class="btn-group" role="group" aria-label="Filter by status">
+            <a href="<?php echo base_url('bookings'); ?>" class="btn btn-sm <?php echo empty($filter_status) ? 'btn-primary' : 'btn-outline-primary'; ?>">All</a>
+            <?php foreach (array('pending', 'confirmed', 'checked_in', 'checked_out', 'completed', 'cancelled') as $st): ?>
+            <a href="<?php echo base_url('bookings?status=' . $st); ?>" class="btn btn-sm <?php echo (isset($filter_status) && $filter_status === $st) ? 'btn-primary' : 'btn-outline-primary'; ?>"><?php echo ucwords(str_replace('_', ' ', $st)); ?></a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+
     <div class="card card-bordered">
         <div class="card-inner">
             <div class="table-responsive">
@@ -58,6 +67,7 @@
                     <th>Guests</th>
                     <th>Rooms</th>
                     <th>Status</th>
+                    <th>Payment</th>
                     <th>Amount</th>
                     <th>Actions</th>
                 </tr>
@@ -81,10 +91,24 @@
                                 <?php
                                 $badge_class = 'secondary';
                                 if ($booking->status == 'confirmed') $badge_class = 'success';
+                                if ($booking->status == 'checked_in') $badge_class = 'info';
+                                if ($booking->status == 'checked_out' || $booking->status == 'completed') $badge_class = 'primary';
                                 if ($booking->status == 'cancelled') $badge_class = 'danger';
                                 if ($booking->status == 'pending') $badge_class = 'warning';
                                 ?>
-                                <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucfirst($booking->status); ?></span>
+                                <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucwords(str_replace('_', ' ', $booking->status)); ?></span>
+                            </td>
+                            <td>
+                                <?php
+                                $ps = isset($payment_status_map[$booking->id]) ? $payment_status_map[$booking->id] : null;
+                                if ($ps):
+                                ?>
+                                    <span class="badge bg-<?php echo $ps['badge']; ?>" title="Paid: ₱<?php echo number_format($ps['amount_paid'], 2); ?> / Balance: ₱<?php echo number_format($ps['balance'], 2); ?>">
+                                        <?php echo htmlspecialchars($ps['display']); ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary">No Invoice</span>
+                                <?php endif; ?>
                             </td>
                             <td>₱<?php echo number_format($booking->total_amount, 2); ?></td>
                             <td>
@@ -106,7 +130,7 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="10" class="text-center text-muted">No bookings found</td>
+                        <td colspan="11" class="text-center text-muted">No bookings found</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

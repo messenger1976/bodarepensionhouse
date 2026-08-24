@@ -11,7 +11,7 @@
             <div class="nk-block-head-content">
                 <h3 class="nk-block-title page-title"><i class="bi bi-graph-up"></i> Daily Sales Report</h3>
                 <div class="nk-block-des text-soft">
-                    <p>View sales data and booking statistics for a specific date</p>
+                    <p>View booking sales plus invoice billing and payment collections for a specific date</p>
                 </div>
             </div>
             <div class="nk-block-head-content">
@@ -125,6 +125,59 @@
             </div>
         </div>
     </div>
+
+    <?php if (!empty($billing_enabled)): ?>
+    <div class="row g-3 mb-4 no-print">
+        <div class="col-md-3">
+            <div class="card card-bordered border-success">
+                <div class="card-inner">
+                    <div class="card-title-group">
+                        <div class="card-title"><h6 class="title">Payments Collected</h6></div>
+                    </div>
+                    <div class="card-amount">
+                        <span class="amount text-success">₱<?php echo number_format($payments_collected, 2); ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-bordered">
+                <div class="card-inner">
+                    <div class="card-title-group">
+                        <div class="card-title"><h6 class="title">Invoices Issued</h6></div>
+                    </div>
+                    <div class="card-amount">
+                        <span class="amount"><?php echo (int) $invoice_summary['invoice_count']; ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-bordered">
+                <div class="card-inner">
+                    <div class="card-title-group">
+                        <div class="card-title"><h6 class="title">Amount Billed</h6></div>
+                    </div>
+                    <div class="card-amount">
+                        <span class="amount">₱<?php echo number_format($invoice_summary['total_billed'], 2); ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-bordered">
+                <div class="card-inner">
+                    <div class="card-title-group">
+                        <div class="card-title"><h6 class="title">Invoice Balance Due</h6></div>
+                    </div>
+                    <div class="card-amount">
+                        <span class="amount text-danger">₱<?php echo number_format($invoice_summary['total_balance'], 2); ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
     
     <!-- Summary Table for Print -->
     <div class="summary-table">
@@ -182,6 +235,76 @@
         </div>
     </div>
     <?php endif; ?>
+
+    <?php if (!empty($billing_enabled) && !empty($payments_by_method)): ?>
+    <div class="card card-bordered mb-4">
+        <div class="card-inner">
+            <div class="card-title-group">
+                <div class="card-title"><h6 class="title">Payments Collected by Method</h6></div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Payment Method</th>
+                            <th>Transactions</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($payments_by_method as $method_row): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars(ucfirst(str_replace('_', ' ', $method_row->payment_method))); ?></td>
+                            <td><span class="badge bg-info"><?php echo (int) $method_row->payment_count; ?></span></td>
+                            <td><strong>₱<?php echo number_format($method_row->total_amount, 2); ?></strong></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (!empty($billing_enabled) && !empty($day_invoices)): ?>
+    <div class="card card-bordered mb-4">
+        <div class="card-inner">
+            <div class="card-title-group">
+                <div class="card-title"><h6 class="title">Invoices for <?php echo date('F d, Y', strtotime($selected_date)); ?></h6></div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Guest</th>
+                            <th>Booking</th>
+                            <th>Status</th>
+                            <th>Total</th>
+                            <th>Paid</th>
+                            <th>Balance</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($day_invoices as $inv): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($inv->invoice_number); ?></td>
+                            <td><?php echo htmlspecialchars($inv->guest_name); ?></td>
+                            <td><?php echo htmlspecialchars($inv->booking_number ?: '—'); ?></td>
+                            <td><span class="badge bg-secondary"><?php echo ucfirst($inv->status); ?></span></td>
+                            <td>₱<?php echo number_format($inv->total_amount, 2); ?></td>
+                            <td>₱<?php echo number_format($inv->amount_paid, 2); ?></td>
+                            <td><strong>₱<?php echo number_format($inv->balance_due, 2); ?></strong></td>
+                            <td><a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-outline-primary">View</a></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
     
     <!-- Detailed Bookings List -->
     <div class="card card-bordered">
@@ -230,10 +353,12 @@
                                         <?php
                                         $badge_class = 'secondary';
                                         if ($booking->status == 'confirmed') $badge_class = 'success';
+                                        if ($booking->status == 'checked_in') $badge_class = 'info';
+                                        if ($booking->status == 'checked_out' || $booking->status == 'completed') $badge_class = 'primary';
                                         if ($booking->status == 'cancelled') $badge_class = 'danger';
                                         if ($booking->status == 'pending') $badge_class = 'warning';
                                         ?>
-                                        <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucfirst($booking->status); ?></span>
+                                        <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucwords(str_replace('_', ' ', $booking->status)); ?></span>
                                     </td>
                                     <td><strong>₱<?php echo number_format($booking->total_amount, 2); ?></strong></td>
                                     <td><?php echo date('M d, Y h:i A', strtotime($booking->created_at)); ?></td>

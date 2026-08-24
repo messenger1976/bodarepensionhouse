@@ -6,17 +6,54 @@
                 <i class="bi bi-arrow-left"></i> Back to List
             </a>
             <?php if (!empty($can_create_invoice)): ?>
-            <a href="<?php echo base_url('invoices/from_booking/' . $booking->id); ?>" class="btn btn-success">
-                <i class="bi bi-receipt"></i> Create Invoice
+                <?php if (!empty($payment_status['primary_invoice_id'])): ?>
+                <a href="<?php echo base_url('invoices/view/' . $payment_status['primary_invoice_id']); ?>" class="btn btn-outline-success">
+                    <i class="bi bi-receipt"></i> View Invoice
+                </a>
+                <a href="<?php echo base_url('invoices/from_booking/' . $booking->id . '?force=1'); ?>" class="btn btn-outline-secondary" onclick="return confirm('This booking already has an invoice. Create another one anyway?');">
+                    <i class="bi bi-plus-circle"></i> New Invoice
+                </a>
+                <?php else: ?>
+                <a href="<?php echo base_url('invoices/from_booking/' . $booking->id); ?>" class="btn btn-success">
+                    <i class="bi bi-receipt"></i> Create Invoice
+                </a>
+                <?php endif; ?>
+            <?php endif; ?>
+            <?php if (!empty($can_add_payment) && !empty($payment_status['primary_invoice_id']) && $payment_status['label'] !== 'paid'): ?>
+            <a href="<?php echo base_url('payments/add?invoice_id=' . $payment_status['primary_invoice_id']); ?>" class="btn btn-primary">
+                <i class="bi bi-cash-coin"></i> Record Payment
             </a>
             <?php endif; ?>
             <?php if (isset($can_edit) && $can_edit): ?>
+                <?php if ($booking->status === 'confirmed'): ?>
+                <a href="<?php echo base_url('bookings/check_in/' . $booking->id); ?>" class="btn btn-success" onclick="return confirm('Check in this guest now?');">
+                    <i class="bi bi-box-arrow-in-right"></i> Check In
+                </a>
+                <?php endif; ?>
+                <?php if ($booking->status === 'checked_in' || $booking->status === 'confirmed'): ?>
+                <a href="<?php echo base_url('bookings/check_out/' . $booking->id); ?>" class="btn btn-warning" onclick="return confirm('Check out this guest and close the booking?');">
+                    <i class="bi bi-box-arrow-right"></i> Check Out
+                </a>
+                <?php endif; ?>
             <a href="<?php echo base_url('bookings/edit/' . $booking->id); ?>" class="btn btn-primary">
                 <i class="bi bi-pencil"></i> Edit
             </a>
             <?php endif; ?>
         </div>
     </div>
+
+    <?php if ($this->session->flashdata('success')): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <?php echo $this->session->flashdata('success'); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+    <?php if ($this->session->flashdata('error')): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <?php echo $this->session->flashdata('error'); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
     
     <div class="row">
         <div class="col-md-6">
@@ -112,10 +149,28 @@
                         <?php
                         $badge_class = 'secondary';
                         if ($booking->status == 'confirmed') $badge_class = 'success';
+                        if ($booking->status == 'checked_in') $badge_class = 'info';
+                        if ($booking->status == 'checked_out' || $booking->status == 'completed') $badge_class = 'primary';
                         if ($booking->status == 'cancelled') $badge_class = 'danger';
                         if ($booking->status == 'pending') $badge_class = 'warning';
                         ?>
-                        <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucfirst($booking->status); ?></span>
+                        <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucwords(str_replace('_', ' ', $booking->status)); ?></span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Payment:</th>
+                    <td>
+                        <?php if (!empty($payment_status)): ?>
+                            <span class="badge bg-<?php echo $payment_status['badge']; ?>"><?php echo htmlspecialchars($payment_status['display']); ?></span>
+                            <?php if ($payment_status['label'] !== 'no_invoice'): ?>
+                                <small class="text-muted ms-2">
+                                    Paid ₱<?php echo number_format($payment_status['amount_paid'], 2); ?>
+                                    · Balance ₱<?php echo number_format($payment_status['balance'], 2); ?>
+                                </small>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <span class="badge bg-secondary">No Invoice</span>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <tr>
@@ -167,7 +222,16 @@
                     <?php foreach ($booking_invoices as $inv): ?>
                     <tr>
                         <td><?php echo htmlspecialchars($inv->invoice_number); ?></td>
-                        <td><span class="badge bg-secondary"><?php echo ucfirst($inv->status); ?></span></td>
+                        <td>
+                            <?php
+                            $inv_badge = 'secondary';
+                            if ($inv->status === 'paid') $inv_badge = 'success';
+                            elseif ($inv->status === 'partial') $inv_badge = 'warning';
+                            elseif ($inv->status === 'issued' || $inv->status === 'overdue') $inv_badge = 'danger';
+                            elseif ($inv->status === 'draft') $inv_badge = 'secondary';
+                            ?>
+                            <span class="badge bg-<?php echo $inv_badge; ?>"><?php echo ucfirst($inv->status); ?></span>
+                        </td>
                         <td>₱<?php echo number_format($inv->total_amount, 2); ?></td>
                         <td>₱<?php echo number_format($inv->balance_due, 2); ?></td>
                         <td><a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-outline-primary">View</a></td>
@@ -221,10 +285,12 @@
                                     <?php
                                     $badge_class = 'secondary';
                                     if ($item->status == 'confirmed') $badge_class = 'success';
+                                    if ($item->status == 'checked_in') $badge_class = 'info';
+                                    if ($item->status == 'checked_out' || $item->status == 'completed') $badge_class = 'primary';
                                     if ($item->status == 'cancelled') $badge_class = 'danger';
                                     if ($item->status == 'pending') $badge_class = 'warning';
                                     ?>
-                                    <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucfirst($item->status); ?></span>
+                                    <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucwords(str_replace('_', ' ', $item->status)); ?></span>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

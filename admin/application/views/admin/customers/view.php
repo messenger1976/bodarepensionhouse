@@ -178,10 +178,12 @@
                                     <?php
                                     $badge_class = 'secondary';
                                     if ($booking->status == 'confirmed') $badge_class = 'success';
+                                    if ($booking->status == 'checked_in') $badge_class = 'info';
+                                    if ($booking->status == 'checked_out' || $booking->status == 'completed') $badge_class = 'primary';
                                     if ($booking->status == 'cancelled') $badge_class = 'danger';
                                     if ($booking->status == 'pending') $badge_class = 'warning';
-                                    ?>
-                                    <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucfirst($booking->status); ?></span>
+                                ?>
+                                    <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucwords(str_replace('_', ' ', $booking->status)); ?></span>
                                 </td>
                                 <td>₱<?php echo number_format($booking->total_amount, 2); ?></td>
                                 <td>

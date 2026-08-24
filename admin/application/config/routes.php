@@ -69,8 +69,16 @@ $route['bookings'] = 'admin/bookings/index';
 $route['bookings/add'] = 'admin/bookings/add';
 $route['bookings/(:num)'] = 'admin/bookings/view/$1';
 $route['bookings/edit/(:num)'] = 'admin/bookings/edit/$1';
+$route['bookings/check_in/(:num)'] = 'admin/bookings/check_in/$1';
+$route['bookings/check_out/(:num)'] = 'admin/bookings/check_out/$1';
 $route['bookings/delete/(:num)'] = 'admin/bookings/delete/$1';
 $route['booking_settings'] = 'admin/booking_settings/index';
+
+// Hotel Calendar (room stays + events)
+$route['calendar'] = 'admin/calendar/index';
+$route['calendar/feed'] = 'admin/calendar/feed';
+$route['calendar/summary'] = 'admin/calendar/summary';
+
 $route['rooms'] = 'admin/rooms/index';
 $route['rooms/add'] = 'admin/rooms/add';
 $route['rooms/edit/(:num)'] = 'admin/rooms/edit/$1';
@@ -132,7 +140,12 @@ $route['module_generator/generate'] = 'admin/module_generator/generate';
 // Reports routes
 $route['reports'] = 'admin/reports/daily_sales';
 $route['reports/daily_sales'] = 'admin/reports/daily_sales';
+$route['reports/billing'] = 'admin/reports/billing';
+$route['reports/payments'] = 'admin/reports/payments';
+$route['reports/events'] = 'admin/reports/events';
 $route['reports/export_excel'] = 'admin/reports/export_excel';
+$route['reports/export_billing'] = 'admin/reports/export_billing';
+$route['reports/export_payments'] = 'admin/reports/export_payments';
 
 // Billing & Payment routes
 $route['invoices'] = 'admin/invoices/index';

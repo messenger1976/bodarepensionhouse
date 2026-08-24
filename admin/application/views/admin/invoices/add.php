@@ -5,20 +5,60 @@
     </div>
 
     <?php echo validation_errors('<div class="alert alert-danger">', '</div>'); ?>
+    <?php if ($this->session->flashdata('error')): ?>
+        <div class="alert alert-danger"><?php echo $this->session->flashdata('error'); ?></div>
+    <?php endif; ?>
+    <?php if (!empty($existing_invoice)): ?>
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            This booking already has invoice
+            <a href="<?php echo base_url('invoices/view/' . $existing_invoice->id); ?>" class="alert-link">
+                <?php echo htmlspecialchars($existing_invoice->invoice_number); ?>
+            </a>
+            (<?php echo ucfirst($existing_invoice->status); ?>, balance ₱<?php echo number_format($existing_invoice->balance_due, 2); ?>).
+            Creating another invoice can cause double billing.
+        </div>
+    <?php endif; ?>
 
     <form method="post">
         <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <label class="form-label">Guest Name *</label>
-                <input type="text" name="guest_name" class="form-control" required value="<?php echo set_value('guest_name', isset($prefill['guest_name']) ? $prefill['guest_name'] : ''); ?>">
+            <div class="col-md-12">
+                <label for="customer_id" class="form-label">Select Existing Customer (Optional)</label>
+                <select class="form-select" id="customer_id" name="customer_id">
+                    <option value="">-- Select a customer or enter manually --</option>
+                    <?php if (!empty($customers)): ?>
+                        <?php foreach ($customers as $customer): ?>
+                            <?php
+                            $customer_name = trim($customer->first_name . ' ' . $customer->last_name);
+                            $customer_email = !empty($customer->email) ? $customer->email : '';
+                            $customer_phone = !empty($customer->phone) ? $customer->phone : '';
+                            $display_text = $customer_name;
+                            if ($customer_email) {
+                                $display_text .= ' (' . $customer_email . ')';
+                            }
+                            ?>
+                            <option value="<?php echo $customer->id; ?>"
+                                    data-name="<?php echo htmlspecialchars($customer_name); ?>"
+                                    data-email="<?php echo htmlspecialchars($customer_email); ?>"
+                                    data-phone="<?php echo htmlspecialchars($customer_phone); ?>">
+                                <?php echo htmlspecialchars($display_text); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+                <small class="form-text text-muted">Selecting a customer will auto-fill the guest information below.</small>
             </div>
             <div class="col-md-4">
-                <label class="form-label">Guest Email</label>
-                <input type="email" name="guest_email" class="form-control" value="<?php echo set_value('guest_email', isset($prefill['guest_email']) ? $prefill['guest_email'] : ''); ?>">
+                <label for="guest_name" class="form-label">Guest Name *</label>
+                <input type="text" id="guest_name" name="guest_name" class="form-control" required value="<?php echo set_value('guest_name', isset($prefill['guest_name']) ? $prefill['guest_name'] : ''); ?>">
             </div>
             <div class="col-md-4">
-                <label class="form-label">Guest Phone</label>
-                <input type="text" name="guest_phone" class="form-control" value="<?php echo set_value('guest_phone', isset($prefill['guest_phone']) ? $prefill['guest_phone'] : ''); ?>">
+                <label for="guest_email" class="form-label">Guest Email</label>
+                <input type="email" id="guest_email" name="guest_email" class="form-control" value="<?php echo set_value('guest_email', isset($prefill['guest_email']) ? $prefill['guest_email'] : ''); ?>">
+            </div>
+            <div class="col-md-4">
+                <label for="guest_phone" class="form-label">Guest Phone</label>
+                <input type="text" id="guest_phone" name="guest_phone" class="form-control" value="<?php echo set_value('guest_phone', isset($prefill['guest_phone']) ? $prefill['guest_phone'] : ''); ?>">
             </div>
             <div class="col-md-6">
                 <label class="form-label">Link to Booking</label>
@@ -107,6 +147,14 @@
             <input class="form-check-input" type="checkbox" name="issue_now" value="1" id="issue_now">
             <label class="form-check-label" for="issue_now">Issue invoice immediately after creation</label>
         </div>
+        <?php if (!empty($require_duplicate_confirm) || !empty($existing_invoice)): ?>
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="allow_duplicate_invoice" value="1" id="allow_duplicate_invoice" <?php echo set_checkbox('allow_duplicate_invoice', '1'); ?>>
+            <label class="form-check-label text-danger" for="allow_duplicate_invoice">
+                I understand this booking already has an invoice — create another anyway
+            </label>
+        </div>
+        <?php endif; ?>
 
         <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Create Invoice</button>
     </form>
@@ -126,5 +174,26 @@ document.addEventListener('DOMContentLoaded', function() {
             if (rows.length > 1) e.target.closest('tr').remove();
         }
     });
+
+    var customerSelect = document.getElementById('customer_id');
+    var guestNameInput = document.getElementById('guest_name');
+    var guestEmailInput = document.getElementById('guest_email');
+    var guestPhoneInput = document.getElementById('guest_phone');
+
+    if (customerSelect) {
+        customerSelect.addEventListener('change', function() {
+            var selectedOption = this.options[this.selectedIndex];
+
+            if (selectedOption && selectedOption.value) {
+                guestNameInput.value = selectedOption.getAttribute('data-name') || '';
+                guestEmailInput.value = selectedOption.getAttribute('data-email') || '';
+                guestPhoneInput.value = selectedOption.getAttribute('data-phone') || '';
+            } else {
+                guestNameInput.value = '';
+                guestEmailInput.value = '';
+                guestPhoneInput.value = '';
+            }
+        });
+    }
 });
 </script>

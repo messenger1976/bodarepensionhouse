@@ -162,6 +162,104 @@ class Invoice_model extends CI_Model {
     }
 
     /**
+     * Summarize payment status for a booking from its non-void invoices.
+     * Returns: label (paid|partial|unpaid|no_invoice), badge, totals, primary_invoice_id.
+     */
+    public function get_booking_payment_status($booking_id) {
+        $invoices = $this->get_invoices_for_booking($booking_id);
+        return $this->summarize_booking_payment_status($invoices);
+    }
+
+    /**
+     * Batch payment status keyed by booking_id (for bookings list).
+     */
+    public function get_payment_status_map() {
+        if (!$this->db->table_exists('invoices')) {
+            return array();
+        }
+
+        $this->db->select('booking_id, id, invoice_number, status, amount_paid, balance_due, total_amount');
+        $this->db->from('invoices');
+        $this->db->where('status !=', 'void');
+        $this->db->where('booking_id IS NOT NULL', null, false);
+        $this->db->order_by('id', 'ASC');
+        $rows = $this->db->get()->result();
+
+        $grouped = array();
+        foreach ($rows as $row) {
+            $bid = (int) $row->booking_id;
+            if (!isset($grouped[$bid])) {
+                $grouped[$bid] = array();
+            }
+            $grouped[$bid][] = $row;
+        }
+
+        $map = array();
+        foreach ($grouped as $bid => $invoices) {
+            $map[$bid] = $this->summarize_booking_payment_status($invoices);
+        }
+        return $map;
+    }
+
+    private function summarize_booking_payment_status($invoices) {
+        if (empty($invoices)) {
+            return array(
+                'label' => 'no_invoice',
+                'display' => 'No Invoice',
+                'badge' => 'secondary',
+                'total_amount' => 0.0,
+                'amount_paid' => 0.0,
+                'balance' => 0.0,
+                'primary_invoice_id' => null,
+                'primary_invoice_number' => null,
+                'invoice_count' => 0
+            );
+        }
+
+        $total_amount = 0.0;
+        $amount_paid = 0.0;
+        $balance = 0.0;
+        $primary = $invoices[0];
+        foreach ($invoices as $inv) {
+            $total_amount += (float) $inv->total_amount;
+            $amount_paid += (float) $inv->amount_paid;
+            $balance += (float) $inv->balance_due;
+            if ((float) $inv->balance_due > (float) $primary->balance_due) {
+                $primary = $inv;
+            }
+        }
+
+        $balance = round(max(0, $balance), 2);
+        $amount_paid = round($amount_paid, 2);
+
+        if ($balance <= 0 && ($amount_paid > 0 || $total_amount <= 0)) {
+            $label = 'paid';
+            $display = 'Paid';
+            $badge = 'success';
+        } elseif ($amount_paid > 0 && $balance > 0) {
+            $label = 'partial';
+            $display = 'Partial';
+            $badge = 'warning';
+        } else {
+            $label = 'unpaid';
+            $display = 'Unpaid';
+            $badge = 'danger';
+        }
+
+        return array(
+            'label' => $label,
+            'display' => $display,
+            'badge' => $badge,
+            'total_amount' => round($total_amount, 2),
+            'amount_paid' => $amount_paid,
+            'balance' => $balance,
+            'primary_invoice_id' => isset($primary->id) ? (int) $primary->id : null,
+            'primary_invoice_number' => isset($primary->invoice_number) ? $primary->invoice_number : null,
+            'invoice_count' => count($invoices)
+        );
+    }
+
+    /**
      * Build invoice line items from a booking (rooms + extra services).
      */
     public function build_items_from_booking($booking, $booking_items = array()) {
@@ -355,5 +453,90 @@ class Invoice_model extends CI_Model {
         }
         $this->db->where('id', (int) $invoice_id);
         return $this->db->update('invoices', array('emailed_at' => date('Y-m-d H:i:s')));
+    }
+
+    /**
+     * Invoices for reporting within a date range (by issued_at / created_at).
+     */
+    public function get_for_date_range($from_date, $to_date, $status = null) {
+        $from_date = $this->db->escape($from_date);
+        $to_date = $this->db->escape($to_date);
+
+        $this->db->select('invoices.*, bookings.booking_number, events.event_name, events.event_number');
+        $this->db->from('invoices');
+        $this->db->join('bookings', 'bookings.id = invoices.booking_id', 'left');
+        $this->db->join('events', 'events.id = invoices.event_id', 'left');
+        $this->db->where("DATE(COALESCE(invoices.issued_at, invoices.created_at)) >= {$from_date}", NULL, FALSE);
+        $this->db->where("DATE(COALESCE(invoices.issued_at, invoices.created_at)) <= {$to_date}", NULL, FALSE);
+        $this->db->where('invoices.status !=', 'void');
+        if ($status) {
+            $this->db->where('invoices.status', $status);
+        }
+        $this->db->order_by('invoices.created_at', 'DESC');
+        return $this->db->get()->result();
+    }
+
+    public function get_summary_for_range($from_date, $to_date) {
+        $from_date = $this->db->escape($from_date);
+        $to_date = $this->db->escape($to_date);
+
+        $this->db->select("
+            COUNT(id) as invoice_count,
+            COALESCE(SUM(total_amount), 0) as total_billed,
+            COALESCE(SUM(amount_paid), 0) as total_paid,
+            COALESCE(SUM(balance_due), 0) as total_balance,
+            SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid_count,
+            SUM(CASE WHEN status = 'partial' THEN 1 ELSE 0 END) as partial_count,
+            SUM(CASE WHEN status IN ('issued','overdue') THEN 1 ELSE 0 END) as unpaid_count,
+            SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft_count
+        ", FALSE);
+        $this->db->from('invoices');
+        $this->db->where("DATE(COALESCE(issued_at, created_at)) >= {$from_date}", NULL, FALSE);
+        $this->db->where("DATE(COALESCE(issued_at, created_at)) <= {$to_date}", NULL, FALSE);
+        $this->db->where('status !=', 'void');
+        $row = $this->db->get()->row();
+        return array(
+            'invoice_count' => $row ? (int) $row->invoice_count : 0,
+            'total_billed' => $row ? (float) $row->total_billed : 0.0,
+            'total_paid' => $row ? (float) $row->total_paid : 0.0,
+            'total_balance' => $row ? (float) $row->total_balance : 0.0,
+            'paid_count' => $row ? (int) $row->paid_count : 0,
+            'partial_count' => $row ? (int) $row->partial_count : 0,
+            'unpaid_count' => $row ? (int) $row->unpaid_count : 0,
+            'draft_count' => $row ? (int) $row->draft_count : 0
+        );
+    }
+
+    public function get_outstanding($limit = 50) {
+        $this->db->select('invoices.*, bookings.booking_number, events.event_name');
+        $this->db->from('invoices');
+        $this->db->join('bookings', 'bookings.id = invoices.booking_id', 'left');
+        $this->db->join('events', 'events.id = invoices.event_id', 'left');
+        $this->db->where('invoices.balance_due >', 0);
+        $this->db->where_not_in('invoices.status', array('void', 'draft', 'paid'));
+        $this->db->order_by('invoices.due_date', 'ASC');
+        $this->db->order_by('invoices.balance_due', 'DESC');
+        if ($limit) {
+            $this->db->limit((int) $limit);
+        }
+        return $this->db->get()->result();
+    }
+
+    public function get_totals_by_item_type($from_date, $to_date) {
+        if (!$this->db->table_exists('invoice_items')) {
+            return array();
+        }
+        $from_date = $this->db->escape($from_date);
+        $to_date = $this->db->escape($to_date);
+
+        $this->db->select('invoice_items.item_type, COUNT(invoice_items.id) as item_count, SUM(invoice_items.total_price) as total_amount');
+        $this->db->from('invoice_items');
+        $this->db->join('invoices', 'invoices.id = invoice_items.invoice_id', 'inner');
+        $this->db->where("DATE(COALESCE(invoices.issued_at, invoices.created_at)) >= {$from_date}", NULL, FALSE);
+        $this->db->where("DATE(COALESCE(invoices.issued_at, invoices.created_at)) <= {$to_date}", NULL, FALSE);
+        $this->db->where('invoices.status !=', 'void');
+        $this->db->group_by('invoice_items.item_type');
+        $this->db->order_by('total_amount', 'DESC');
+        return $this->db->get()->result();
     }
 }

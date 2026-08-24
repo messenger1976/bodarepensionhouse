@@ -39,7 +39,7 @@ include __DIR__ . '/includes/site-head.php';
             <div class="customer-dashboard-layout">
                 <?php
                 $customerSidebarActiveTab = isset($_GET['tab']) ? $_GET['tab'] : 'bookings';
-                if (!in_array($customerSidebarActiveTab, ['bookings', 'profile', 'security', 'inquiry'], true)) {
+                if (!in_array($customerSidebarActiveTab, ['bookings', 'invoices', 'profile', 'security', 'inquiry'], true)) {
                     $customerSidebarActiveTab = 'bookings';
                 }
                 include __DIR__ . '/includes/customer-sidebar.php';
@@ -53,6 +53,22 @@ include __DIR__ . '/includes/site-head.php';
                     <div class="loading-message" style="text-align: center; padding: 2rem; color: #666;">
                         <p>Loading your bookings...</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- Invoices Tab Content -->
+            <div id="invoices-tab" class="tab-content" style="display: none;">
+                <div id="invoices-list-container">
+                    <div class="loading-message" style="text-align: center; padding: 2rem; color: #666;">
+                        <p>Loading your invoices...</p>
+                    </div>
+                </div>
+                <div id="invoice-detail-panel" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                        <h2 id="invoice-detail-title" style="margin: 0; color: #1a2238;">Invoice Details</h2>
+                        <button type="button" id="invoice-back-btn" class="cta-button" style="background: #6c757d; padding: 0.5rem 1.25rem;">Back to List</button>
+                    </div>
+                    <div id="invoice-detail-content"></div>
                 </div>
             </div>
             
@@ -367,6 +383,8 @@ include __DIR__ . '/includes/site-head.php';
                 loadBookings().catch(err => {
                     console.error('Bookings load error:', err);
                 });
+
+                setupInvoiceBackButton();
                 
                 // Setup tab switching
                 setupTabs();
@@ -430,11 +448,22 @@ include __DIR__ . '/includes/site-head.php';
                     targetContent.classList.add('active');
                     targetContent.style.display = 'block';
 
-                    // Load profile data when profile tab is clicked
                     if (targetTab === 'profile') {
                         verifySessionAndLoadProfile().catch(err => {
                             console.error('Profile load error on tab click:', err);
                         });
+                    }
+                    if (targetTab === 'invoices') {
+                        const invoiceId = new URLSearchParams(window.location.search).get('id');
+                        if (invoiceId) {
+                            loadInvoiceDetail(invoiceId).catch(err => {
+                                console.error('Invoice detail load error:', err);
+                            });
+                        } else {
+                            loadInvoices().catch(err => {
+                                console.error('Invoices load error:', err);
+                            });
+                        }
                     }
                 }
             }
@@ -442,7 +471,7 @@ include __DIR__ . '/includes/site-head.php';
             // Activate initial tab from URL
             const params = new URLSearchParams(window.location.search);
             const initialTab = params.get('tab');
-            if (initialTab && ['bookings', 'profile', 'security', 'inquiry'].includes(initialTab)) {
+            if (initialTab && ['bookings', 'invoices', 'profile', 'security', 'inquiry'].includes(initialTab)) {
                 activateTab(initialTab);
             } else {
                 activateTab('bookings');
@@ -452,11 +481,13 @@ include __DIR__ . '/includes/site-head.php';
                 button.addEventListener('click', (e) => {
                     e.preventDefault();
                     const targetTab = button.getAttribute('data-tab');
-                    activateTab(targetTab);
-
                     const updatedUrl = new URL(window.location.href);
                     updatedUrl.searchParams.set('tab', targetTab);
+                    if (targetTab !== 'invoices') {
+                        updatedUrl.searchParams.delete('id');
+                    }
                     window.history.replaceState({}, '', updatedUrl.toString());
+                    activateTab(targetTab);
                 });
             });
         }
@@ -1215,6 +1246,205 @@ include __DIR__ . '/includes/site-head.php';
             });
         }
         
+        // Load invoices
+        let invoicesLoaded = false;
+
+        function setupInvoiceBackButton() {
+            const backBtn = document.getElementById('invoice-back-btn');
+            if (!backBtn) return;
+            backBtn.addEventListener('click', () => {
+                const detailPanel = document.getElementById('invoice-detail-panel');
+                const listContainer = document.getElementById('invoices-list-container');
+                if (detailPanel) detailPanel.style.display = 'none';
+                if (listContainer) listContainer.style.display = 'block';
+                const url = new URL(window.location.href);
+                url.searchParams.delete('id');
+                url.searchParams.set('tab', 'invoices');
+                window.history.replaceState({}, '', url.toString());
+                if (!invoicesLoaded) {
+                    loadInvoices().catch(err => console.error(err));
+                }
+            });
+        }
+
+        async function loadInvoices() {
+            const listContainer = document.getElementById('invoices-list-container');
+            const detailPanel = document.getElementById('invoice-detail-panel');
+            if (!listContainer) return;
+
+            if (detailPanel) detailPanel.style.display = 'none';
+            listContainer.style.display = 'block';
+            listContainer.innerHTML = '<div class="loading-message" style="text-align: center; padding: 2rem; color: #666;"><p>Loading your invoices...</p></div>';
+
+            try {
+                const response = await API.invoice.getMyInvoices();
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to load invoices');
+                }
+
+                const invoices = response.invoices || [];
+                invoicesLoaded = true;
+
+                if (invoices.length === 0) {
+                    listContainer.innerHTML = `
+                        <div style="text-align: center; padding: 3rem;">
+                            <h3 style="color: #666;">No invoices yet</h3>
+                            <p style="color: #999;">Invoices for your bookings will appear here once issued by the hotel.</p>
+                            <a href="rooms.php" class="cta-button" style="display: inline-block; margin-top: 1rem;">Browse Rooms</a>
+                        </div>`;
+                    return;
+                }
+
+                listContainer.innerHTML = invoices.map(inv => {
+                    const statusClass = getInvoiceStatusClass(inv.status);
+                    return `
+                    <div class="invoice-card" style="border:1px solid #ddd;border-radius:8px;padding:1.5rem;margin-bottom:1rem;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.06);">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1rem;">
+                            <div>
+                                <h3 style="margin:0 0 0.25rem;color:#333;">${escapeHtml(inv.invoice_number)}</h3>
+                                <p style="margin:0;color:#666;font-size:0.9rem;">Issued: ${formatInvoiceDate(inv.issued_at || inv.created_at)}</p>
+                                ${inv.booking_number ? `<p style="margin:0.25rem 0 0;color:#888;font-size:0.85rem;">Booking: ${escapeHtml(inv.booking_number)}</p>` : ''}
+                            </div>
+                            <span class="status-badge ${statusClass}" style="padding:0.4rem 0.9rem;border-radius:20px;font-size:0.8rem;font-weight:600;text-transform:uppercase;">${escapeHtml(inv.status)}</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:1rem;">
+                            <div><strong style="color:#666;display:block;font-size:0.85rem;">Total</strong>₱${formatInvoiceMoney(inv.total_amount)}</div>
+                            <div><strong style="color:#666;display:block;font-size:0.85rem;">Paid</strong><span style="color:#059669;">₱${formatInvoiceMoney(inv.amount_paid)}</span></div>
+                            <div><strong style="color:#666;display:block;font-size:0.85rem;">Balance</strong><span style="color:#c62828;font-weight:600;">₱${formatInvoiceMoney(inv.balance_due)}</span></div>
+                            <div><strong style="color:#666;display:block;font-size:0.85rem;">Due Date</strong>${inv.due_date ? formatInvoiceDate(inv.due_date) : '—'}</div>
+                        </div>
+                        <button type="button" class="cta-button view-invoice-btn" data-id="${inv.id}" style="padding:0.5rem 1.25rem;font-size:0.9rem;">View Details</button>
+                    </div>`;
+                }).join('');
+
+                listContainer.querySelectorAll('.view-invoice-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = btn.getAttribute('data-id');
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('tab', 'invoices');
+                        url.searchParams.set('id', id);
+                        window.history.replaceState({}, '', url.toString());
+                        loadInvoiceDetail(id);
+                    });
+                });
+            } catch (error) {
+                listContainer.innerHTML = `<div style="text-align:center;padding:3rem;color:#c62828;"><h3>Unable to load invoices</h3><p>${escapeHtml(error.message || 'Please try again later.')}</p></div>`;
+            }
+        }
+
+        async function loadInvoiceDetail(id) {
+            const listContainer = document.getElementById('invoices-list-container');
+            const detailPanel = document.getElementById('invoice-detail-panel');
+            const detailContent = document.getElementById('invoice-detail-content');
+            const detailTitle = document.getElementById('invoice-detail-title');
+            if (!detailPanel || !detailContent) return;
+
+            if (listContainer) listContainer.style.display = 'none';
+            detailPanel.style.display = 'block';
+            detailContent.innerHTML = '<p style="color:#666;">Loading invoice...</p>';
+
+            try {
+                const response = await API.invoice.getInvoice(id);
+                if (!response.success) {
+                    throw new Error(response.message || 'Invoice not found');
+                }
+
+                const inv = response.invoice;
+                const items = response.items || [];
+                const payments = response.payments || [];
+
+                if (detailTitle) detailTitle.textContent = 'Invoice ' + inv.invoice_number;
+
+                const itemsHtml = items.map(item => `
+                    <tr>
+                        <td style="padding:0.75rem;border-bottom:1px solid #eee;">${escapeHtml(item.description)}</td>
+                        <td style="padding:0.75rem;border-bottom:1px solid #eee;text-align:right;">${item.quantity}</td>
+                        <td style="padding:0.75rem;border-bottom:1px solid #eee;text-align:right;">₱${formatInvoiceMoney(item.unit_price)}</td>
+                        <td style="padding:0.75rem;border-bottom:1px solid #eee;text-align:right;">₱${formatInvoiceMoney(item.total_price)}</td>
+                    </tr>
+                `).join('');
+
+                const paymentsHtml = payments.length > 0
+                    ? payments.map(p => `
+                        <tr>
+                            <td style="padding:0.5rem 0;">${p.payment_date ? formatInvoiceDate(p.payment_date) : '—'}</td>
+                            <td style="padding:0.5rem 0;">${escapeHtml(p.payment_method)}</td>
+                            <td style="padding:0.5rem 0;text-align:right;">₱${formatInvoiceMoney(p.amount)}</td>
+                        </tr>`).join('')
+                    : '<tr><td colspan="3" style="padding:0.5rem 0;color:#999;">No payments recorded yet</td></tr>';
+
+                detailContent.innerHTML = `
+                    <div style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:1.5rem;">
+                        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+                            <div>
+                                <p style="margin:0 0 0.25rem;"><strong>Bill To:</strong> ${escapeHtml(inv.guest_name)}</p>
+                                ${inv.guest_email ? `<p style="margin:0;color:#666;">${escapeHtml(inv.guest_email)}</p>` : ''}
+                            </div>
+                            <div style="text-align:right;">
+                                <p style="margin:0;"><strong>Status:</strong> ${escapeHtml(inv.status)}</p>
+                                <p style="margin:0.25rem 0 0;color:#666;">Due: ${inv.due_date ? formatInvoiceDate(inv.due_date) : 'Upon receipt'}</p>
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto;margin-bottom:1.5rem;">
+                            <table style="width:100%;border-collapse:collapse;font-size:0.95rem;">
+                                <thead>
+                                    <tr style="background:#f8f9fa;">
+                                        <th style="padding:0.75rem;text-align:left;">Description</th>
+                                        <th style="padding:0.75rem;text-align:right;">Qty</th>
+                                        <th style="padding:0.75rem;text-align:right;">Unit Price</th>
+                                        <th style="padding:0.75rem;text-align:right;">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${itemsHtml}</tbody>
+                                <tfoot>
+                                    <tr><td colspan="3" style="padding:0.5rem;text-align:right;">Subtotal</td><td style="padding:0.5rem;text-align:right;">₱${formatInvoiceMoney(inv.subtotal)}</td></tr>
+                                    ${inv.discount_amount > 0 ? `<tr><td colspan="3" style="padding:0.5rem;text-align:right;">Discount</td><td style="padding:0.5rem;text-align:right;color:#c62828;">-₱${formatInvoiceMoney(inv.discount_amount)}</td></tr>` : ''}
+                                    ${inv.tax_amount > 0 ? `<tr><td colspan="3" style="padding:0.5rem;text-align:right;">Tax</td><td style="padding:0.5rem;text-align:right;">₱${formatInvoiceMoney(inv.tax_amount)}</td></tr>` : ''}
+                                    ${inv.service_charge_amount > 0 ? `<tr><td colspan="3" style="padding:0.5rem;text-align:right;">Service Charge</td><td style="padding:0.5rem;text-align:right;">₱${formatInvoiceMoney(inv.service_charge_amount)}</td></tr>` : ''}
+                                    <tr><td colspan="3" style="padding:0.75rem;text-align:right;font-weight:bold;">Total</td><td style="padding:0.75rem;text-align:right;font-weight:bold;">₱${formatInvoiceMoney(inv.total_amount)}</td></tr>
+                                    <tr><td colspan="3" style="padding:0.5rem;text-align:right;color:#059669;">Amount Paid</td><td style="padding:0.5rem;text-align:right;color:#059669;">₱${formatInvoiceMoney(inv.amount_paid)}</td></tr>
+                                    <tr><td colspan="3" style="padding:0.75rem;text-align:right;font-weight:bold;color:#c62828;">Balance Due</td><td style="padding:0.75rem;text-align:right;font-weight:bold;color:#c62828;">₱${formatInvoiceMoney(inv.balance_due)}</td></tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <h4 style="color:#666;font-size:1rem;margin-bottom:0.75rem;">Payment History</h4>
+                        <table style="width:100%;font-size:0.9rem;margin-bottom:1rem;">
+                            <thead><tr style="color:#666;"><th style="text-align:left;padding-bottom:0.5rem;">Date</th><th style="text-align:left;padding-bottom:0.5rem;">Method</th><th style="text-align:right;padding-bottom:0.5rem;">Amount</th></tr></thead>
+                            <tbody>${paymentsHtml}</tbody>
+                        </table>
+                        ${inv.notes ? `<p style="color:#666;font-size:0.9rem;margin:0;"><strong>Notes:</strong> ${escapeHtml(inv.notes)}</p>` : ''}
+                        <p style="margin-top:1.5rem;font-size:0.85rem;color:#888;">For payment inquiries, please contact the front desk or reply to your invoice email.</p>
+                    </div>`;
+            } catch (error) {
+                detailContent.innerHTML = `<div style="color:#c62828;padding:2rem;text-align:center;"><p>${escapeHtml(error.message || 'Failed to load invoice')}</p></div>`;
+            }
+        }
+
+        function formatInvoiceMoney(value) {
+            return parseFloat(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatInvoiceDate(value) {
+            if (!value) return '—';
+            return new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text == null ? '' : String(text);
+            return div.innerHTML;
+        }
+
+        function getInvoiceStatusClass(status) {
+            const map = {
+                paid: 'status-confirmed',
+                partial: 'status-pending',
+                issued: 'status-pending',
+                overdue: 'status-cancelled'
+            };
+            return map[status] || 'status-pending';
+        }
+
         // Load bookings
         async function loadBookings() {
             const container = document.getElementById('bookings-container');

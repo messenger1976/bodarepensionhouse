@@ -1,0 +1,380 @@
+<?php
+$summary = isset($today_summary) ? $today_summary : array(
+    'check_ins' => 0,
+    'check_outs' => 0,
+    'in_house' => 0,
+    'events_today' => 0,
+    'pending_bookings' => 0
+);
+?>
+<div class="nk-block">
+    <div class="nk-block-head">
+        <div class="nk-block-between">
+            <div class="nk-block-head-content">
+                <h3 class="nk-block-title page-title"><i class="bi bi-calendar3"></i> Calendar</h3>
+                <div class="nk-block-des text-soft">
+                    <p>Unified view of room stays and hotel events — planned like a hotel booking engine</p>
+                </div>
+            </div>
+            <div class="nk-block-head-content">
+                <div class="toggle-wrap nk-block-tools-toggle">
+                    <div class="toggle-expand-content" data-content="pageMenu">
+                        <ul class="nk-block-tools g-3">
+                            <?php if (!empty($can_add_bookings)): ?>
+                            <li>
+                                <a href="<?php echo base_url('bookings/add'); ?>" class="btn btn-primary">
+                                    <i class="bi bi-plus-lg"></i> <span>New Booking</span>
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                            <?php if (!empty($can_add_events)): ?>
+                            <li>
+                                <a href="<?php echo base_url('events/add'); ?>" class="btn btn-outline-primary">
+                                    <i class="bi bi-calendar-plus"></i> <span>New Event</span>
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                            <?php if (!empty($can_view_bookings)): ?>
+                            <li>
+                                <a href="<?php echo base_url('rooms/calendar'); ?>" class="btn btn-outline-light">
+                                    <i class="bi bi-door-open"></i> <span>Availability</span>
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day ops summary -->
+    <div class="row g-3 mb-4" id="calendar-summary-cards">
+        <div class="col-6 col-md">
+            <div class="card card-bordered h-100">
+                <div class="card-inner py-3">
+                    <div class="text-soft small text-uppercase mb-1">Check-ins</div>
+                    <div class="fs-4 fw-bold text-success" id="sum-check-ins"><?php echo (int) $summary['check_ins']; ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="card card-bordered h-100">
+                <div class="card-inner py-3">
+                    <div class="text-soft small text-uppercase mb-1">Check-outs</div>
+                    <div class="fs-4 fw-bold text-danger" id="sum-check-outs"><?php echo (int) $summary['check_outs']; ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="card card-bordered h-100">
+                <div class="card-inner py-3">
+                    <div class="text-soft small text-uppercase mb-1">In-house</div>
+                    <div class="fs-4 fw-bold text-primary" id="sum-in-house"><?php echo (int) $summary['in_house']; ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="card card-bordered h-100">
+                <div class="card-inner py-3">
+                    <div class="text-soft small text-uppercase mb-1">Events today</div>
+                    <div class="fs-4 fw-bold text-info" id="sum-events"><?php echo (int) $summary['events_today']; ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="card card-bordered h-100">
+                <div class="card-inner py-3">
+                    <div class="text-soft small text-uppercase mb-1">Pending stays</div>
+                    <div class="fs-4 fw-bold text-warning" id="sum-pending"><?php echo (int) $summary['pending_bookings']; ?></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card card-bordered mb-4">
+        <div class="card-inner">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="cal-type-filter" class="form-label">Show</label>
+                    <select id="cal-type-filter" class="form-select">
+                        <option value="all">Room stays &amp; events</option>
+                        <option value="room">Room bookings only</option>
+                        <option value="event">Hotel events only</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="cal-status-filter" class="form-label">Status</label>
+                    <select id="cal-status-filter" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="checked_in">Checked In</option>
+                        <option value="checked_out">Checked Out</option>
+                        <option value="completed">Completed</option>
+                        <option value="inquiry">Inquiry (events)</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="cal-room-filter" class="form-label">Room</label>
+                    <select id="cal-room-filter" class="form-select">
+                        <option value="">All rooms</option>
+                        <?php if (!empty($rooms)): ?>
+                            <?php foreach ($rooms as $room): ?>
+                                <option value="<?php echo (int) $room->id; ?>">
+                                    <?php echo htmlspecialchars($room->room_name); ?>
+                                    <?php if (!empty($room->room_code)): ?>
+                                        (<?php echo htmlspecialchars($room->room_code); ?>)
+                                    <?php endif; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="cal-include-cancelled">
+                        <label class="form-check-label" for="cal-include-cancelled">Include cancelled</label>
+                    </div>
+                    <button type="button" id="cal-refresh" class="btn btn-primary w-100 mt-2">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="card card-bordered mb-4">
+        <div class="card-inner">
+            <h6 class="mb-3"><i class="bi bi-info-circle"></i> Legend</h6>
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
+                    <div class="d-flex align-items-center">
+                        <span class="legend-badge cal-legend-room me-2"></span>
+                        <span class="text-base">Room stay</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="d-flex align-items-center">
+                        <span class="legend-badge cal-legend-event me-2"></span>
+                        <span class="text-base">Hotel event</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="d-flex align-items-center">
+                        <span class="legend-badge legend-success me-2"></span>
+                        <span class="text-base">Confirmed</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="d-flex align-items-center">
+                        <span class="legend-badge legend-warning me-2"></span>
+                        <span class="text-base">Pending / Inquiry</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="card card-bordered">
+        <div class="card-inner">
+            <div id="hotel-calendar"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Detail modal -->
+<div class="modal fade" id="calendarDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="calendarDetailTitle">Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="calendarDetailBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" class="btn btn-primary" id="calendarDetailLink" target="_self">Open record</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('hotel-calendar');
+    if (!calendarEl || typeof FullCalendar === 'undefined') {
+        return;
+    }
+
+    var typeFilter = document.getElementById('cal-type-filter');
+    var statusFilter = document.getElementById('cal-status-filter');
+    var roomFilter = document.getElementById('cal-room-filter');
+    var includeCancelled = document.getElementById('cal-include-cancelled');
+    var refreshBtn = document.getElementById('cal-refresh');
+    var detailModalEl = document.getElementById('calendarDetailModal');
+    var detailModal = detailModalEl ? new bootstrap.Modal(detailModalEl) : null;
+
+    function buildFeedUrl(info) {
+        var params = new URLSearchParams();
+        params.set('start', info.startStr);
+        params.set('end', info.endStr);
+        params.set('type', typeFilter.value || 'all');
+        if (statusFilter.value) {
+            params.set('status', statusFilter.value);
+        }
+        if (roomFilter.value) {
+            params.set('room_id', roomFilter.value);
+        }
+        if (includeCancelled.checked) {
+            params.set('include_cancelled', '1');
+        }
+        return '<?php echo base_url("calendar/feed"); ?>?' + params.toString();
+    }
+
+    function formatMoney(amount) {
+        return '₱' + (amount || '0.00');
+    }
+
+    function capitalize(str) {
+        if (!str) return '';
+        return String(str).replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+    }
+
+    function showDetail(event) {
+        var p = event.extendedProps || {};
+        var body = '';
+        var title = event.title;
+        var link = p.url || '#';
+
+        if (p.source === 'room') {
+            title = 'Room Booking';
+            body =
+                '<div class="info-row"><span class="info-label">Guest</span><span class="info-value"><strong>' + escapeHtml(p.guestName || '-') + '</strong></span></div>' +
+                '<div class="info-row"><span class="info-label">Booking #</span><span class="info-value"><code>' + escapeHtml(p.bookingNumber || '-') + '</code></span></div>' +
+                '<div class="info-row"><span class="info-label">Room</span><span class="info-value">' + escapeHtml(p.roomName || '-') + ' <span class="text-soft">(' + escapeHtml(p.roomCode || '-') + ')</span></span></div>' +
+                '<div class="info-row"><span class="info-label">Type</span><span class="info-value">' + escapeHtml(p.roomType || '-') + '</span></div>' +
+                '<div class="info-row"><span class="info-label">Stay</span><span class="info-value">' + escapeHtml(p.checkIn || '') + ' → ' + escapeHtml(p.checkOut || '') + '</span></div>' +
+                '<div class="info-row"><span class="info-label">Guests</span><span class="info-value">' + (p.guests || 1) + '</span></div>' +
+                '<div class="info-row"><span class="info-label">Status</span><span class="info-value"><span class="badge bg-' + statusBadge(p.status) + '">' + capitalize(p.status) + '</span></span></div>' +
+                '<div class="info-row"><span class="info-label">Amount</span><span class="info-value"><strong>' + formatMoney(p.amount) + '</strong></span></div>';
+        } else {
+            title = 'Hotel Event';
+            body =
+                '<div class="info-row"><span class="info-label">Event</span><span class="info-value"><strong>' + escapeHtml(p.eventName || '-') + '</strong></span></div>' +
+                '<div class="info-row"><span class="info-label">Event #</span><span class="info-value"><code>' + escapeHtml(p.eventNumber || '-') + '</code></span></div>' +
+                '<div class="info-row"><span class="info-label">Type</span><span class="info-value">' + capitalize(p.eventType || 'other') + '</span></div>' +
+                '<div class="info-row"><span class="info-label">Venue</span><span class="info-value">' + escapeHtml(p.venue || '-') + '</span></div>' +
+                '<div class="info-row"><span class="info-label">Date</span><span class="info-value">' + escapeHtml(p.eventDate || '') +
+                    (p.startTime ? (' · ' + escapeHtml(p.startTime) + (p.endTime ? ('–' + escapeHtml(p.endTime)) : '')) : '') +
+                '</span></div>' +
+                '<div class="info-row"><span class="info-label">Organizer</span><span class="info-value">' + escapeHtml(p.organizerName || '-') + '</span></div>' +
+                '<div class="info-row"><span class="info-label">Guests</span><span class="info-value">' + (p.guests || 0) + '</span></div>' +
+                '<div class="info-row"><span class="info-label">Status</span><span class="info-value"><span class="badge bg-' + statusBadge(p.status) + '">' + capitalize(p.status) + '</span></span></div>' +
+                '<div class="info-row"><span class="info-label">Amount</span><span class="info-value"><strong>' + formatMoney(p.amount) + '</strong></span></div>' +
+                (p.linkedBooking ? '<div class="info-row"><span class="info-label">Linked booking</span><span class="info-value"><code>' + escapeHtml(p.linkedBooking) + '</code></span></div>' : '');
+        }
+
+        document.getElementById('calendarDetailTitle').textContent = title;
+        document.getElementById('calendarDetailBody').innerHTML = '<div class="room-details-popover">' + body + '</div>';
+        document.getElementById('calendarDetailLink').href = link;
+        if (detailModal) {
+            detailModal.show();
+        }
+    }
+
+    function statusBadge(status) {
+        switch (status) {
+            case 'confirmed':
+                return 'success';
+            case 'checked_in':
+                return 'info';
+            case 'checked_out':
+            case 'completed':
+                return 'primary';
+            case 'pending':
+            case 'inquiry':
+                return 'warning';
+            case 'cancelled':
+                return 'danger';
+            default:
+                return 'secondary';
+        }
+    }
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text == null ? '' : String(text);
+        return div.innerHTML;
+    }
+
+    function refreshSummary(dateStr) {
+        fetch('<?php echo base_url("calendar/summary"); ?>?date=' + encodeURIComponent(dateStr || '<?php echo date("Y-m-d"); ?>'))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.success || !data.summary) return;
+                var s = data.summary;
+                document.getElementById('sum-check-ins').textContent = s.check_ins;
+                document.getElementById('sum-check-outs').textContent = s.check_outs;
+                document.getElementById('sum-in-house').textContent = s.in_house;
+                document.getElementById('sum-events').textContent = s.events_today;
+                document.getElementById('sum-pending').textContent = s.pending_bookings;
+            })
+            .catch(function() {});
+    }
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        height: 'auto',
+        editable: false,
+        navLinks: true,
+        dayMaxEvents: true,
+        nowIndicator: true,
+        eventDisplay: 'block',
+        events: function(info, successCallback, failureCallback) {
+            fetch(buildFeedUrl(info))
+                .then(function(response) { return response.json(); })
+                .then(function(data) { successCallback(Array.isArray(data) ? data : []); })
+                .catch(function(err) { failureCallback(err); });
+        },
+        eventClick: function(info) {
+            info.jsEvent.preventDefault();
+            showDetail(info.event);
+        },
+        datesSet: function(info) {
+            // Keep ops cards on "today" unless viewing a single day
+            if (info.view.type === 'timeGridDay') {
+                refreshSummary(info.startStr.substring(0, 10));
+            }
+        }
+    });
+
+    calendar.render();
+
+    function refetch() {
+        calendar.refetchEvents();
+    }
+
+    typeFilter.addEventListener('change', function() {
+        // Room filter only applies to room stays
+        roomFilter.disabled = typeFilter.value === 'event';
+        refetch();
+    });
+    statusFilter.addEventListener('change', refetch);
+    roomFilter.addEventListener('change', refetch);
+    includeCancelled.addEventListener('change', refetch);
+    refreshBtn.addEventListener('click', function() {
+        refetch();
+        refreshSummary('<?php echo date("Y-m-d"); ?>');
+    });
+});
+</script>

@@ -316,10 +316,12 @@
                 <div class="col-md-3">
                     <label for="status" class="form-label small fw-bold">Booking Status *</label>
                     <select class="form-select" id="status" name="status" required>
-                        <option value="pending" <?php echo set_select('status', 'pending', $booking->status == 'pending'); ?>>⏳ Pending</option>
-                        <option value="confirmed" <?php echo set_select('status', 'confirmed', $booking->status == 'confirmed'); ?>>✅ Confirmed</option>
-                        <option value="cancelled" <?php echo set_select('status', 'cancelled', $booking->status == 'cancelled'); ?>>❌ Cancelled</option>
-                        <option value="completed" <?php echo set_select('status', 'completed', $booking->status == 'completed'); ?>>✔️ Completed</option>
+                        <option value="pending" <?php echo set_select('status', 'pending', $booking->status == 'pending'); ?>>Pending</option>
+                        <option value="confirmed" <?php echo set_select('status', 'confirmed', $booking->status == 'confirmed'); ?>>Confirmed</option>
+                        <option value="checked_in" <?php echo set_select('status', 'checked_in', $booking->status == 'checked_in'); ?>>Checked In</option>
+                        <option value="checked_out" <?php echo set_select('status', 'checked_out', $booking->status == 'checked_out'); ?>>Checked Out</option>
+                        <option value="completed" <?php echo set_select('status', 'completed', $booking->status == 'completed'); ?>>Completed</option>
+                        <option value="cancelled" <?php echo set_select('status', 'cancelled', $booking->status == 'cancelled'); ?>>Cancelled</option>
                     </select>
                 </div>
             </div>

@@ -15,6 +15,7 @@ class Invoices extends Admin_Controller {
         $this->load->model('Booking_model');
         $this->load->model('Booking_item_model');
         $this->load->model('Event_model');
+        $this->load->model('Customer_model');
         $this->load->library('form_validation');
     }
 
@@ -82,6 +83,7 @@ class Invoices extends Admin_Controller {
         $data['title'] = 'Create Invoice';
         $data['bookings'] = $this->Booking_model->get_all_bookings();
         $data['events'] = $this->Event_model->get_for_select();
+        $data['customers'] = $this->Customer_model->get_all_with_user_info();
         $data['rates'] = $this->Invoice_model->get_default_rates();
 
         if ($this->input->post()) {
@@ -90,8 +92,27 @@ class Invoices extends Admin_Controller {
 
             if ($this->form_validation->run() === TRUE) {
                 $rates = $this->Invoice_model->get_default_rates();
+                $booking_id_post = $this->input->post('booking_id') ? (int) $this->input->post('booking_id') : null;
+
+                if ($booking_id_post && !$this->input->post('allow_duplicate_invoice')) {
+                    $existing = $this->Invoice_model->get_primary_for_booking($booking_id_post);
+                    if ($existing) {
+                        $this->session->set_flashdata(
+                            'error',
+                            'Booking already has invoice ' . $existing->invoice_number
+                            . ' (' . ucfirst($existing->status) . '). Open that invoice instead, or confirm duplicate below.'
+                        );
+                        $data['existing_invoice'] = $existing;
+                        $data['require_duplicate_confirm'] = true;
+                        $this->load->view('admin/layout/header', $data);
+                        $this->load->view('admin/invoices/add', $data);
+                        $this->load->view('admin/layout/footer');
+                        return;
+                    }
+                }
+
                 $invoice_data = array(
-                    'booking_id' => $this->input->post('booking_id') ? (int) $this->input->post('booking_id') : null,
+                    'booking_id' => $booking_id_post,
                     'event_id' => $this->input->post('event_id') ? (int) $this->input->post('event_id') : null,
                     'guest_name' => $this->input->post('guest_name'),
                     'guest_email' => $this->input->post('guest_email'),
@@ -140,6 +161,12 @@ class Invoices extends Admin_Controller {
                     $booking,
                     $this->db->table_exists('booking_items') ? $this->Booking_item_model->get_booking_items($booking_id) : array()
                 );
+
+                $existing = $this->Invoice_model->get_primary_for_booking($booking_id);
+                if ($existing) {
+                    $data['existing_invoice'] = $existing;
+                    $data['require_duplicate_confirm'] = true;
+                }
             }
         }
 
@@ -266,7 +293,20 @@ class Invoices extends Admin_Controller {
 
     public function from_booking($booking_id) {
         $this->require_permission('add_invoices');
-        redirect('invoices/add?booking_id=' . (int) $booking_id);
+
+        $existing = $this->Invoice_model->get_primary_for_booking($booking_id);
+        if ($existing && !$this->input->get('force')) {
+            $this->session->set_flashdata(
+                'error',
+                'This booking already has invoice ' . $existing->invoice_number
+                . ' (' . ucfirst($existing->status) . ', balance ₱' . number_format($existing->balance_due, 2)
+                . '). Use the existing invoice to avoid double billing.'
+            );
+            redirect('invoices/view/' . $existing->id);
+            return;
+        }
+
+        redirect('invoices/add?booking_id=' . (int) $booking_id . ($this->input->get('force') ? '&force=1' : ''));
     }
 
     public function send_email($id) {
