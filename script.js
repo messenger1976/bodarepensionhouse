@@ -750,6 +750,23 @@ function setupBookingWidget() {
     
     // Set default check-out to tomorrow (current date + 1 day)
     checkoutInput.value = tomorrowString;
+
+    const bookingParams = new URLSearchParams(window.location.search);
+    const paramCheckin = bookingParams.get('checkin');
+    const paramCheckout = bookingParams.get('checkout');
+    const paramGuests = parseInt(bookingParams.get('guests'), 10);
+    if (paramCheckin && paramCheckin >= todayString) {
+        checkinInput.value = paramCheckin;
+    }
+    if (paramCheckout && paramCheckout > checkinInput.value) {
+        checkoutInput.value = paramCheckout;
+    }
+    if (Number.isFinite(paramGuests) && paramGuests > 0) {
+        const adultsInput = document.getElementById('adults-count');
+        if (adultsInput) {
+            adultsInput.value = String(paramGuests);
+        }
+    }
     
     // Trigger input events to ensure validation runs
     checkinInput.dispatchEvent(new Event('change', { bubbles: true }));

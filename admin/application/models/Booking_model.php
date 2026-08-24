@@ -241,16 +241,29 @@ class Booking_model extends CI_Model {
             return false; // Room doesn't exist
         }
         
-        $available_rooms = isset($room->available_rooms) ? (int)$room->available_rooms : 1;
-        
-        // Count how many rooms are already booked for the overlapping dates
-        // Count total rooms booked using the helper method
-        $booked_count = $this->count_booked_rooms($room_id, $check_in, $check_out, $exclude_booking_id);
-        
-        // Check if there are enough available rooms
-        $remaining_rooms = $available_rooms - $booked_count;
+        $remaining_rooms = $this->get_remaining_room_count($room_id, $check_in, $check_out, $exclude_booking_id);
         
         return $remaining_rooms >= $requested_rooms;
+    }
+
+    /**
+     * Remaining inventory of a room type for overlapping dates.
+     */
+    public function get_remaining_room_count($room_id, $check_in, $check_out, $exclude_booking_id = null) {
+        $check_in = date('Y-m-d', strtotime($check_in));
+        $check_out = date('Y-m-d', strtotime($check_out));
+
+        $this->load->model('Room_model');
+        $room = $this->Room_model->get_room($room_id);
+
+        if (!$room) {
+            return 0;
+        }
+
+        $available_rooms = isset($room->available_rooms) ? (int)$room->available_rooms : 1;
+        $booked_count = $this->count_booked_rooms($room_id, $check_in, $check_out, $exclude_booking_id);
+
+        return max(0, $available_rooms - $booked_count);
     }
     
     /**
@@ -355,8 +368,9 @@ class Booking_model extends CI_Model {
                 continue;
             }
             
-            // Check availability
-            if ($this->check_room_availability($room->id, $check_in, $check_out)) {
+            $remaining = $this->get_remaining_room_count($room->id, $check_in, $check_out);
+            if ($remaining > 0) {
+                $room->remaining_rooms = $remaining;
                 $available_rooms[] = $room;
             }
         }
