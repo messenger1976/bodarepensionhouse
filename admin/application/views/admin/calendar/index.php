@@ -212,6 +212,18 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // Path-only URLs stay same-origin (avoids http/https mixed-content behind proxies)
+    var calendarFeedUrl = <?php
+        $feed_url = site_url('calendar/feed');
+        $feed_path = parse_url($feed_url, PHP_URL_PATH);
+        echo json_encode($feed_path ? $feed_path : '/admin/calendar/feed');
+    ?>;
+    var calendarSummaryUrl = <?php
+        $summary_url = site_url('calendar/summary');
+        $summary_path = parse_url($summary_url, PHP_URL_PATH);
+        echo json_encode($summary_path ? $summary_path : '/admin/calendar/summary');
+    ?>;
+
     var initialEvents = <?php
         $json_flags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
         if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
@@ -241,7 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (includeCancelled.checked) {
             params.set('include_cancelled', '1');
         }
-        return 'calendar/feed?' + params.toString();
+        return calendarFeedUrl + '?' + params.toString();
     }
 
     function formatMoney(amount) {
@@ -251,6 +263,23 @@ document.addEventListener('DOMContentLoaded', function() {
     function capitalize(str) {
         if (!str) return '';
         return String(str).replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+    }
+
+    function decorateEvents(events) {
+        return (events || []).map(function(event) {
+            var next = Object.assign({}, event);
+            var classes = next.classNames || [];
+            if (classes.indexOf('cal-status-confirmed') !== -1 || (next.extendedProps && next.extendedProps.status === 'confirmed')) {
+                next.backgroundColor = next.backgroundColor || '#16a34a';
+                next.borderColor = next.borderColor || '#15803d';
+                next.textColor = next.textColor || '#ffffff';
+            } else if (classes.indexOf('cal-status-pending') !== -1 || (next.extendedProps && next.extendedProps.status === 'pending')) {
+                next.backgroundColor = next.backgroundColor || '#d97706';
+                next.borderColor = next.borderColor || '#b45309';
+                next.textColor = next.textColor || '#ffffff';
+            }
+            return next;
+        });
     }
 
     function showDetail(event) {
@@ -321,7 +350,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function refreshSummary(dateStr) {
-        fetch('calendar/summary?date=' + encodeURIComponent(dateStr || '<?php echo date("Y-m-d"); ?>'), { credentials: 'same-origin' })
+        fetch(calendarSummaryUrl + '?date=' + encodeURIComponent(dateStr || '<?php echo date("Y-m-d"); ?>'), { credentials: 'same-origin' })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (!data.success || !data.summary) return;
@@ -365,17 +394,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     try {
                         data = JSON.parse(text);
                     } catch (parseError) {
-                        throw new Error('Calendar feed returned invalid JSON. Open calendar/feed in your browser while logged in to debug.');
+                        throw new Error('Calendar feed returned invalid JSON. Open /admin/calendar/feed in your browser while logged in to debug.');
                     }
                     if (errorEl) {
                         errorEl.style.display = 'none';
                         errorEl.textContent = '';
                     }
                     var events = Array.isArray(data) ? data : [];
-                    if (events.length === 0 && initialEvents.length > 0 && info && info.startStr && info.startStr.indexOf('<?php echo date("Y-m"); ?>') === 0) {
+                    if (events.length === 0 && initialEvents.length > 0) {
                         events = initialEvents;
                     }
-                    successCallback(events);
+                    successCallback(decorateEvents(events));
                 })
                 .catch(function(err) {
                     if (errorEl) {
@@ -385,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             : 'Unable to load calendar bookings. Click Refresh or check your admin session.';
                     }
                     if (initialEvents.length > 0) {
-                        successCallback(initialEvents);
+                        successCallback(decorateEvents(initialEvents));
                         return;
                     }
                     failureCallback(err);
