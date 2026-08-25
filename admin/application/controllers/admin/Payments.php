@@ -49,10 +49,99 @@ class Payments extends Admin_Controller {
         $data['payment'] = $payment;
         $data['can_edit'] = $this->has_permission('edit_payments');
         $data['can_delete'] = $this->has_permission('delete_payments');
+        $data['can_sync_paymongo'] = $this->has_permission('add_payments') || $this->has_permission('edit_payments');
 
         $this->load->view('admin/layout/header', $data);
         $this->load->view('admin/payments/view', $data);
         $this->load->view('admin/layout/footer');
+    }
+
+    /**
+     * Pull latest PayMongo status for a pending QRPH/card payment (useful on localhost without webhooks).
+     */
+    public function sync_paymongo($id) {
+        $this->require_permission('edit_payments');
+        if ($this->input->method() !== 'post') {
+            show_404();
+            return;
+        }
+
+        $payment = $this->Payment_model->get($id);
+        if (!$payment) {
+            show_404();
+            return;
+        }
+
+        if ($payment->payment_status === 'paid') {
+            $this->session->set_flashdata('success', 'Payment is already marked paid.');
+            redirect('payments/view/' . (int) $id);
+            return;
+        }
+
+        $this->load->library('paymongo');
+        $this->load->library('paymongo_service');
+        if (!$this->paymongo->is_configured()) {
+            $this->session->set_flashdata('error', 'PayMongo is not configured.');
+            redirect('payments/view/' . (int) $id);
+            return;
+        }
+
+        $meta = array();
+        if (!empty($payment->notes)) {
+            $decoded = json_decode($payment->notes, true);
+            if (is_array($decoded)) {
+                $meta = $decoded;
+            }
+        }
+
+        $intent_id = !empty($payment->paymongo_intent_id) ? $payment->paymongo_intent_id : null;
+        if (!$intent_id && !empty($meta['payment_intent_id'])) {
+            $intent_id = $meta['payment_intent_id'];
+        }
+        $session_id = !empty($payment->transaction_id) && strpos($payment->transaction_id, 'cs_') === 0
+            ? $payment->transaction_id
+            : (!empty($meta['checkout_session_id']) ? $meta['checkout_session_id'] : null);
+        if (!$intent_id && !empty($payment->transaction_id) && strpos($payment->transaction_id, 'pi_') === 0) {
+            $intent_id = $payment->transaction_id;
+        }
+
+        $booking = !empty($payment->booking_id) ? $this->Booking_model->get_booking((int) $payment->booking_id) : null;
+        $invoice = !empty($payment->invoice_id) ? $this->Invoice_model->get((int) $payment->invoice_id) : null;
+        $fulfilled = false;
+
+        if ($session_id && strpos($session_id, 'cs_') === 0) {
+            $session = $this->paymongo->retrieve_checkout_session($session_id);
+            if ($session && $this->paymongo->session_is_paid($session)) {
+                if ($booking) {
+                    $fulfilled = $this->paymongo_service->fulfill_paid_session($booking, $session, $session_id);
+                } else {
+                    $fulfilled = $this->paymongo_service->fulfill_paid_checkout_by_session($session, $session_id);
+                }
+            }
+        }
+
+        if (!$fulfilled && $intent_id && strpos($intent_id, 'pi_') === 0) {
+            $intent = $this->paymongo->retrieve_payment_intent($intent_id);
+            if ($intent && $this->paymongo->intent_is_paid($intent)) {
+                if ($booking) {
+                    $fulfilled = $this->paymongo_service->fulfill_paid_intent($booking, $intent);
+                } elseif ($invoice) {
+                    $fulfilled = $this->paymongo_service->fulfill_paid_intent_for_invoice($invoice, $intent);
+                }
+            } elseif ($intent) {
+                $status = isset($intent['attributes']['status']) ? $intent['attributes']['status'] : 'unknown';
+                $this->session->set_flashdata('error', 'PayMongo intent is not paid yet (status: ' . $status . '). If you just Authorized, wait a few seconds and try again.');
+                redirect('payments/view/' . (int) $id);
+                return;
+            }
+        }
+
+        if ($fulfilled) {
+            $this->session->set_flashdata('success', 'PayMongo payment confirmed and marked paid.');
+        } else {
+            $this->session->set_flashdata('error', $this->paymongo->get_last_error() ?: 'Could not confirm a paid payment with PayMongo yet.');
+        }
+        redirect('payments/view/' . (int) $id);
     }
 
     public function add() {
@@ -378,7 +467,11 @@ class Payments extends Admin_Controller {
             return;
         }
 
-        $this->session->set_flashdata('success', 'QRPH generated and emailed to ' . $guest_email . '. Payment is pending until the guest pays.');
+        $msg = 'QRPH generated and emailed to ' . $guest_email . '. Payment is pending until paid.';
+        if (!empty($payload['test_url'])) {
+            $msg .= ' Open this payment and click “Simulate QR Ph payment” to Authorize in test mode.';
+        }
+        $this->session->set_flashdata('success', $msg);
         redirect($payment_id ? 'payments/view/' . $payment_id : ($resolved_invoice_id ? 'invoices/view/' . $resolved_invoice_id : 'payments'));
     }
 

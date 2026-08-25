@@ -163,6 +163,7 @@ $route['invoices/send_email/(:num)'] = 'admin/invoices/send_email/$1';
 $route['payments'] = 'admin/payments/index';
 $route['payments/add'] = 'admin/payments/add';
 $route['payments/view/(:num)'] = 'admin/payments/view/$1';
+$route['payments/sync_paymongo/(:num)'] = 'admin/payments/sync_paymongo/$1';
 $route['payments/edit/(:num)'] = 'admin/payments/edit/$1';
 $route['payments/delete/(:num)'] = 'admin/payments/delete/$1';
 

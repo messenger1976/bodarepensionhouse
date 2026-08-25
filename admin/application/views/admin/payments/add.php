@@ -149,9 +149,12 @@
             <div class="alert alert-warning mb-0">
                 <i class="bi bi-qr-code"></i>
                 <strong>Generate QRPH &amp; email guest.</strong>
-                A pending PayMongo QR Ph payment will be created and emailed to the guest.
-                Payment status stays <em>pending</em> until the guest pays (or the webhook confirms).
-                Link an invoice or booking with a guest email address.
+                Creates a pending PayMongo QR Ph payment and emails the guest.
+                Status stays <em>pending</em> until paid (webhook or verify).
+                Link an invoice or booking with a guest email.
+                <hr class="my-2">
+                <strong>Test mode:</strong> After submit you’ll open the payment page and use
+                <em>Simulate QR Ph payment</em> (Authorize / Paid). Do not scan the QR with a real banking app.
             </div>
         </div>
 

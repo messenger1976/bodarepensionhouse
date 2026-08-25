@@ -16,6 +16,15 @@ $method = $payment->payment_method;
             <?php if (!empty($can_edit)): ?>
             <a href="<?php echo base_url('payments/edit/' . $payment->id); ?>" class="btn btn-warning"><i class="bi bi-pencil"></i> Edit</a>
             <?php endif; ?>
+            <?php
+            $is_paymongo_pending = ($payment->payment_status === 'pending')
+                && in_array($payment->payment_method, array('qrph', 'gcash', 'card'), true);
+            if (!empty($can_sync_paymongo) && $is_paymongo_pending):
+            ?>
+            <form method="post" action="<?php echo base_url('payments/sync_paymongo/' . $payment->id); ?>" class="d-inline">
+                <button type="submit" class="btn btn-success"><i class="bi bi-arrow-repeat"></i> Check PayMongo status</button>
+            </form>
+            <?php endif; ?>
             <?php if ($payment->invoice_id): ?>
             <a href="<?php echo base_url('invoices/view/' . $payment->invoice_id); ?>" class="btn btn-primary"><i class="bi bi-receipt"></i> View Invoice</a>
             <?php endif; ?>
@@ -76,6 +85,23 @@ $method = $payment->payment_method;
         ?></td></tr>
         <?php if (!empty($qrph_meta['qr_image_url'])): ?>
         <tr><th>QR Ph</th><td><img src="<?php echo htmlspecialchars($qrph_meta['qr_image_url']); ?>" alt="QRPH" style="max-width:200px;height:auto;"></td></tr>
+        <?php endif; ?>
+        <?php if ($payment->payment_status === 'pending' && !empty($qrph_meta['test_url'])): ?>
+        <tr><th>Test simulator</th><td>
+            <div class="alert alert-warning mb-2 py-2">
+                <strong>Test mode only.</strong> Do not scan the QR with a real bank/GCash app.
+                Open the simulator and choose <em>Authorize / Paid</em> (or Fail).
+            </div>
+            <a href="<?php echo htmlspecialchars($qrph_meta['test_url']); ?>" target="_blank" rel="noopener" class="btn btn-warning btn-sm">
+                <i class="bi bi-box-arrow-up-right"></i> Simulate QR Ph payment
+            </a>
+            <p class="text-muted small mb-0 mt-2">If you see “has consumed status”, create a new QRPH from Record Payment (old links are single-use).</p>
+        </td></tr>
+        <?php elseif ($payment->payment_status === 'pending' && ($method === 'qrph' || !empty($qrph_meta['qr_image_url']))): ?>
+        <tr><th>Test simulator</th><td class="text-muted small">
+            No <code>test_url</code> on this payment (live keys, or QR created before test-link support).
+            Use Record Payment → QRPH again to generate a fresh code with a simulator link when using <code>sk_test_</code> keys.
+        </td></tr>
         <?php endif; ?>
         <?php endif; ?>
 
