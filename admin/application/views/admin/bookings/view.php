@@ -204,6 +204,38 @@
         </div>
     </div>
 
+    <?php if (!empty($booking_guests)): ?>
+    <div class="mt-4">
+        <h6 class="text-muted mb-3"><i class="bi bi-people"></i> Guests Names List</h6>
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Full Name</th>
+                        <th>Age</th>
+                        <th>Gender</th>
+                        <th>DOB</th>
+                        <th>Contact No.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($booking_guests as $index => $guest): ?>
+                    <tr>
+                        <td><?php echo $index + 1; ?></td>
+                        <td><?php echo htmlspecialchars($guest->full_name); ?></td>
+                        <td><?php echo $guest->age !== null && $guest->age !== '' ? (int) $guest->age : '—'; ?></td>
+                        <td><?php echo !empty($guest->gender) ? htmlspecialchars($guest->gender) : '—'; ?></td>
+                        <td><?php echo !empty($guest->date_of_birth) ? date('M d, Y', strtotime($guest->date_of_birth)) : '—'; ?></td>
+                        <td><?php echo !empty($guest->contact_no) ? htmlspecialchars($guest->contact_no) : '—'; ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <?php if (!empty($booking_invoices)): ?>
     <div class="mt-4">
         <h6 class="text-muted mb-3"><i class="bi bi-receipt"></i> Linked Invoices</h6>

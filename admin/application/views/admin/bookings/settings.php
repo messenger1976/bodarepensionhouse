@@ -133,6 +133,56 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="bi bi-wallet2"></i> PayMongo (GCash Online)</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small">When guests choose <strong>GCash</strong> at checkout, they are redirected to PayMongo Hosted Checkout to pay online.</p>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="paymongo_enabled" name="paymongo_enabled" value="1"
+                                    <?php echo (isset($settings['paymongo_enabled']) && $settings['paymongo_enabled'] == '1') ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="paymongo_enabled">
+                                    Enable PayMongo GCash payments
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="paymongo_secret_key" class="form-label">Secret Key</label>
+                            <input type="password" class="form-control" id="paymongo_secret_key" name="paymongo_secret_key" autocomplete="off"
+                                value="<?php echo isset($settings['paymongo_secret_key']) ? htmlspecialchars($settings['paymongo_secret_key']) : ''; ?>"
+                                placeholder="sk_test_... or sk_live_...">
+                            <small class="form-text text-muted">From PayMongo Dashboard → Developers. Never share this key.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="paymongo_public_key" class="form-label">Public Key (optional)</label>
+                            <input type="text" class="form-control" id="paymongo_public_key" name="paymongo_public_key" autocomplete="off"
+                                value="<?php echo isset($settings['paymongo_public_key']) ? htmlspecialchars($settings['paymongo_public_key']) : ''; ?>"
+                                placeholder="pk_test_... or pk_live_...">
+                        </div>
+                        <div class="mb-3">
+                            <label for="paymongo_webhook_secret" class="form-label">Webhook Secret (optional)</label>
+                            <input type="password" class="form-control" id="paymongo_webhook_secret" name="paymongo_webhook_secret" autocomplete="off"
+                                value="<?php echo isset($settings['paymongo_webhook_secret']) ? htmlspecialchars($settings['paymongo_webhook_secret']) : ''; ?>"
+                                placeholder="Webhook signing secret">
+                            <small class="form-text text-muted">
+                                Webhook URL: <code><?php echo rtrim(base_url(), '/'); ?>/api/payment/webhook</code><br>
+                                Subscribe to <code>checkout_session.payment.paid</code>
+                            </small>
+                        </div>
+                        <div class="mb-0">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="paymongo_confirm_on_paid" name="paymongo_confirm_on_paid" value="1"
+                                    <?php echo (!isset($settings['paymongo_confirm_on_paid']) || $settings['paymongo_confirm_on_paid'] == '1') ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="paymongo_confirm_on_paid">
+                                    Auto-confirm booking when GCash payment succeeds
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Notification Settings -->

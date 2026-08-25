@@ -41,7 +41,12 @@ class Booking_settings extends Admin_Controller {
                 'auto_email_invoice' => $this->input->post('auto_email_invoice') ? '1' : '0',
                 'tax_rate' => $this->input->post('tax_rate'),
                 'service_charge' => $this->input->post('service_charge'),
-                'booking_notes' => $this->input->post('booking_notes')
+                'booking_notes' => $this->input->post('booking_notes'),
+                'paymongo_enabled' => $this->input->post('paymongo_enabled') ? '1' : '0',
+                'paymongo_secret_key' => trim((string) $this->input->post('paymongo_secret_key')),
+                'paymongo_public_key' => trim((string) $this->input->post('paymongo_public_key')),
+                'paymongo_webhook_secret' => trim((string) $this->input->post('paymongo_webhook_secret')),
+                'paymongo_confirm_on_paid' => $this->input->post('paymongo_confirm_on_paid') ? '1' : '0'
             );
             
             if ($this->Booking_settings_model->update_settings($settings_data)) {

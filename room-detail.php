@@ -145,11 +145,11 @@ $extraBedPrice = (float) bodare_room_setting('extra_bed_price', 199);
                         <div class="date-inputs">
                             <div>
                                 <label for="checkin-widget">Check In</label>
-                                <input type="date" id="checkin-widget" required>
+                                <input type="text" id="checkin-widget" class="datetime-input" placeholder="Select date & time" autocomplete="off" readonly>
                             </div>
                             <div>
                                 <label for="checkout-widget">Check Out</label>
-                                <input type="date" id="checkout-widget" required>
+                                <input type="text" id="checkout-widget" class="datetime-input" placeholder="Select date & time" autocomplete="off" readonly>
                             </div>
                         </div>
                         <div id="date-error-message" style="display: none; color: #dc3545; font-size: 0.875rem; margin-top: 0.5rem; padding: 0.5rem; background: #f8d7da; border-radius: 4px;"></div>

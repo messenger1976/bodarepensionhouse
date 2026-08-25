@@ -311,6 +311,24 @@ const API = {
         async getByNumber(invoiceNumber) {
             return API.request(`invoice/number/${encodeURIComponent(invoiceNumber)}`);
         }
+    },
+
+    // PayMongo / online payment endpoints
+    payment: {
+        async createGcashCheckout(payload) {
+            return API.request('payment/gcash-checkout', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+        },
+
+        async verify(payload) {
+            const params = new URLSearchParams();
+            if (payload && payload.booking_number) params.set('booking', payload.booking_number);
+            if (payload && payload.session_id) params.set('session_id', payload.session_id);
+            const qs = params.toString();
+            return API.request(`payment/verify${qs ? `?${qs}` : ''}`);
+        }
     }
 };
 

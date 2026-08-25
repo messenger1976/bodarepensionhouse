@@ -250,14 +250,23 @@ class Booking extends CI_Controller {
                 if (!empty($selection['room_id']) && !empty($selection['quantity']) && !empty($selection['check_in']) && !empty($selection['check_out'])) {
                     $sel_room_id = (int)$selection['room_id'];
                     $sel_quantity = (int)$selection['quantity'];
-                    $sel_check_in = $selection['check_in'];
-                    $sel_check_out = $selection['check_out'];
+                    $sel_check_in = $this->normalize_booking_date($selection['check_in']);
+                    $sel_check_out = $this->normalize_booking_date($selection['check_out']);
                     $sel_guests = isset($selection['guests']) ? (int)$selection['guests'] : 1;
                     if ($sel_guests < 1) {
                         $sel_guests = 1;
                     }
+
+                    if (!$sel_check_in || !$sel_check_out) {
+                        $this->output->set_status_header(400);
+                        echo json_encode([
+                            'success' => false,
+                            'message' => 'Invalid check-in or check-out date for one of the rooms.'
+                        ]);
+                        return;
+                    }
                     
-                    // Validate dates
+                    // Validate dates (compare calendar dates only)
                     if ($sel_check_out <= $sel_check_in) {
                         $this->output->set_status_header(400);
                         echo json_encode([
@@ -349,10 +358,19 @@ class Booking extends CI_Controller {
         } else if ($room_id) {
             // Old format: single room with quantity
             $requested_rooms = isset($data['rooms']) && $data['rooms'] > 0 ? (int)$data['rooms'] : 1;
-            $check_in = $data['check_in'];
-            $check_out = $data['check_out'];
+            $check_in = $this->normalize_booking_date(isset($data['check_in']) ? $data['check_in'] : null);
+            $check_out = $this->normalize_booking_date(isset($data['check_out']) ? $data['check_out'] : null);
             $guests = $data['guests'];
-            
+
+            if (!$check_in || !$check_out || $check_out <= $check_in) {
+                $this->output->set_status_header(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Check-out date must be after check-in date'
+                ]);
+                return;
+            }
+
             // Check room availability with number of rooms requested
             $is_available = $this->Booking_model->check_room_availability($room_id, $check_in, $check_out, null, $requested_rooms);
             
@@ -499,6 +517,34 @@ class Booking extends CI_Controller {
 
         $this->load->library('billing_service');
         $booking_status = $this->billing_service->resolve_initial_booking_status();
+
+        $payment_method = isset($data['payment_method']) ? strtolower(trim((string) $data['payment_method'])) : 'pay_at_hotel';
+        $allowed_payment_methods = array('pay_at_hotel', 'card', 'gcash');
+        if (!in_array($payment_method, $allowed_payment_methods, true)) {
+            $payment_method = 'pay_at_hotel';
+        }
+
+        // Online GCash must stay pending until PayMongo confirms payment
+        if ($payment_method === 'gcash') {
+            $this->load->library('paymongo_service');
+            if (!$this->paymongo_service->is_ready()) {
+                $this->output->set_status_header(503);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Online GCash payment is not available right now. Please choose Pay at the Hotel or try again later.'
+                ]);
+                return;
+            }
+            if ($total_amount < 20) {
+                $this->output->set_status_header(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'GCash online payment requires a minimum total of ₱20.00.'
+                ]);
+                return;
+            }
+            $booking_status = 'pending';
+        }
         
         // Prepare main booking data
         // Include room_id for backward compatibility (use first room's ID)
@@ -635,15 +681,48 @@ class Booking extends CI_Controller {
         } else {
             error_log('WARNING: booking_items table does not exist when trying to retrieve items');
         }
+
+        $payment_payload = null;
+        $response_message = 'Your reservation has been confirmed! We look forward to hosting you at BODARE Pension House.';
+
+        if ($payment_method === 'gcash') {
+            $this->load->library('paymongo_service');
+            if ($this->paymongo_service->is_ready()) {
+                $checkout = $this->paymongo_service->start_gcash_checkout_for_booking($booking, $total_amount);
+                if ($checkout && !empty($checkout['checkout_url'])) {
+                    $payment_payload = array(
+                        'method' => 'gcash',
+                        'provider' => 'paymongo',
+                        'status' => 'pending',
+                        'checkout_url' => $checkout['checkout_url'],
+                        'checkout_session_id' => $checkout['checkout_session_id'],
+                        'payment_id' => $checkout['payment_id']
+                    );
+                    $response_message = 'Reservation created. Redirecting you to PayMongo to complete GCash payment.';
+                } else {
+                    $this->output->set_status_header(502);
+                    echo json_encode([
+                        'success' => false,
+                        'booking_created' => true,
+                        'booking_number' => $booking->booking_number,
+                        'message' => 'Your booking was saved (' . $booking->booking_number . '), but we could not start GCash payment: '
+                            . ($this->paymongo_service->get_last_error() ?: 'Please contact us to complete payment.')
+                    ]);
+                    return;
+                }
+            }
+        }
         
         echo json_encode([
             'success' => true,
-            'message' => 'Your reservation has been confirmed! We look forward to hosting you at BODARE Pension House.',
+            'message' => $response_message,
             'booking' => $booking,
             'booking_number' => $booking->booking_number,
             'rooms_booked' => $total_rooms_count,
             'booking_items' => $booking_items,
             'items_count' => count($booking_items),
+            'payment_method' => $payment_method,
+            'payment' => $payment_payload,
             'invoice' => ($auto_invoice && !empty($auto_invoice['created'])) ? array(
                 'id' => $auto_invoice['invoice_id'],
                 'invoice_number' => $auto_invoice['invoice_number']
@@ -1029,6 +1108,28 @@ class Booking extends CI_Controller {
     private function is_extra_bed_service_name($name)
     {
         return is_string($name) && stripos($name, 'extra bed') === 0;
+    }
+
+    /**
+     * Normalize booking date/datetime values to Y-m-d for DATE columns.
+     */
+    private function normalize_booking_date($value)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $value = trim((string) $value);
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $value, $matches)) {
+            return $matches[1];
+        }
+
+        $timestamp = strtotime($value);
+        if ($timestamp === false) {
+            return null;
+        }
+
+        return date('Y-m-d', $timestamp);
     }
 
     private function parse_extra_beds_from_notes($notes)

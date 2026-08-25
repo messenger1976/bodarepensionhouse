@@ -1160,13 +1160,21 @@ body {
     gap: 1rem;
     margin-bottom: 1rem;
 }
-.date-inputs input[type="date"] {
+.date-inputs input[type="date"],
+.date-inputs input[type="text"],
+.date-inputs input[type="datetime-local"],
+.date-inputs .flatpickr-input,
+.date-inputs .form-control {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid #556;
     background: #2a3450;
     color: #fff;
     border-radius: 5px;
+    box-sizing: border-box;
+}
+.date-inputs .flatpickr-input[readonly] {
+    cursor: pointer;
 }
 .guest-inputs {
     display: flex;
@@ -1229,7 +1237,7 @@ body {
     max-width: 650px; /* Adjust as needed */
 }
 
-.flatpickr-calendar {
+.calendar-container .flatpickr-calendar {
     width: 100% !important;
     box-shadow: none !important;
     background: transparent !important;
@@ -1259,6 +1267,20 @@ span.flatpickr-weekday {
 }
 #availability-calendar {
     display: none; /* Hides the input box */
+}
+
+/* Booking widget datetime popup */
+.flatpickr-calendar.hasTime {
+    background: #fff !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+}
+.flatpickr-calendar .flatpickr-time {
+    border-top: 1px solid #eee;
+    max-height: 40px;
+}
+.flatpickr-calendar .flatpickr-time input {
+    color: var(--dark-blue);
+    font-weight: 600;
 }
 
 /* Style for the container holding the buttons */

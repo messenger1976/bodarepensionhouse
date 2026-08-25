@@ -28,6 +28,11 @@ INSERT INTO `booking_settings` (`setting_key`, `setting_value`) VALUES
 ('auto_email_invoice', '0'),
 ('tax_rate', '0'),
 ('service_charge', '0'),
-('booking_notes', '')
+('booking_notes', ''),
+('paymongo_enabled', '0'),
+('paymongo_secret_key', ''),
+('paymongo_public_key', ''),
+('paymongo_webhook_secret', ''),
+('paymongo_confirm_on_paid', '1')
 ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`);
 

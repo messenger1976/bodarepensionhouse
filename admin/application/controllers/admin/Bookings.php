@@ -12,10 +12,68 @@ class Bookings extends Admin_Controller {
         parent::__construct();
         $this->load->model('Booking_model');
         $this->load->model('Booking_item_model');
+        $this->load->model('Booking_guest_model');
         $this->load->model('Room_model');
         $this->load->model('Customer_model');
         $this->load->model('Room_settings_model');
         $this->load->library('form_validation');
+    }
+
+    /**
+     * Normalize posted guest names list into clean rows for booking_guests.
+     */
+    private function parse_guest_names_list()
+    {
+        $raw = $this->input->post('guest_names');
+        if (empty($raw) || !is_array($raw)) {
+            return array();
+        }
+
+        $guests = array();
+        $allowed_genders = array('Male', 'Female', 'Other');
+
+        foreach ($raw as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $full_name = isset($row['full_name']) ? trim($row['full_name']) : '';
+            if ($full_name === '') {
+                continue;
+            }
+
+            $gender = isset($row['gender']) ? trim($row['gender']) : '';
+            if ($gender !== '' && !in_array($gender, $allowed_genders, true)) {
+                $gender = '';
+            }
+
+            $dob = isset($row['date_of_birth']) ? trim($row['date_of_birth']) : '';
+            if ($dob !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dob)) {
+                $dob = '';
+            }
+
+            $age = null;
+            if (isset($row['age']) && $row['age'] !== '' && is_numeric($row['age'])) {
+                $age = max(0, (int) $row['age']);
+            } elseif ($dob !== '') {
+                try {
+                    $birth = new DateTime($dob);
+                    $age = (int) $birth->diff(new DateTime('today'))->y;
+                } catch (Exception $e) {
+                    $age = null;
+                }
+            }
+
+            $guests[] = array(
+                'full_name' => $full_name,
+                'age' => $age,
+                'gender' => $gender !== '' ? $gender : null,
+                'date_of_birth' => $dob !== '' ? $dob : null,
+                'contact_no' => isset($row['contact_no']) ? trim($row['contact_no']) : null
+            );
+        }
+
+        return $guests;
     }
 
     /**
@@ -121,6 +179,8 @@ class Bookings extends Admin_Controller {
             $data['booking_items'] = array();
             error_log('WARNING: booking_items table does not exist. Please run the SQL migration.');
         }
+
+        $data['booking_guests'] = $this->Booking_guest_model->get_booking_guests($id);
         
         $data['can_edit'] = $this->has_permission('edit_bookings');
         $data['can_delete'] = $this->has_permission('delete_bookings');
@@ -168,6 +228,8 @@ class Bookings extends Admin_Controller {
         } else {
             $data['booking_items'] = array();
         }
+
+        $data['booking_guests'] = $this->Booking_guest_model->get_booking_guests($id);
 
         $default_extra_bed_price = (float) $this->Room_settings_model->get_setting('extra_bed_price', 199);
         $booking_nights = 1;
@@ -430,6 +492,8 @@ class Bookings extends Admin_Controller {
                             $this->Booking_item_model->create_booking_item($booking_item_data);
                         }
                     }
+
+                    $this->Booking_guest_model->replace_booking_guests($id, $this->parse_guest_names_list());
                     
                     $this->db->trans_complete();
                     
@@ -758,6 +822,8 @@ class Bookings extends Admin_Controller {
                             $this->Booking_item_model->create_booking_item($booking_item_data);
                         }
                     }
+
+                    $this->Booking_guest_model->replace_booking_guests($booking_id, $this->parse_guest_names_list());
                     
                     $this->db->trans_complete();
                     

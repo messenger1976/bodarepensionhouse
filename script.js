@@ -618,12 +618,65 @@ function formatDateLocal(date) {
     return `${year}-${month}-${day}`;
 }
 
-// Parse YYYY-MM-DD as local midnight (avoids UTC shift from new Date('YYYY-MM-DD'))
+function formatDateTimeLocal(date) {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${formatDateLocal(date)} ${hours}:${minutes}`;
+}
+
+function parseHotelTime(value, fallbackHour, fallbackMinute) {
+    const match = String(value || '').match(/^(\d{1,2}):(\d{2})/);
+    if (!match) {
+        return { hour: fallbackHour, minute: fallbackMinute };
+    }
+    return {
+        hour: Math.min(23, Math.max(0, parseInt(match[1], 10))),
+        minute: Math.min(59, Math.max(0, parseInt(match[2], 10))),
+    };
+}
+
+function getHotelCheckTimes() {
+    const checkIn = parseHotelTime(window.BODARE_CHECK_IN_TIME, 14, 0);
+    const checkOut = parseHotelTime(window.BODARE_CHECK_OUT_TIME, 12, 0);
+    return { checkIn, checkOut };
+}
+
+function withHotelTime(date, hour, minute) {
+    const next = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour, minute, 0, 0);
+    return next;
+}
+
+// Parse YYYY-MM-DD or YYYY-MM-DD HH:mm as local time
 function parseDateLocal(dateString) {
     if (!dateString) return null;
-    const parts = dateString.split('-').map(Number);
-    if (parts.length !== 3 || parts.some(n => Number.isNaN(n))) return null;
-    return new Date(parts[0], parts[1] - 1, parts[2]);
+    const match = String(dateString).trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+    if (!match) return null;
+    return new Date(
+        Number(match[1]),
+        Number(match[2]) - 1,
+        Number(match[3]),
+        Number(match[4] || 0),
+        Number(match[5] || 0),
+        0,
+        0
+    );
+}
+
+function toApiDate(value) {
+    if (!value) return value;
+    const match = String(value).match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+    const parsed = parseDateLocal(value);
+    return parsed ? formatDateLocal(parsed) : value;
+}
+
+function calendarNightCount(checkInValue, checkOutValue) {
+    const checkinDate = parseDateLocal(checkInValue);
+    const checkoutDate = parseDateLocal(checkOutValue);
+    if (!checkinDate || !checkoutDate) return 1;
+    const start = new Date(checkinDate.getFullYear(), checkinDate.getMonth(), checkinDate.getDate());
+    const end = new Date(checkoutDate.getFullYear(), checkoutDate.getMonth(), checkoutDate.getDate());
+    return Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
 }
 
 async function fetchRoomByCode(roomKey) {
@@ -725,14 +778,6 @@ function setupBookingWidget() {
     }
     form.addEventListener('submit', handleBookingSubmit);
 
-    // Set minimum date to today for both date inputs (using local timezone)
-    const today = new Date();
-    const todayString = formatDateLocal(today);
-    
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowString = formatDateLocal(tomorrow);
-    
     const checkinInput = document.getElementById('checkin-widget');
     const checkoutInput = document.getElementById('checkout-widget');
     
@@ -740,38 +785,146 @@ function setupBookingWidget() {
         console.error('Date inputs not found');
         return;
     }
-    
-    // Set minimum dates
-    checkinInput.setAttribute('min', todayString);
-    checkoutInput.setAttribute('min', tomorrowString);
-    
-    // Set default check-in to today (current date)
-    checkinInput.value = todayString;
-    
-    // Set default check-out to tomorrow (current date + 1 day)
-    checkoutInput.value = tomorrowString;
+
+    const hotelTimes = getHotelCheckTimes();
+    const today = new Date();
+    const defaultCheckIn = withHotelTime(today, hotelTimes.checkIn.hour, hotelTimes.checkIn.minute);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const defaultCheckOut = withHotelTime(tomorrow, hotelTimes.checkOut.hour, hotelTimes.checkOut.minute);
 
     const bookingParams = new URLSearchParams(window.location.search);
     const paramCheckin = bookingParams.get('checkin');
     const paramCheckout = bookingParams.get('checkout');
     const paramGuests = parseInt(bookingParams.get('guests'), 10);
-    if (paramCheckin && paramCheckin >= todayString) {
-        checkinInput.value = paramCheckin;
+
+    let initialCheckIn = defaultCheckIn;
+    let initialCheckOut = defaultCheckOut;
+
+    if (paramCheckin) {
+        const parsedCheckIn = parseDateLocal(paramCheckin);
+        if (parsedCheckIn && formatDateLocal(parsedCheckIn) >= formatDateLocal(today)) {
+            initialCheckIn = withHotelTime(parsedCheckIn, hotelTimes.checkIn.hour, hotelTimes.checkIn.minute);
+            if (/[ T]\d{2}:\d{2}/.test(paramCheckin)) {
+                initialCheckIn = parsedCheckIn;
+            }
+        }
     }
-    if (paramCheckout && paramCheckout > checkinInput.value) {
-        checkoutInput.value = paramCheckout;
+
+    if (paramCheckout) {
+        const parsedCheckOut = parseDateLocal(paramCheckout);
+        if (parsedCheckOut && formatDateLocal(parsedCheckOut) > formatDateLocal(initialCheckIn)) {
+            initialCheckOut = withHotelTime(parsedCheckOut, hotelTimes.checkOut.hour, hotelTimes.checkOut.minute);
+            if (/[ T]\d{2}:\d{2}/.test(paramCheckout)) {
+                initialCheckOut = parsedCheckOut;
+            }
+        }
     }
+
+    if (formatDateLocal(initialCheckOut) <= formatDateLocal(initialCheckIn)) {
+        const nextDay = new Date(initialCheckIn);
+        nextDay.setDate(nextDay.getDate() + 1);
+        initialCheckOut = withHotelTime(nextDay, hotelTimes.checkOut.hour, hotelTimes.checkOut.minute);
+    }
+
     if (Number.isFinite(paramGuests) && paramGuests > 0) {
         const adultsInput = document.getElementById('adults-count');
         if (adultsInput) {
             adultsInput.value = String(paramGuests);
         }
     }
-    
-    // Trigger input events to ensure validation runs
-    checkinInput.dispatchEvent(new Event('change', { bubbles: true }));
-    checkoutInput.dispatchEvent(new Event('change', { bubbles: true }));
-    
+
+    const useFlatpickr = typeof flatpickr === 'function';
+    let checkinPicker = null;
+    let checkoutPicker = null;
+
+    const syncCheckoutMin = (checkinDate) => {
+        if (!checkinDate) return;
+        const minCheckout = new Date(checkinDate);
+        minCheckout.setDate(minCheckout.getDate() + 1);
+        minCheckout.setHours(hotelTimes.checkOut.hour, hotelTimes.checkOut.minute, 0, 0);
+
+        if (checkoutPicker) {
+            checkoutPicker.set('minDate', minCheckout);
+            const currentCheckout = checkoutPicker.selectedDates[0];
+            if (!currentCheckout || currentCheckout <= checkinDate) {
+                checkoutPicker.setDate(minCheckout, true);
+            }
+        } else {
+            const currentCheckout = parseDateLocal(checkoutInput.value);
+            if (!currentCheckout || currentCheckout <= checkinDate) {
+                checkoutInput.value = formatDateTimeLocal(minCheckout);
+            }
+        }
+    };
+
+    if (useFlatpickr) {
+        checkinPicker = flatpickr(checkinInput, {
+            enableTime: true,
+            time_24hr: true,
+            dateFormat: 'Y-m-d H:i',
+            altInput: true,
+            altFormat: 'm / d / Y H:i',
+            allowInput: false,
+            minDate: 'today',
+            defaultDate: initialCheckIn,
+            defaultHour: hotelTimes.checkIn.hour,
+            defaultMinute: hotelTimes.checkIn.minute,
+            minuteIncrement: 15,
+            onChange: function(selectedDates) {
+                if (selectedDates[0]) {
+                    syncCheckoutMin(selectedDates[0]);
+                }
+                validateDates();
+                calculateTotalCost();
+            }
+        });
+
+        checkoutPicker = flatpickr(checkoutInput, {
+            enableTime: true,
+            time_24hr: true,
+            dateFormat: 'Y-m-d H:i',
+            altInput: true,
+            altFormat: 'm / d / Y H:i',
+            allowInput: false,
+            minDate: withHotelTime(
+                new Date(initialCheckIn.getFullYear(), initialCheckIn.getMonth(), initialCheckIn.getDate() + 1),
+                hotelTimes.checkOut.hour,
+                hotelTimes.checkOut.minute
+            ),
+            defaultDate: initialCheckOut,
+            defaultHour: hotelTimes.checkOut.hour,
+            defaultMinute: hotelTimes.checkOut.minute,
+            minuteIncrement: 15,
+            onChange: function() {
+                validateDates();
+                calculateTotalCost();
+            }
+        });
+
+        widget._checkinPicker = checkinPicker;
+        widget._checkoutPicker = checkoutPicker;
+    } else {
+        checkinInput.type = 'datetime-local';
+        checkoutInput.type = 'datetime-local';
+        checkinInput.readOnly = false;
+        checkoutInput.readOnly = false;
+        checkinInput.value = formatDateTimeLocal(initialCheckIn).replace(' ', 'T');
+        checkoutInput.value = formatDateTimeLocal(initialCheckOut).replace(' ', 'T');
+        checkinInput.addEventListener('change', function() {
+            const checkinDate = parseDateLocal(this.value);
+            if (checkinDate) {
+                syncCheckoutMin(checkinDate);
+            }
+            validateDates();
+            calculateTotalCost();
+        });
+        checkoutInput.addEventListener('change', function() {
+            validateDates();
+            calculateTotalCost();
+        });
+    }
+
     // Recalculate total cost with default dates
     // Ensure this runs after room data is populated
     // Use setTimeout to ensure basePrice is set from populateRoomDetails
@@ -787,35 +940,6 @@ function setupBookingWidget() {
             }, 200);
         }
     }, 100);
-
-    // Add date validation event listeners
-    if (checkinInput) {
-        checkinInput.addEventListener('change', function() {
-            // Auto-set checkout to check-in + 1 day before validating,
-            // so a temporary invalid range never shows an error
-            if (this.value) {
-                const checkinDate = parseDateLocal(this.value);
-                const nextDay = new Date(checkinDate);
-                nextDay.setDate(nextDay.getDate() + 1);
-                const nextDayString = formatDateLocal(nextDay);
-                checkoutInput.setAttribute('min', nextDayString);
-
-                const checkoutDate = parseDateLocal(checkoutInput.value);
-                if (!checkoutDate || checkoutDate <= checkinDate) {
-                    checkoutInput.value = nextDayString;
-                }
-            }
-            validateDates();
-            calculateTotalCost();
-        });
-    }
-
-    if (checkoutInput) {
-        checkoutInput.addEventListener('change', function() {
-            validateDates();
-            calculateTotalCost();
-        });
-    }
 
     const counters = widget.querySelectorAll('.counter');
 
@@ -859,11 +983,17 @@ function validateDates() {
     
     const checkinDate = parseDateLocal(checkinInput.value);
     const checkoutDate = parseDateLocal(checkoutInput.value);
+    const checkinDay = checkinDate
+        ? new Date(checkinDate.getFullYear(), checkinDate.getMonth(), checkinDate.getDate())
+        : null;
+    const checkoutDay = checkoutDate
+        ? new Date(checkoutDate.getFullYear(), checkoutDate.getMonth(), checkoutDate.getDate())
+        : null;
     
     let error = '';
     
-    if (checkinDate) {
-        if (checkinDate < today) {
+    if (checkinDay) {
+        if (checkinDay < today) {
             error = 'Check-in date cannot be in the past. Please select today or a future date.';
             checkinInput.setCustomValidity(error);
         } else {
@@ -871,12 +1001,15 @@ function validateDates() {
         }
     }
     
-    if (checkoutDate) {
-        if (checkoutDate < today) {
+    if (checkoutDay) {
+        if (checkoutDay < today) {
             error = 'Check-out date cannot be in the past. Please select today or a future date.';
             checkoutInput.setCustomValidity(error);
         } else if (checkinDate && checkoutDate <= checkinDate) {
-            error = 'Check-out date must be after check-in date. Please select a later date.';
+            error = 'Check-out must be after check-in. Please select a later date or time.';
+            checkoutInput.setCustomValidity(error);
+        } else if (checkinDay && checkoutDay.getTime() <= checkinDay.getTime()) {
+            error = 'Check-out date must be at least one day after check-in.';
             checkoutInput.setCustomValidity(error);
         } else {
             checkoutInput.setCustomValidity('');
@@ -912,13 +1045,7 @@ function calculateTotalCost(newNights = null) {
         const checkoutInput = document.getElementById('checkout-widget');
         
         if (checkinInput && checkoutInput && checkinInput.value && checkoutInput.value) {
-            const checkinDate = parseDateLocal(checkinInput.value);
-            const checkoutDate = parseDateLocal(checkoutInput.value);
-            
-            // Calculate difference in days
-            const timeDiff = checkoutDate - checkinDate;
-            nights = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-            nights = Math.max(nights, 1); // Minimum 1 night
+            nights = calendarNightCount(checkinInput.value, checkoutInput.value);
         } else {
             nights = 1; // Default to 1 night if dates not selected
         }
@@ -977,28 +1104,34 @@ function setupAvailabilityCalendar() {
                 if (selectedDates.length === 2) {
                     const checkinInput = document.getElementById('checkin-widget');
                     const checkoutInput = document.getElementById('checkout-widget');
+                    const widget = document.querySelector('.booking-widget');
+                    const hotelTimes = getHotelCheckTimes();
                     
                     if (checkinInput && checkoutInput) {
-                        checkinInput.value = formatDateLocal(selectedDates[0]);
-                        checkoutInput.value = formatDateLocal(selectedDates[1]);
-                        
-                        // Update minimum dates (using local timezone)
-                        const today = new Date();
-                        const todayString = formatDateLocal(today);
-                        checkinInput.setAttribute('min', todayString);
-                        
-                        const nextDay = new Date(selectedDates[0]);
-                        nextDay.setDate(nextDay.getDate() + 1);
-                        checkoutInput.setAttribute('min', formatDateLocal(nextDay));
+                        const checkinDate = withHotelTime(selectedDates[0], hotelTimes.checkIn.hour, hotelTimes.checkIn.minute);
+                        const checkoutDate = withHotelTime(selectedDates[1], hotelTimes.checkOut.hour, hotelTimes.checkOut.minute);
+
+                        if (widget && widget._checkinPicker && widget._checkoutPicker) {
+                            widget._checkinPicker.setDate(checkinDate, true);
+                            widget._checkoutPicker.set('minDate', withHotelTime(
+                                new Date(checkinDate.getFullYear(), checkinDate.getMonth(), checkinDate.getDate() + 1),
+                                hotelTimes.checkOut.hour,
+                                hotelTimes.checkOut.minute
+                            ));
+                            widget._checkoutPicker.setDate(checkoutDate, true);
+                        } else {
+                            checkinInput.value = formatDateTimeLocal(checkinDate);
+                            checkoutInput.value = formatDateTimeLocal(checkoutDate);
+                        }
                         
                         // Validate dates
                         validateDates();
                         
                         // Calculate nights and total cost
-                        const checkin = selectedDates[0];
-                        const checkout = selectedDates[1];
-                        let calculatedNights = Math.ceil((checkout - checkin) / (1000 * 60 * 60 * 24));
-                        calculatedNights = Math.max(calculatedNights, 1);
+                        const calculatedNights = calendarNightCount(
+                            formatDateTimeLocal(checkinDate),
+                            formatDateTimeLocal(checkoutDate)
+                        );
                         
                         calculateTotalCost(calculatedNights);
                     }
@@ -1028,20 +1161,35 @@ async function handleBookingSubmit(event) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    if (checkinDate < today) {
+    if (!checkinDate || !checkoutDate) {
+        alert('Please select valid check-in and check-out dates.');
+        return;
+    }
+
+    const checkinDay = new Date(checkinDate.getFullYear(), checkinDate.getMonth(), checkinDate.getDate());
+    const checkoutDay = new Date(checkoutDate.getFullYear(), checkoutDate.getMonth(), checkoutDate.getDate());
+
+    if (checkinDay < today) {
         alert('Check-in date cannot be in the past. Please select today or a future date.');
         checkinInput.focus();
         return;
     }
     
-    if (checkoutDate < today) {
+    if (checkoutDay < today) {
         alert('Check-out date cannot be in the past. Please select today or a future date.');
         checkoutInput.focus();
         return;
     }
     
     if (checkoutDate <= checkinDate) {
-        alert('Check-out date must be after check-in date. Please select a later date.');
+        alert('Check-out must be after check-in. Please select a later date or time.');
+        checkoutInput.focus();
+        return;
+    }
+
+    // Billing uses calendar nights, so checkout must be a later calendar day
+    if (checkoutDay.getTime() <= checkinDay.getTime()) {
+        alert('Check-out date must be at least one day after check-in.');
         checkoutInput.focus();
         return;
     }
@@ -1091,10 +1239,8 @@ async function handleBookingSubmit(event) {
         extraBedCost = getDefaultExtraBedPrice();
     }
     
-    // Calculate nights
-    const checkin = new Date(checkinInput.value);
-    const checkout = new Date(checkoutInput.value);
-    const nights = Math.ceil((checkout - checkin) / (1000 * 60 * 60 * 24));
+    // Calculate nights (calendar nights; times are for guest preference / hotel policy)
+    const nights = calendarNightCount(checkinInput.value, checkoutInput.value);
     
     let cartItem = {
         roomKey: roomKey,
@@ -1103,8 +1249,8 @@ async function handleBookingSubmit(event) {
         imageUrl: room.imageUrl,
         price: room.price,
         priceUnit: room.priceUnit,
-        checkin: checkinInput.value,
-        checkout: checkoutInput.value,
+        checkin: formatDateTimeLocal(checkinDate),
+        checkout: formatDateTimeLocal(checkoutDate),
         nights: nights,
         adults: parseInt(document.getElementById('adults-count').value) || 1,
         children: parseInt(document.getElementById('children-count').value) || 0,
@@ -1262,8 +1408,15 @@ function populateCheckoutPage() {
 }
 
 function formatDateDisplay(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    const date = parseDateLocal(dateString) || new Date(dateString);
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+        return dateString || '-';
+    }
+    const hasTime = /[ T]\d{2}:\d{2}/.test(String(dateString || ''));
+    const options = hasTime
+        ? { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }
+        : { year: 'numeric', month: 'short', day: 'numeric' };
+    return date.toLocaleString('en-US', options);
 }
 
 

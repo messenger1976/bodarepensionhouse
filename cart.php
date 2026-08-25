@@ -195,6 +195,15 @@ include __DIR__ . '/includes/site-head.php';
         }
         
         function formatDateDisplay(dateString) {
+            if (typeof parseDateLocal === 'function') {
+                const parsed = parseDateLocal(dateString);
+                if (parsed) {
+                    const hasTime = /[ T]\d{2}:\d{2}/.test(String(dateString || ''));
+                    return parsed.toLocaleString('en-US', hasTime
+                        ? { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }
+                        : { year: 'numeric', month: 'short', day: 'numeric' });
+                }
+            }
             const date = new Date(dateString);
             return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
         }

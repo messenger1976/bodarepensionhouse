@@ -659,22 +659,48 @@ async function handleCheckoutSubmit(e) {
             return;
         }
         
-        // Format dates to YYYY-MM-DD
+        // Format dates to YYYY-MM-DD (API stores dates only; times are guest preference)
         let itemCheckIn = item.checkin;
         let itemCheckOut = item.checkout;
-        
-        if (itemCheckIn && !/^\d{4}-\d{2}-\d{2}$/.test(itemCheckIn)) {
-            const d = new Date(itemCheckIn + 'T12:00:00');
-            itemCheckIn = d.getFullYear() + '-' + 
-                          String(d.getMonth() + 1).padStart(2, '0') + '-' + 
-                          String(d.getDate()).padStart(2, '0');
+
+        const toBookingDate = (value) => {
+            if (!value) return value;
+            const match = String(value).match(/^(\d{4}-\d{2}-\d{2})/);
+            if (match) return match[1];
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return value;
+            return d.getFullYear() + '-' +
+                String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                String(d.getDate()).padStart(2, '0');
+        };
+
+        itemCheckIn = toBookingDate(itemCheckIn);
+        itemCheckOut = toBookingDate(itemCheckOut);
+
+        // Hotel billing uses calendar nights. If times made same-day valid in the UI,
+        // ensure API dates still span at least one night.
+        if (itemCheckIn && itemCheckOut && itemCheckOut <= itemCheckIn) {
+            const nights = Math.max(1, parseInt(item.nights, 10) || 1);
+            const start = (typeof parseDateLocal === 'function')
+                ? parseDateLocal(itemCheckIn)
+                : new Date(itemCheckIn + 'T12:00:00');
+            if (start && !Number.isNaN(start.getTime())) {
+                start.setDate(start.getDate() + nights);
+                itemCheckOut = (typeof formatDateLocal === 'function')
+                    ? formatDateLocal(start)
+                    : [
+                        start.getFullYear(),
+                        String(start.getMonth() + 1).padStart(2, '0'),
+                        String(start.getDate()).padStart(2, '0')
+                    ].join('-');
+            }
         }
-        
-        if (itemCheckOut && !/^\d{4}-\d{2}-\d{2}$/.test(itemCheckOut)) {
-            const d = new Date(itemCheckOut + 'T12:00:00');
-            itemCheckOut = d.getFullYear() + '-' + 
-                          String(d.getMonth() + 1).padStart(2, '0') + '-' + 
-                          String(d.getDate()).padStart(2, '0');
+
+        if (!itemCheckIn || !itemCheckOut || itemCheckOut <= itemCheckIn) {
+            showMessage('Check-out date must be after check-in date for every room in your cart.', 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
         }
         
         const itemRooms = parseInt(item.rooms) || 1;
@@ -759,6 +785,17 @@ async function handleCheckoutSubmit(e) {
     notes += ` | Room Details: ${roomDetails.join(', ')}`;
     notes += ` | Guests: ${totalAdults} Adult(s), ${totalChildren} Child(ren)`;
 
+    const preferredTimes = cart
+        .map(item => {
+            if (!item.checkin && !item.checkout) return null;
+            const hasTime = /[ T]\d{2}:\d{2}/.test(String(item.checkin || '')) || /[ T]\d{2}:\d{2}/.test(String(item.checkout || ''));
+            if (!hasTime) return null;
+            return `${item.roomName}: in ${item.checkin}, out ${item.checkout}`;
+        })
+        .filter(Boolean);
+    if (preferredTimes.length > 0) {
+        notes += ` | Preferred Check-in/out Times: ${preferredTimes.join('; ')}`;
+    }
     const extraBedSummary = cart
         .map(item => {
             const info = typeof resolveCartItemExtraBed === 'function' ? resolveCartItemExtraBed(item) : null;
@@ -806,7 +843,8 @@ async function handleCheckoutSubmit(e) {
         guests: totalGuests > 0 ? totalGuests : 1, // Total guests across all cart rooms
         room_selections: roomSelections, // Array of room selections (same as admin panel)
         extra_services: uniqueServices,
-        notes: notes
+        notes: notes,
+        payment_method: paymentMethod
     };
     
     // Debug logging
@@ -832,25 +870,7 @@ async function handleCheckoutSubmit(e) {
             if (savedItems.length !== totalRooms) {
                 console.warn(`Warning: Expected ${totalRooms} booking items, but ${savedItems.length} were created.`);
             }
-            
-            // Clear cart immediately after successful booking
-            clearCartLocal();
-            
-            // Verify cart is cleared
-            const remainingCart = getCartLocal();
-            if (remainingCart.length > 0) {
-                console.warn('Cart was not fully cleared. Remaining items:', remainingCart.length);
-                // Force clear again
-                if (typeof withExpectedCartMutation === 'function') {
-                    withExpectedCartMutation('booking-force-clear-cart', () => {
-                        localStorage.removeItem('bookingCart');
-                    });
-                } else {
-                    localStorage.removeItem('bookingCart');
-                }
-                localStorage.removeItem('cartServices');
-            }
-            
+
             // Store booking result for confirmation page
             const confirmationItems = cart.map(item => {
                 const info = typeof resolveCartItemExtraBed === 'function'
@@ -878,15 +898,50 @@ async function handleCheckoutSubmit(e) {
                 };
             });
 
-            localStorage.setItem('bookingResult', JSON.stringify({
+            const confirmationPayload = {
                 booking_number: response.booking_number,
                 total_rooms: savedRooms || totalRooms,
                 room_details: roomDetails,
                 items: confirmationItems,
                 extra_services: uniqueServices,
                 total_amount: confirmationItems.reduce((sum, item) => sum + (item.total || 0), 0)
-                    + uniqueServices.reduce((sum, service) => sum + (parseFloat(service.cost) || 0), 0)
-            }));
+                    + uniqueServices.reduce((sum, service) => sum + (parseFloat(service.cost) || 0), 0),
+                payment_method: paymentMethod
+            };
+            localStorage.setItem('bookingResult', JSON.stringify(confirmationPayload));
+
+            // GCash via PayMongo: clear cart, then redirect to hosted checkout
+            const checkoutUrl = response.payment && response.payment.checkout_url;
+            if (paymentMethod === 'gcash' && checkoutUrl) {
+                clearCartLocal();
+                localStorage.removeItem('cartServices');
+                if (response.payment.checkout_session_id) {
+                    sessionStorage.setItem('paymongo_session_id', response.payment.checkout_session_id);
+                }
+                sessionStorage.setItem('paymongo_booking_number', response.booking_number);
+                showMessage('Redirecting to PayMongo GCash checkout…', 'success');
+                submitBtn.textContent = 'Redirecting to GCash…';
+                window.location.href = checkoutUrl;
+                return;
+            }
+            
+            // Clear cart immediately after successful booking (pay at hotel / card)
+            clearCartLocal();
+            
+            // Verify cart is cleared
+            const remainingCart = getCartLocal();
+            if (remainingCart.length > 0) {
+                console.warn('Cart was not fully cleared. Remaining items:', remainingCart.length);
+                // Force clear again
+                if (typeof withExpectedCartMutation === 'function') {
+                    withExpectedCartMutation('booking-force-clear-cart', () => {
+                        localStorage.removeItem('bookingCart');
+                    });
+                } else {
+                    localStorage.removeItem('bookingCart');
+                }
+                localStorage.removeItem('cartServices');
+            }
             
             // Small delay to ensure cart is cleared before redirect
             setTimeout(() => {

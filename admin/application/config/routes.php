@@ -206,6 +206,10 @@ $route['api/invoice/my-invoices'] = 'api/invoice/my_invoices';
 $route['api/invoice/view/(:num)'] = 'api/invoice/view/$1';
 $route['api/invoice/number/(:any)'] = 'api/invoice/by_number/$1';
 
+$route['api/payment/gcash-checkout'] = 'api/payment/create_gcash_checkout';
+$route['api/payment/verify'] = 'api/payment/verify';
+$route['api/payment/webhook'] = 'api/payment/webhook';
+
 // Customer Dashboard routes
 $route['customer/dashboard'] = 'customer/dashboard/index';
 $route['customer/booking/(:any)'] = 'customer/dashboard/booking/$1';

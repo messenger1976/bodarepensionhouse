@@ -282,6 +282,31 @@ if (!function_exists('bodare_room_setting')) {
     }
 }
 
+if (!function_exists('bodare_booking_setting')) {
+    /**
+     * Get a booking setting from the database, with fallback default.
+     */
+    function bodare_booking_setting($key, $default = null)
+    {
+        static $cache = null;
+        if ($cache === null) {
+            $cache = [];
+            $db = bodare_db();
+            if ($db) {
+                $result = @$db->query('SELECT setting_key, setting_value FROM booking_settings');
+                if ($result) {
+                    while ($row = $result->fetch_assoc()) {
+                        $cache[$row['setting_key']] = $row['setting_value'];
+                    }
+                    $result->free();
+                }
+            }
+        }
+
+        return array_key_exists($key, $cache) ? $cache[$key] : $default;
+    }
+}
+
 if (!function_exists('bodare_format_peso')) {
     function bodare_format_peso($amount)
     {

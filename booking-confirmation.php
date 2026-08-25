@@ -3,6 +3,9 @@ require_once __DIR__ . '/includes/site-config.php';
 
 $bookingNumber = isset($_GET['booking']) ? trim((string) $_GET['booking']) : '';
 $confirmation = $bookingNumber !== '' ? bodare_get_booking_confirmation($bookingNumber) : null;
+$paymentFlag = isset($_GET['payment']) ? strtolower(trim((string) $_GET['payment'])) : '';
+$sessionId = isset($_GET['session_id']) ? trim((string) $_GET['session_id']) : '';
+$awaitingPaymentVerify = ($paymentFlag === 'success' && $bookingNumber !== '');
 
 $pageSeo = [
     'title' => 'Booking Confirmation | BODARE Pension House',
@@ -36,8 +39,8 @@ function bodare_confirmation_date($dateString)
 
     <section class="page-header">
         <div class="page-header-content">
-            <h1>Booking Confirmed!</h1>
-            <p>Thank you for your reservation</p>
+            <h1 id="confirmation-page-title"><?php echo $awaitingPaymentVerify ? 'Payment Processing' : 'Booking Confirmed!'; ?></h1>
+            <p id="confirmation-page-subtitle"><?php echo $awaitingPaymentVerify ? 'Confirming your GCash payment…' : 'Thank you for your reservation'; ?></p>
         </div>
     </section>
 
@@ -61,9 +64,18 @@ function bodare_confirmation_date($dateString)
                     $status = htmlspecialchars((string) ($booking['status'] ?? 'pending'), ENT_QUOTES, 'UTF-8');
                     $bookingNumberSafe = htmlspecialchars((string) $booking['booking_number'], ENT_QUOTES, 'UTF-8');
                 ?>
-                    <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 2rem; margin-bottom: 2rem; text-align: center;">
-                        <h2 style="color: #155724; margin: 0 0 1rem 0;">✓ Your booking has been confirmed!</h2>
+                    <div id="confirmation-banner" style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 2rem; margin-bottom: 2rem; text-align: center;">
+                        <h2 id="confirmation-banner-title" style="color: #155724; margin: 0 0 1rem 0;">
+                            <?php echo $awaitingPaymentVerify ? '⏳ Confirming your GCash payment…' : '✓ Your booking has been confirmed!'; ?>
+                        </h2>
                         <p style="color: #155724; margin: 0; font-size: 1.125rem;">Booking Number: <strong><?php echo $bookingNumberSafe; ?></strong></p>
+                        <p id="confirmation-payment-status" style="color: #155724; margin: 0.75rem 0 0; font-size: 0.95rem;">
+                            <?php if ($awaitingPaymentVerify): ?>
+                                Please wait while we verify your PayMongo payment.
+                            <?php elseif (strtolower((string) ($booking['status'] ?? '')) === 'pending'): ?>
+                                Status: Pending — our team will confirm your reservation shortly.
+                            <?php endif; ?>
+                        </p>
                     </div>
 
                     <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
@@ -152,9 +164,75 @@ function bodare_confirmation_date($dateString)
 ?>
 
     <?php if ($confirmation): ?>
+    <script src="api-config.js"></script>
     <script>
         (function () {
             const bookingNumber = <?php echo json_encode($bookingNumber); ?>;
+            const sessionId = <?php echo json_encode($sessionId); ?>;
+            const shouldVerifyPayment = <?php echo $awaitingPaymentVerify ? 'true' : 'false'; ?>;
+
+            async function verifyPaymongoPayment() {
+                if (!shouldVerifyPayment || typeof API === 'undefined' || !API.payment) {
+                    return;
+                }
+
+                const banner = document.getElementById('confirmation-banner');
+                const bannerTitle = document.getElementById('confirmation-banner-title');
+                const statusEl = document.getElementById('confirmation-payment-status');
+                const pageTitle = document.getElementById('confirmation-page-title');
+                const pageSubtitle = document.getElementById('confirmation-page-subtitle');
+
+                try {
+                    const result = await API.payment.verify({
+                        booking_number: bookingNumber,
+                        session_id: sessionId || sessionStorage.getItem('paymongo_session_id') || ''
+                    });
+
+                    if (result && result.paid) {
+                        if (pageTitle) pageTitle.textContent = 'Payment Successful!';
+                        if (pageSubtitle) pageSubtitle.textContent = 'Your GCash payment was received';
+                        if (banner) {
+                            banner.style.background = '#d4edda';
+                            banner.style.borderColor = '#c3e6cb';
+                        }
+                        if (bannerTitle) {
+                            bannerTitle.style.color = '#155724';
+                            bannerTitle.textContent = '✓ GCash payment received — booking confirmed!';
+                        }
+                        if (statusEl) {
+                            statusEl.style.color = '#155724';
+                            statusEl.textContent = 'Paid securely via PayMongo. A receipt may also be sent to your email.';
+                        }
+                        sessionStorage.removeItem('paymongo_session_id');
+                        sessionStorage.removeItem('paymongo_booking_number');
+                        try { localStorage.removeItem('bookingCart'); } catch (e) {}
+                        try { localStorage.removeItem('cartServices'); } catch (e) {}
+                    } else {
+                        if (pageTitle) pageTitle.textContent = 'Booking Received';
+                        if (pageSubtitle) pageSubtitle.textContent = 'Payment still pending';
+                        if (banner) {
+                            banner.style.background = '#fff3cd';
+                            banner.style.borderColor = '#ffeeba';
+                        }
+                        if (bannerTitle) {
+                            bannerTitle.style.color = '#856404';
+                            bannerTitle.textContent = '⚠ Payment not confirmed yet';
+                        }
+                        if (statusEl) {
+                            statusEl.style.color = '#856404';
+                            statusEl.textContent = 'If you completed GCash payment, it may take a moment. Keep your booking number and contact us if needed.';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Payment verify failed', error);
+                    if (statusEl) {
+                        statusEl.textContent = 'We could not verify payment automatically. Your booking number is saved — please contact us if you already paid.';
+                    }
+                }
+            }
+
+            verifyPaymongoPayment();
+
             const hasExtraBedRows = <?php echo !empty($extraBedLines) ? 'true' : 'false'; ?>;
             if (hasExtraBedRows) {
                 return;

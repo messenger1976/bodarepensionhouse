@@ -327,6 +327,90 @@
             </div>
         </div>
     </div>
+
+    <!-- Guests Names List -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="card-title mb-0"><i class="bi bi-people text-success"></i> Guests Names List</h6>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="add-guest-row-btn">
+                    <i class="bi bi-plus-circle"></i> Add Row
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0" id="guest-names-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="min-width: 180px;">Full Name</th>
+                            <th style="width: 90px;">Age</th>
+                            <th style="width: 120px;">Gender</th>
+                            <th style="width: 160px;">DOB</th>
+                            <th style="min-width: 140px;">Contact No.</th>
+                            <th style="width: 60px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="guest-names-body">
+                        <?php
+                        $existing_guests = !empty($booking_guests) ? $booking_guests : array();
+                        if (empty($existing_guests)) {
+                            $existing_guests = array((object) array(
+                                'full_name' => '',
+                                'age' => '',
+                                'gender' => '',
+                                'date_of_birth' => '',
+                                'contact_no' => ''
+                            ));
+                        }
+                        foreach ($existing_guests as $g_index => $guest_row):
+                            $g_gender = isset($guest_row->gender) ? $guest_row->gender : '';
+                            $g_dob = !empty($guest_row->date_of_birth) ? $guest_row->date_of_birth : '';
+                            $g_age = isset($guest_row->age) && $guest_row->age !== null && $guest_row->age !== '' ? (int) $guest_row->age : '';
+                        ?>
+                        <tr class="guest-name-row" data-guest-index="<?php echo $g_index; ?>">
+                            <td>
+                                <input type="text" class="form-control form-control-sm guest-full-name"
+                                    name="guest_names[<?php echo $g_index; ?>][full_name]"
+                                    value="<?php echo htmlspecialchars(isset($guest_row->full_name) ? $guest_row->full_name : ''); ?>"
+                                    placeholder="Full name">
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm guest-age"
+                                    name="guest_names[<?php echo $g_index; ?>][age]"
+                                    value="<?php echo $g_age !== '' ? $g_age : ''; ?>"
+                                    min="0" max="120" placeholder="Age">
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm guest-gender" name="guest_names[<?php echo $g_index; ?>][gender]">
+                                    <option value="">--</option>
+                                    <option value="Male" <?php echo $g_gender === 'Male' ? 'selected' : ''; ?>>Male</option>
+                                    <option value="Female" <?php echo $g_gender === 'Female' ? 'selected' : ''; ?>>Female</option>
+                                    <option value="Other" <?php echo $g_gender === 'Other' ? 'selected' : ''; ?>>Other</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="date" class="form-control form-control-sm guest-dob"
+                                    name="guest_names[<?php echo $g_index; ?>][date_of_birth]"
+                                    value="<?php echo htmlspecialchars($g_dob); ?>">
+                            </td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm guest-contact"
+                                    name="guest_names[<?php echo $g_index; ?>][contact_no]"
+                                    value="<?php echo htmlspecialchars(isset($guest_row->contact_no) ? $guest_row->contact_no : ''); ?>"
+                                    placeholder="Contact no.">
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-guest-row-btn" title="Remove">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <small class="text-muted d-block mt-2">List each guest staying under this booking. Rows with an empty name are ignored on save.</small>
+        </div>
+    </div>
     
     <!-- Additional Notes - Inline Row -->
     <div class="card mb-3 shadow-sm">
@@ -405,6 +489,108 @@ document.addEventListener('DOMContentLoaded', function() {
     let roomIndex = <?php echo $room_index; ?>;
     const roomsContainer = document.getElementById('rooms-container');
     const addRoomBtn = document.getElementById('add-room-btn');
+
+    // Guests Names List
+    let guestIndex = <?php echo !empty($existing_guests) ? count($existing_guests) : 1; ?>;
+    const guestNamesBody = document.getElementById('guest-names-body');
+    const addGuestRowBtn = document.getElementById('add-guest-row-btn');
+
+    function calcAgeFromDob(dobValue) {
+        if (!dobValue) return '';
+        const dob = new Date(dobValue + 'T12:00:00');
+        if (isNaN(dob.getTime())) return '';
+        const todayDate = new Date();
+        let age = todayDate.getFullYear() - dob.getFullYear();
+        const m = todayDate.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && todayDate.getDate() < dob.getDate())) {
+            age--;
+        }
+        return age >= 0 ? age : '';
+    }
+
+    function updateGuestRemoveButtons() {
+        const rows = guestNamesBody ? guestNamesBody.querySelectorAll('.guest-name-row') : [];
+        rows.forEach((row) => {
+            const btn = row.querySelector('.remove-guest-row-btn');
+            if (btn) {
+                btn.style.visibility = rows.length > 1 ? 'visible' : 'hidden';
+            }
+        });
+    }
+
+    function attachGuestRowEvents(row) {
+        const dobInput = row.querySelector('.guest-dob');
+        const ageInput = row.querySelector('.guest-age');
+        if (dobInput && ageInput) {
+            dobInput.addEventListener('change', function() {
+                const age = calcAgeFromDob(dobInput.value);
+                if (age !== '') {
+                    ageInput.value = age;
+                }
+            });
+        }
+    }
+
+    function createGuestRow(index) {
+        const tr = document.createElement('tr');
+        tr.className = 'guest-name-row';
+        tr.setAttribute('data-guest-index', index);
+        tr.innerHTML = `
+            <td>
+                <input type="text" class="form-control form-control-sm guest-full-name"
+                    name="guest_names[${index}][full_name]" placeholder="Full name">
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm guest-age"
+                    name="guest_names[${index}][age]" min="0" max="120" placeholder="Age">
+            </td>
+            <td>
+                <select class="form-select form-select-sm guest-gender" name="guest_names[${index}][gender]">
+                    <option value="">--</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </td>
+            <td>
+                <input type="date" class="form-control form-control-sm guest-dob"
+                    name="guest_names[${index}][date_of_birth]">
+            </td>
+            <td>
+                <input type="text" class="form-control form-control-sm guest-contact"
+                    name="guest_names[${index}][contact_no]" placeholder="Contact no.">
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-guest-row-btn" title="Remove">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        return tr;
+    }
+
+    if (addGuestRowBtn && guestNamesBody) {
+        addGuestRowBtn.addEventListener('click', function() {
+            const row = createGuestRow(guestIndex++);
+            guestNamesBody.appendChild(row);
+            attachGuestRowEvents(row);
+            updateGuestRemoveButtons();
+        });
+
+        guestNamesBody.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-guest-row-btn')) {
+                const rows = guestNamesBody.querySelectorAll('.guest-name-row');
+                if (rows.length <= 1) {
+                    return;
+                }
+                e.target.closest('.guest-name-row').remove();
+                updateGuestRemoveButtons();
+            }
+        });
+
+        guestNamesBody.querySelectorAll('.guest-name-row').forEach(attachGuestRowEvents);
+        updateGuestRemoveButtons();
+    }
     
     const today = new Date().toISOString().split('T')[0];
     

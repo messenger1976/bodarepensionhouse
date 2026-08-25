@@ -196,8 +196,23 @@ include __DIR__ . '/includes/site-head.php';
                             ">
                                 <strong>Pay at the Hotel:</strong> You will pay upon arrival at the hotel. We require this information to hold your room.
                             </div>
+
+                            <!-- GCash / PayMongo Message -->
+                            <div id="gcash-payment-message" style="
+                                display: none;
+                                background: #e8f4fd;
+                                border: 1px solid #b6d9f2;
+                                color: #0c5460;
+                                padding: 1rem;
+                                border-radius: 4px;
+                                margin-top: 1rem;
+                            ">
+                                <strong>Pay with GCash (PayMongo):</strong>
+                                After you confirm, your reservation will be created and you will be redirected to PayMongo’s secure checkout to pay with GCash.
+                                Your booking stays pending until payment is completed.
+                            </div>
                             
-                            <button type="submit" class="cta-button" style="margin-top: 1.5rem;">Confirm Reservation</button>
+                            <button type="submit" id="confirm-reservation-btn" class="cta-button" style="margin-top: 1.5rem;">Confirm Reservation</button>
                         </div>
                         </form>
                     
@@ -505,25 +520,98 @@ include __DIR__ . '/includes/site-head.php';
             const paymentMethod = document.getElementById('payment-method');
             const cardFields = document.getElementById('card-payment-fields');
             const payAtHotelMessage = document.getElementById('pay-at-hotel-message');
+            const gcashMessage = document.getElementById('gcash-payment-message');
+            const confirmBtn = document.getElementById('confirm-reservation-btn');
+
+            const syncPaymentMethodUI = (method) => {
+                if (cardFields) cardFields.style.display = method === 'card' ? 'block' : 'none';
+                if (payAtHotelMessage) payAtHotelMessage.style.display = method === 'pay_at_hotel' ? 'block' : 'none';
+                if (gcashMessage) gcashMessage.style.display = method === 'gcash' ? 'block' : 'none';
+                if (confirmBtn) {
+                    if (method === 'gcash') {
+                        confirmBtn.textContent = 'Continue to GCash Payment';
+                    } else if (method === 'card') {
+                        confirmBtn.textContent = 'Confirm & Pay by Card';
+                    } else {
+                        confirmBtn.textContent = 'Confirm Reservation';
+                    }
+                }
+            };
             
             if (paymentMethod) {
                 paymentMethod.addEventListener('change', (e) => {
-                    const method = e.target.value;
-                    
-                    if (method === 'card') {
-                        if (cardFields) cardFields.style.display = 'block';
-                        if (payAtHotelMessage) payAtHotelMessage.style.display = 'none';
-                    } else {
-                        if (cardFields) cardFields.style.display = 'none';
-                        if (payAtHotelMessage) payAtHotelMessage.style.display = 'block';
+                    syncPaymentMethodUI(e.target.value);
+                    if (e.target.value !== 'gcash') {
+                        sessionStorage.removeItem('paymongo_retry_booking');
                     }
                 });
-                
-                // Set initial state
-                if (paymentMethod.value === 'pay_at_hotel') {
-                    if (cardFields) cardFields.style.display = 'none';
-                    if (payAtHotelMessage) payAtHotelMessage.style.display = 'block';
+                syncPaymentMethodUI(paymentMethod.value);
+            }
+
+            // Show notice if guest cancelled PayMongo checkout
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('payment') === 'cancelled') {
+                const bookingRef = params.get('booking') || '';
+                const msg = bookingRef
+                    ? `GCash payment was cancelled. Your booking ${bookingRef} is still reserved as pending. Select GCash and click Continue to retry payment, or choose Pay at the Hotel.`
+                    : 'GCash payment was cancelled. You can try again or choose another payment method.';
+                if (typeof showMessage === 'function') {
+                    showMessage(msg, 'error');
+                } else {
+                    alert(msg);
                 }
+                if (bookingRef) {
+                    sessionStorage.setItem('paymongo_retry_booking', bookingRef);
+                    if (paymentMethod) {
+                        paymentMethod.value = 'gcash';
+                        syncPaymentMethodUI('gcash');
+                    }
+                }
+            }
+
+            // Retry GCash for an existing pending booking (after PayMongo cancel)
+            const checkoutForm = document.getElementById('checkout-login-form');
+            if (checkoutForm) {
+                checkoutForm.addEventListener('submit', async (e) => {
+                    const retryBooking = sessionStorage.getItem('paymongo_retry_booking');
+                    const method = paymentMethod ? paymentMethod.value : '';
+                    if (!retryBooking || method !== 'gcash' || typeof API === 'undefined' || !API.payment) {
+                        return;
+                    }
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    if (confirmBtn) {
+                        confirmBtn.disabled = true;
+                        confirmBtn.textContent = 'Redirecting to GCash…';
+                    }
+                    try {
+                        const result = await API.payment.createGcashCheckout({ booking_number: retryBooking });
+                        if (result.already_paid) {
+                            sessionStorage.removeItem('paymongo_retry_booking');
+                            window.location.href = `booking-confirmation.php?booking=${encodeURIComponent(retryBooking)}&payment=success`;
+                            return;
+                        }
+                        if (result.success && result.checkout_url) {
+                            sessionStorage.removeItem('paymongo_retry_booking');
+                            if (result.checkout_session_id) {
+                                sessionStorage.setItem('paymongo_session_id', result.checkout_session_id);
+                            }
+                            window.location.href = result.checkout_url;
+                            return;
+                        }
+                        throw new Error(result.message || 'Unable to restart GCash payment.');
+                    } catch (err) {
+                        if (typeof showMessage === 'function') {
+                            showMessage(err.message || 'Unable to restart GCash payment.', 'error');
+                        } else {
+                            alert(err.message || 'Unable to restart GCash payment.');
+                        }
+                        if (confirmBtn) {
+                            confirmBtn.disabled = false;
+                            syncPaymentMethodUI('gcash');
+                        }
+                    }
+                }, true);
             }
             
             // Format card number input

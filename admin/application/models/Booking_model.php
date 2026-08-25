@@ -144,6 +144,12 @@ class Booking_model extends CI_Model {
             $this->load->model('Booking_item_model');
             $this->Booking_item_model->delete_booking_items($id);
         }
+
+        // Delete related named guests (if table exists; FK CASCADE also covers this)
+        if ($this->db->table_exists('booking_guests')) {
+            $this->load->model('Booking_guest_model');
+            $this->Booking_guest_model->delete_booking_guests($id);
+        }
         
         // Delete related payments (if table exists and has foreign key with CASCADE, this should be automatic)
         if ($this->db->table_exists('payments')) {
