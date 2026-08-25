@@ -99,7 +99,15 @@ class Booking_model extends CI_Model {
      */
     public function update_booking($id, $data) {
         $this->db->where('id', $id);
-        return $this->db->update('bookings', $data);
+        $result = $this->db->update('bookings', $data);
+
+        if ($result && isset($data['status']) && $this->db->table_exists('booking_items')) {
+            $this->db->where('booking_id', $id);
+            $this->db->where('status !=', 'cancelled');
+            $this->db->update('booking_items', array('status' => $data['status']));
+        }
+
+        return $result;
     }
 
     /**
@@ -113,13 +121,6 @@ class Booking_model extends CI_Model {
 
         $this->db->trans_start();
         $this->update_booking($id, array('status' => $status));
-
-        if ($this->db->table_exists('booking_items')) {
-            $this->db->where('booking_id', $id);
-            $this->db->where('status !=', 'cancelled');
-            $this->db->update('booking_items', array('status' => $status));
-        }
-
         $this->db->trans_complete();
         return $this->db->trans_status() !== FALSE;
     }
@@ -940,8 +941,8 @@ class Booking_model extends CI_Model {
     public function get_calendar_feed($start_date, $end_date, $room_id = null, $status = null, $include_cancelled = false) {
         $this->load->helper('url');
         $entries = array();
-        $start_date = date('Y-m-d', strtotime($start_date));
-        $end_date = date('Y-m-d', strtotime($end_date));
+        $start_date = $this->normalize_calendar_date($start_date);
+        $end_date = $this->normalize_calendar_date($end_date);
         $seen_booking_ids = array();
 
         if ($this->db->table_exists('booking_items')) {
@@ -1098,6 +1099,18 @@ class Booking_model extends CI_Model {
             $text = @mb_convert_encoding($text, 'UTF-8', 'UTF-8, ISO-8859-1, Windows-1252');
         }
         return $text;
+    }
+
+    private function normalize_calendar_date($value) {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return date('Y-m-d');
+        }
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $value, $matches)) {
+            return $matches[1];
+        }
+        $timestamp = strtotime($value);
+        return $timestamp ? date('Y-m-d', $timestamp) : date('Y-m-d');
     }
 }
 

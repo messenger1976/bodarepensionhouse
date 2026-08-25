@@ -212,6 +212,13 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    var initialEvents = <?php
+        $json_flags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+        if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
+            $json_flags |= JSON_INVALID_UTF8_SUBSTITUTE;
+        }
+        echo json_encode(isset($initial_calendar_events) ? array_values($initial_calendar_events) : array(), $json_flags);
+    ?>;
     var typeFilter = document.getElementById('cal-type-filter');
     var statusFilter = document.getElementById('cal-status-filter');
     var roomFilter = document.getElementById('cal-room-filter');
@@ -234,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (includeCancelled.checked) {
             params.set('include_cancelled', '1');
         }
-        return '<?php echo base_url("calendar/feed"); ?>?' + params.toString();
+        return 'calendar/feed?' + params.toString();
     }
 
     function formatMoney(amount) {
@@ -314,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function refreshSummary(dateStr) {
-        fetch('<?php echo base_url("calendar/summary"); ?>?date=' + encodeURIComponent(dateStr || '<?php echo date("Y-m-d"); ?>'))
+        fetch('calendar/summary?date=' + encodeURIComponent(dateStr || '<?php echo date("Y-m-d"); ?>'), { credentials: 'same-origin' })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (!data.success || !data.summary) return;
@@ -345,6 +352,9 @@ document.addEventListener('DOMContentLoaded', function() {
             var errorEl = document.getElementById('calendar-feed-error');
             fetch(buildFeedUrl(info), { credentials: 'same-origin' })
                 .then(function(response) {
+                    if (response.redirected && response.url.indexOf('login') !== -1) {
+                        throw new Error('Your admin session expired. Please refresh the page and log in again.');
+                    }
                     if (!response.ok) {
                         throw new Error('Calendar feed failed (HTTP ' + response.status + ')');
                     }
@@ -355,13 +365,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     try {
                         data = JSON.parse(text);
                     } catch (parseError) {
-                        throw new Error('Calendar feed returned invalid JSON. Check /calendar/feed in the browser.');
+                        throw new Error('Calendar feed returned invalid JSON. Open calendar/feed in your browser while logged in to debug.');
                     }
                     if (errorEl) {
                         errorEl.style.display = 'none';
                         errorEl.textContent = '';
                     }
-                    successCallback(Array.isArray(data) ? data : []);
+                    var events = Array.isArray(data) ? data : [];
+                    if (events.length === 0 && initialEvents.length > 0 && info && info.startStr && info.startStr.indexOf('<?php echo date("Y-m"); ?>') === 0) {
+                        events = initialEvents;
+                    }
+                    successCallback(events);
                 })
                 .catch(function(err) {
                     if (errorEl) {
@@ -369,6 +383,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         errorEl.textContent = (err && err.message)
                             ? err.message
                             : 'Unable to load calendar bookings. Click Refresh or check your admin session.';
+                    }
+                    if (initialEvents.length > 0) {
+                        successCallback(initialEvents);
+                        return;
                     }
                     failureCallback(err);
                 });

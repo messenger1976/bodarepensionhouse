@@ -299,7 +299,7 @@ class Paymongo_service {
 
         $confirm_on_paid = $this->CI->Booking_settings_model->get_setting('paymongo_confirm_on_paid', '1') === '1';
         if ($confirm_on_paid && strtolower((string) $booking->status) === 'pending') {
-            $this->CI->Booking_model->update_booking((int) $booking->id, array('status' => 'confirmed'));
+            $this->CI->Booking_model->set_booking_status((int) $booking->id, 'confirmed');
         }
 
         return true;
