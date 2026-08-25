@@ -175,11 +175,11 @@
                     <label class="form-label small fw-bold">Total Guests</label>
                     <div class="form-control bg-white" id="total-guests-display">0</div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold">Earliest Check-In</label>
                     <div class="form-control bg-white" id="earliest-checkin-display">-</div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold">Latest Check-Out</label>
                     <div class="form-control bg-white" id="latest-checkout-display">-</div>
                 </div>
@@ -189,7 +189,29 @@
                 </div>
             </div>
             <div class="row g-3 mt-2">
-                <div class="col-md-12">
+                <div class="col-md-3">
+                    <?php
+                    $add_ci_time = set_value('check_in_time', isset($default_check_in_time) ? $default_check_in_time : '14:00');
+                    if (strlen($add_ci_time) > 5) {
+                        $add_ci_time = substr($add_ci_time, 0, 5);
+                    }
+                    $add_co_time = set_value('check_out_time', isset($default_check_out_time) ? $default_check_out_time : '12:00');
+                    if (strlen($add_co_time) > 5) {
+                        $add_co_time = substr($add_co_time, 0, 5);
+                    }
+                    ?>
+                    <label for="check_in_time" class="form-label small fw-bold">Check-In Time *</label>
+                    <input type="time" class="form-control" id="check_in_time" name="check_in_time"
+                        value="<?php echo htmlspecialchars($add_ci_time); ?>" required>
+                    <small class="text-muted">Default from Booking Settings</small>
+                </div>
+                <div class="col-md-3">
+                    <label for="check_out_time" class="form-label small fw-bold">Check-Out Time *</label>
+                    <input type="time" class="form-control" id="check_out_time" name="check_out_time"
+                        value="<?php echo htmlspecialchars($add_co_time); ?>" required>
+                    <small class="text-muted">Default from Booking Settings</small>
+                </div>
+                <div class="col-md-6">
                     <label for="status" class="form-label small fw-bold">Booking Status *</label>
                     <select class="form-select" id="status" name="status" required>
                         <option value="pending" <?php echo set_select('status', 'pending', TRUE); ?>>Pending</option>

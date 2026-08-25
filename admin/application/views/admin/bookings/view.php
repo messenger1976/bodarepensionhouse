@@ -130,6 +130,24 @@
                     </td>
                 </tr>
                 <tr>
+                    <th>Check-In:</th>
+                    <td>
+                        <?php echo date('F d, Y', strtotime($booking->check_in)); ?>
+                        <?php if (!empty($booking->check_in_time)): ?>
+                            <span class="text-muted">at <?php echo date('g:i A', strtotime($booking->check_in_time)); ?></span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Check-Out:</th>
+                    <td>
+                        <?php echo date('F d, Y', strtotime($booking->check_out)); ?>
+                        <?php if (!empty($booking->check_out_time)): ?>
+                            <span class="text-muted">at <?php echo date('g:i A', strtotime($booking->check_out_time)); ?></span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
                     <th>Guests:</th>
                     <td>
                         <?php 
