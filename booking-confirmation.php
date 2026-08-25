@@ -118,8 +118,8 @@ function bodare_confirmation_date($dateString)
                         <p id="qrph-expiry" style="color: #666; font-size: 0.9rem; margin: 0;"></p>
                         <p id="qrph-poll-status" style="color: #0c5460; font-size: 0.95rem; margin: 0.75rem 0 0;">Waiting for payment…</p>
                         <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-top: 1.25rem;">
-                            <button type="button" id="qrph-regenerate-btn" class="cta-button" style="display:none; background: #1a2238;">Generate New QR</button>
-                            <a id="qrph-invoice-link" href="customer-dashboard.php?tab=invoices" class="cta-button" style="background: #6c757d; text-decoration: none;">View invoice / pay later</a>
+                            <button type="button" id="qrph-regenerate-btn" class="cta-button-secondary" style="display:none;">Generate New QR</button>
+                            <a id="qrph-invoice-link" href="customer-dashboard.php?tab=invoices" class="cta-button" style="background: #fff; color: #1a2238; border: 1px solid #cfc4b0; text-decoration: none;">View invoice / pay later</a>
                         </div>
                     </div>
 
