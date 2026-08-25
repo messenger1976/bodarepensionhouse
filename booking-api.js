@@ -953,9 +953,8 @@ async function handleCheckoutSubmit(e) {
                 if (response.payment.checkout_session_id) {
                     sessionStorage.setItem('paymongo_session_id', response.payment.checkout_session_id);
                 }
-                if (response.payment.payment_intent_id) {
-                    sessionStorage.setItem('paymongo_payment_intent_id', response.payment.payment_intent_id);
-                }
+                // Do not stash payment_intent_id here — Hosted Checkout may create a different PI at pay time.
+                // Verify uses checkout_session_id (cs_…) from DB / sessionStorage.
                 sessionStorage.removeItem('paymongo_retry_booking');
                 sessionStorage.removeItem('paymongo_retry_method');
                 showMessage('Reservation created. Redirecting to secure card payment…', 'success');

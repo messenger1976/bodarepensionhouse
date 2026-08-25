@@ -564,14 +564,11 @@ class Paymongo_service {
             $payment_row = $this->CI->db->get('payments')->row();
         }
         if (!$payment_row) {
-            $payment_row = $this->find_latest_online_payment((int) $booking->id);
+            // Includes pending card Hosted Checkout (transaction_id = cs_…)
+            $payment_row = $this->find_latest_paymongo_payment((int) $booking->id);
         }
-        if (!$payment_row) {
-            $this->CI->db->where('booking_id', (int) $booking->id);
-            $this->CI->db->where('payment_method', 'card');
-            $this->CI->db->where('payment_status', 'pending');
-            $this->CI->db->order_by('id', 'DESC');
-            $payment_row = $this->CI->db->get('payments')->row();
+        if ($payment_row && $payment_row->payment_status === 'paid') {
+            return true;
         }
 
         $invoice_id = $payment_row && !empty($payment_row->invoice_id) ? (int) $payment_row->invoice_id : null;
@@ -722,18 +719,61 @@ class Paymongo_service {
 
     /** @deprecated kept for older checkout-session webhook path */
     public function fulfill_paid_session($booking, $session, $session_id) {
-        if ($session && isset($session['id']) && strpos($session['id'], 'pi_') === 0) {
-            return $this->fulfill_paid_intent($booking, $session);
-        }
-        // Map checkout session to intent-like fulfill if payments present
         if (!$booking) {
             return false;
         }
+        if ($session && isset($session['id']) && strpos($session['id'], 'pi_') === 0) {
+            return $this->fulfill_paid_intent($booking, $session);
+        }
+
+        $attrs = isset($session['attributes']) ? $session['attributes'] : array();
+        $intent = null;
+        $pi = isset($attrs['payment_intent']) ? $attrs['payment_intent'] : null;
+        if (is_array($pi) && !empty($pi['id'])) {
+            $intent = $pi;
+        } elseif (is_string($pi) && strpos($pi, 'pi_') === 0) {
+            $intent = $this->CI->paymongo->retrieve_payment_intent($pi);
+        }
+
+        // Prefer real Payment Intent when available (correct amount / ids)
+        if ($intent && $this->CI->paymongo->intent_is_paid($intent)) {
+            return $this->fulfill_paid_intent($booking, $intent);
+        }
+
+        // Fallback: fulfill using checkout session id (matches payments.transaction_id = cs_…)
+        $amount_centavos = null;
+        if (!empty($attrs['payments'][0]['attributes']['amount'])) {
+            $amount_centavos = (float) $attrs['payments'][0]['attributes']['amount'];
+        } elseif (!empty($attrs['line_items'][0]['amount'])) {
+            $amount_centavos = (float) $attrs['line_items'][0]['amount'];
+        }
+
         $fake_intent = array(
-            'id' => $session_id,
-            'attributes' => isset($session['attributes']) ? $session['attributes'] : array()
+            'id' => $session_id ?: (isset($session['id']) ? $session['id'] : null),
+            'attributes' => array(
+                'amount' => $amount_centavos,
+                'status' => 'succeeded',
+                'payments' => isset($attrs['payments']) ? $attrs['payments'] : array()
+            )
         );
         return $this->fulfill_paid_intent($booking, $fake_intent);
+    }
+
+    /**
+     * Latest PayMongo-backed payment for a booking (QRPH, GCash, or Card checkout).
+     */
+    public function find_latest_paymongo_payment($booking_id) {
+        if (!$this->CI->db->table_exists('payments') || !$booking_id) {
+            return null;
+        }
+        $this->CI->db->where('booking_id', (int) $booking_id);
+        $this->CI->db->group_start();
+        $this->CI->db->where('payment_method', 'qrph');
+        $this->CI->db->or_where('payment_method', 'gcash');
+        $this->CI->db->or_where('payment_method', 'card');
+        $this->CI->db->group_end();
+        $this->CI->db->order_by('id', 'DESC');
+        return $this->CI->db->get('payments')->row();
     }
 
     /** @deprecated use start_qrph_for_booking */

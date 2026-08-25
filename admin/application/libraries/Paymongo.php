@@ -155,6 +155,10 @@ class Paymongo {
 
         if (!empty($attrs['payments']) && is_array($attrs['payments'])) {
             foreach ($attrs['payments'] as $payment) {
+                if (is_string($payment) && strpos($payment, 'pay_') === 0) {
+                    // ID-only reference — treat as paid attempt present; confirm via intent below
+                    continue;
+                }
                 $p_attrs = isset($payment['attributes']) ? $payment['attributes'] : $payment;
                 $status = isset($p_attrs['status']) ? strtolower((string) $p_attrs['status']) : '';
                 if ($status === 'paid') {
@@ -170,10 +174,22 @@ class Paymongo {
             if (in_array($pi_status, array('succeeded', 'paid'), true)) {
                 return true;
             }
+        } elseif (is_string($pi) && strpos($pi, 'pi_') === 0) {
+            $intent = $this->retrieve_payment_intent($pi);
+            if ($intent && $this->intent_is_paid($intent)) {
+                return true;
+            }
         }
 
         $status = isset($attrs['status']) ? strtolower((string) $attrs['status']) : '';
-        return ($status === 'paid') || ($status === 'active' && !empty($attrs['payments']));
+        // Hosted Checkout often stays "active" after a successful payment when payments[] is populated
+        if ($status === 'paid') {
+            return true;
+        }
+        if ($status === 'active' && !empty($attrs['payments']) && is_array($attrs['payments']) && count($attrs['payments']) > 0) {
+            return true;
+        }
+        return false;
     }
 
     /**

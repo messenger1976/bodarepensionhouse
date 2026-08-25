@@ -229,9 +229,12 @@ function bodare_confirmation_date($dateString)
             const pageTitle = document.getElementById('confirmation-page-title');
             const pageSubtitle = document.getElementById('confirmation-page-subtitle');
 
+            const isCardReturn = <?php echo ($paymentFlag === 'card') ? 'true' : 'false'; ?>;
+
             function markPaidUI() {
+                const methodLabel = isCardReturn ? 'Card' : 'QR Ph';
                 if (pageTitle) pageTitle.textContent = 'Payment Successful!';
-                if (pageSubtitle) pageSubtitle.textContent = 'Your QR Ph payment was received';
+                if (pageSubtitle) pageSubtitle.textContent = 'Your ' + methodLabel + ' payment was received';
                 if (banner) {
                     banner.style.background = '#d4edda';
                     banner.style.borderColor = '#c3e6cb';
@@ -242,7 +245,7 @@ function bodare_confirmation_date($dateString)
                 }
                 if (statusEl) {
                     statusEl.style.color = '#155724';
-                    statusEl.textContent = 'Paid securely via PayMongo QR Ph.';
+                    statusEl.textContent = 'Paid securely via PayMongo ' + methodLabel + '.';
                 }
                 const panel = document.getElementById('qrph-payment-panel');
                 if (panel) {
@@ -398,9 +401,13 @@ function bodare_confirmation_date($dateString)
                 }
             }
 
+            let verifyPollTimer = null;
+            let verifyAttempts = 0;
+            const maxVerifyAttempts = 24; // ~2 minutes at 5s
+
             async function verifyPaymongoPayment() {
                 if (!shouldVerifyPayment || typeof API === 'undefined' || !API.payment) {
-                    return;
+                    return false;
                 }
                 try {
                     const result = await API.payment.verify({
@@ -409,33 +416,56 @@ function bodare_confirmation_date($dateString)
                         payment_intent_id: sessionStorage.getItem('paymongo_payment_intent_id') || ''
                     });
                     if (result && result.paid) {
+                        if (verifyPollTimer) clearInterval(verifyPollTimer);
                         markPaidUI();
-                    } else {
-                        if (pageTitle) pageTitle.textContent = 'Booking Received';
-                        if (pageSubtitle) pageSubtitle.textContent = 'Payment still pending';
-                        if (banner) {
-                            banner.style.background = '#fff3cd';
-                            banner.style.borderColor = '#ffeeba';
+                        // Soft-refresh status text from server booking page if status badge exists
+                        const statusBadge = document.getElementById('booking-status-display');
+                        if (statusBadge && result.status) {
+                            statusBadge.textContent = result.status;
                         }
-                        if (bannerTitle) {
-                            bannerTitle.style.color = '#856404';
-                            bannerTitle.textContent = 'Payment not confirmed yet';
-                        }
-                        if (statusEl) {
-                            statusEl.style.color = '#856404';
-                            statusEl.textContent = 'If you already paid, it may take a moment. You can also pay from My Invoices.';
-                        }
+                        return true;
                     }
+
+                    if (pageTitle) pageTitle.textContent = 'Booking Received';
+                    if (pageSubtitle) pageSubtitle.textContent = 'Payment still pending';
+                    if (banner) {
+                        banner.style.background = '#fff3cd';
+                        banner.style.borderColor = '#ffeeba';
+                    }
+                    if (bannerTitle) {
+                        bannerTitle.style.color = '#856404';
+                        bannerTitle.textContent = 'Payment not confirmed yet';
+                    }
+                    if (statusEl) {
+                        statusEl.style.color = '#856404';
+                        statusEl.textContent = isCardReturn
+                            ? 'Card payment is processing. This page will update automatically…'
+                            : 'If you already paid, it may take a moment. You can also pay from My Invoices.';
+                    }
+                    return false;
                 } catch (error) {
                     console.error('Payment verify failed', error);
                     if (statusEl) {
                         statusEl.textContent = 'We could not verify payment automatically. Your booking number is saved — please contact us if you already paid.';
                     }
+                    return false;
                 }
             }
 
             initQrph();
-            verifyPaymongoPayment();
+            verifyPaymongoPayment().then(function (paid) {
+                if (paid || !shouldVerifyPayment) return;
+                verifyPollTimer = setInterval(async function () {
+                    verifyAttempts += 1;
+                    const done = await verifyPaymongoPayment();
+                    if (done || verifyAttempts >= maxVerifyAttempts) {
+                        clearInterval(verifyPollTimer);
+                        if (!done && statusEl && isCardReturn) {
+                            statusEl.textContent = 'Still confirming payment. Refresh this page in a moment, or contact us with your booking number if you were charged.';
+                        }
+                    }
+                }, 5000);
+            });
 
             const hasExtraBedRows = <?php echo !empty($extraBedLines) ? 'true' : 'false'; ?>;
             if (hasExtraBedRows) {

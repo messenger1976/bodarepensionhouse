@@ -274,21 +274,31 @@ class Payment extends CI_Controller {
     }
 
     /**
-     * Verify Payment Intent status (polling from confirmation / invoices).
+     * Verify Payment Intent / Checkout Session status (polling from confirmation / invoices).
      */
     public function verify() {
         $this->cors('GET, POST, OPTIONS');
 
         $booking_number = $this->input->get_post('booking') ?: $this->input->get_post('booking_number');
-        $intent_id = $this->input->get_post('payment_intent_id')
-            ?: $this->input->get_post('session_id')
-            ?: $this->input->get_post('checkout_session_id');
+        $pi_param = $this->input->get_post('payment_intent_id');
+        $cs_param = $this->input->get_post('session_id') ?: $this->input->get_post('checkout_session_id');
 
-        if (!$booking_number && !$intent_id) {
+        if (!$booking_number && !$pi_param && !$cs_param) {
             $data = $this->json_input();
             $booking_number = isset($data['booking_number']) ? $data['booking_number'] : (isset($data['booking']) ? $data['booking'] : null);
-            $intent_id = isset($data['payment_intent_id']) ? $data['payment_intent_id']
-                : (isset($data['session_id']) ? $data['session_id'] : (isset($data['checkout_session_id']) ? $data['checkout_session_id'] : null));
+            $pi_param = isset($data['payment_intent_id']) ? $data['payment_intent_id'] : null;
+            $cs_param = isset($data['session_id']) ? $data['session_id']
+                : (isset($data['checkout_session_id']) ? $data['checkout_session_id'] : null);
+        }
+
+        // Prefer Hosted Checkout session id (card) over a possibly stale payment_intent_id
+        $intent_id = null;
+        if ($cs_param && strpos((string) $cs_param, 'cs_') === 0) {
+            $intent_id = $cs_param;
+        } elseif ($pi_param) {
+            $intent_id = $pi_param;
+        } elseif ($cs_param) {
+            $intent_id = $cs_param;
         }
 
         $booking = null;
@@ -297,6 +307,9 @@ class Payment extends CI_Controller {
         }
         if (!$booking && $intent_id) {
             $booking = $this->paymongo_service->find_booking_by_intent_id($intent_id);
+        }
+        if (!$booking && $cs_param) {
+            $booking = $this->paymongo_service->find_booking_by_intent_id($cs_param);
         }
 
         if (!$booking) {
@@ -320,9 +333,17 @@ class Payment extends CI_Controller {
         }
 
         if (!$intent_id) {
-            $row = $this->paymongo_service->find_latest_online_payment((int) $booking->id);
+            // Prefer checkout session id for card rows; otherwise intent / transaction id
+            $row = $this->paymongo_service->find_latest_paymongo_payment((int) $booking->id);
             if ($row) {
-                $intent_id = $row->transaction_id;
+                $tx = !empty($row->transaction_id) ? $row->transaction_id : '';
+                if (strpos($tx, 'cs_') === 0) {
+                    $intent_id = $tx;
+                } elseif (!empty($row->paymongo_intent_id)) {
+                    $intent_id = $row->paymongo_intent_id;
+                } elseif ($tx !== '') {
+                    $intent_id = $tx;
+                }
             }
         }
 
@@ -337,7 +358,7 @@ class Payment extends CI_Controller {
             return;
         }
 
-        // Payment Intent path (pi_...)
+        // Payment Intent path (pi_...) — if unpaid, fall through to linked checkout session (card)
         if (strpos($intent_id, 'pi_') === 0) {
             $intent = $this->paymongo->retrieve_payment_intent($intent_id);
             if (!$intent) {
@@ -353,21 +374,72 @@ class Payment extends CI_Controller {
             if ($is_paid) {
                 $this->paymongo_service->fulfill_paid_intent($booking, $intent);
                 $booking = $this->Booking_model->get_booking((int) $booking->id);
+                echo json_encode(array(
+                    'success' => true,
+                    'paid' => true,
+                    'booking_number' => $booking->booking_number,
+                    'status' => $booking->status,
+                    'payment_intent_id' => $intent_id,
+                    'intent_status' => isset($intent['attributes']['status']) ? $intent['attributes']['status'] : null,
+                    'online_payment' => $this->paymongo_service->get_online_payment_for_booking((int) $booking->id)
+                ));
+                return;
+            }
+
+            // Stale/unused PI from session create — try Hosted Checkout session on the payment row
+            $row = $this->paymongo_service->find_latest_paymongo_payment((int) $booking->id);
+            $cs_fallback = null;
+            if ($row && !empty($row->transaction_id) && strpos($row->transaction_id, 'cs_') === 0) {
+                $cs_fallback = $row->transaction_id;
+            } elseif ($cs_param && strpos((string) $cs_param, 'cs_') === 0) {
+                $cs_fallback = $cs_param;
+            }
+
+            if ($cs_fallback) {
+                $intent_id = $cs_fallback;
+            } else {
+                echo json_encode(array(
+                    'success' => true,
+                    'paid' => false,
+                    'booking_number' => $booking->booking_number,
+                    'status' => $booking->status,
+                    'payment_intent_id' => $intent_id,
+                    'intent_status' => isset($intent['attributes']['status']) ? $intent['attributes']['status'] : null,
+                    'online_payment' => $this->paymongo_service->get_online_payment_for_booking((int) $booking->id)
+                ));
+                return;
+            }
+        }
+
+        // Hosted Checkout session (cs_…) — used by card payments
+        if (strpos($intent_id, 'cs_') === 0) {
+            $session = $this->paymongo->retrieve_checkout_session($intent_id);
+            if (!$session) {
+                $this->output->set_status_header(502);
+                echo json_encode(array(
+                    'success' => false,
+                    'message' => $this->paymongo->get_last_error() ?: 'Unable to verify payment with PayMongo.'
+                ));
+                return;
+            }
+
+            $is_paid = $this->paymongo->session_is_paid($session);
+            if ($is_paid) {
+                $this->paymongo_service->fulfill_paid_session($booking, $session, $intent_id);
+                $booking = $this->Booking_model->get_booking((int) $booking->id);
             }
 
             echo json_encode(array(
                 'success' => true,
-                'paid' => $is_paid,
+                'paid' => $is_paid || (bool) $this->paymongo_service->find_paid_payment((int) $booking->id),
                 'booking_number' => $booking->booking_number,
                 'status' => $booking->status,
-                'payment_intent_id' => $intent_id,
-                'intent_status' => isset($intent['attributes']['status']) ? $intent['attributes']['status'] : null,
-                'online_payment' => $this->paymongo_service->get_online_payment_for_booking((int) $booking->id)
+                'checkout_session_id' => $intent_id
             ));
             return;
         }
 
-        // Legacy checkout session
+        // Legacy / unknown id — try checkout session retrieve
         $session = $this->paymongo->retrieve_checkout_session($intent_id);
         if (!$session) {
             $this->output->set_status_header(502);
