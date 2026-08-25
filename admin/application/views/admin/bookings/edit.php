@@ -121,6 +121,31 @@
                     <i class="bi bi-plus-circle"></i> Add Room
                 </button>
             </div>
+
+            <?php
+            $edit_ci_default = !empty($booking->check_in_time) ? $booking->check_in_time : (isset($default_check_in_time) ? $default_check_in_time : '14:00');
+            $edit_co_default = !empty($booking->check_out_time) ? $booking->check_out_time : (isset($default_check_out_time) ? $default_check_out_time : '12:00');
+            $edit_ci_time = set_value('check_in_time', $edit_ci_default);
+            $edit_co_time = set_value('check_out_time', $edit_co_default);
+            if (strlen($edit_ci_time) > 5) {
+                $edit_ci_time = substr($edit_ci_time, 0, 5);
+            }
+            if (strlen($edit_co_time) > 5) {
+                $edit_co_time = substr($edit_co_time, 0, 5);
+            }
+            ?>
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label for="check_in_time" class="form-label small fw-bold">Check-In Time *</label>
+                    <input type="time" class="form-control" id="check_in_time" name="check_in_time"
+                        value="<?php echo htmlspecialchars($edit_ci_time); ?>" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="check_out_time" class="form-label small fw-bold">Check-Out Time *</label>
+                    <input type="time" class="form-control" id="check_out_time" name="check_out_time"
+                        value="<?php echo htmlspecialchars($edit_co_time); ?>" required>
+                </div>
+            </div>
             
             <div id="rooms-container">
                 <!-- Room selection rows will be populated from existing booking items or default -->
@@ -293,28 +318,6 @@
             </div>
             <div class="row g-3 mt-2">
                 <div class="col-md-3">
-                    <?php
-                    $edit_ci_default = !empty($booking->check_in_time) ? $booking->check_in_time : (isset($default_check_in_time) ? $default_check_in_time : '14:00');
-                    $edit_co_default = !empty($booking->check_out_time) ? $booking->check_out_time : (isset($default_check_out_time) ? $default_check_out_time : '12:00');
-                    $edit_ci_time = set_value('check_in_time', $edit_ci_default);
-                    $edit_co_time = set_value('check_out_time', $edit_co_default);
-                    if (strlen($edit_ci_time) > 5) {
-                        $edit_ci_time = substr($edit_ci_time, 0, 5);
-                    }
-                    if (strlen($edit_co_time) > 5) {
-                        $edit_co_time = substr($edit_co_time, 0, 5);
-                    }
-                    ?>
-                    <label for="check_in_time" class="form-label small fw-bold">Check-In Time *</label>
-                    <input type="time" class="form-control" id="check_in_time" name="check_in_time"
-                        value="<?php echo htmlspecialchars($edit_ci_time); ?>" required>
-                </div>
-                <div class="col-md-3">
-                    <label for="check_out_time" class="form-label small fw-bold">Check-Out Time *</label>
-                    <input type="time" class="form-control" id="check_out_time" name="check_out_time"
-                        value="<?php echo htmlspecialchars($edit_co_time); ?>" required>
-                </div>
-                <div class="col-md-3">
                     <label for="extra_beds" class="form-label small fw-bold">Extra Beds</label>
                     <input type="number" class="form-control" id="extra_beds" name="extra_beds"
                         value="<?php echo set_value('extra_beds', isset($extra_beds) ? (int) $extra_beds : 0); ?>"
@@ -331,8 +334,6 @@
                     </div>
                     <small class="text-muted">Default from Room Settings</small>
                 </div>
-            </div>
-            <div class="row g-3 mt-2">
                 <div class="col-md-3">
                     <label class="form-label small fw-bold">Extra Bed Total</label>
                     <div class="form-control bg-white fw-bold text-primary" id="extra-bed-total-display">₱0.00</div>
