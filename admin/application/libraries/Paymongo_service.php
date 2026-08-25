@@ -336,6 +336,170 @@ class Paymongo_service {
     }
 
     /**
+     * Start PayMongo Hosted Checkout for card (booking-linked).
+     * Guest pays on PayMongo's PCI-compliant card page.
+     *
+     * @return array|false
+     */
+    public function start_card_checkout_for_booking($booking, $amount = null, $force_new = true) {
+        $this->last_error = '';
+        if (!$booking || empty($booking->id)) {
+            $this->last_error = 'Booking is required.';
+            return false;
+        }
+        if (!$this->is_ready()) {
+            $this->last_error = 'PayMongo is not enabled or secret key is missing.';
+            return false;
+        }
+
+        $amount = $amount !== null ? (float) $amount : (float) $booking->total_amount;
+        if ($amount < 20) {
+            $this->last_error = 'Card payment requires a minimum of ₱20.00.';
+            return false;
+        }
+
+        $invoice_info = $this->CI->billing_service->ensure_issued_invoice_for_booking((int) $booking->id);
+        $invoice_id = $invoice_info && !empty($invoice_info['invoice_id']) ? (int) $invoice_info['invoice_id'] : null;
+        $invoice_number = $invoice_info && !empty($invoice_info['invoice_number']) ? $invoice_info['invoice_number'] : null;
+
+        return $this->create_card_checkout_session(array(
+            'booking' => $booking,
+            'invoice_id' => $invoice_id,
+            'invoice_number' => $invoice_number,
+            'amount' => $amount,
+            'force_new' => $force_new,
+            'guest_name' => isset($booking->guest_name) ? $booking->guest_name : null,
+            'guest_email' => isset($booking->guest_email) ? $booking->guest_email : null
+        ));
+    }
+
+    /**
+     * Start PayMongo Hosted Checkout for card on an invoice (incl. no booking).
+     *
+     * @return array|false
+     */
+    public function start_card_checkout_for_invoice($invoice, $amount = null, $force_new = true) {
+        $this->last_error = '';
+        if (!$invoice || empty($invoice->id)) {
+            $this->last_error = 'Invoice is required.';
+            return false;
+        }
+        if (!$this->is_ready()) {
+            $this->last_error = 'PayMongo is not enabled or secret key is missing.';
+            return false;
+        }
+
+        if (!empty($invoice->booking_id)) {
+            $booking = $this->CI->Booking_model->get_booking((int) $invoice->booking_id);
+            if ($booking) {
+                return $this->start_card_checkout_for_booking($booking, $amount, $force_new);
+            }
+        }
+
+        if (isset($invoice->status) && $invoice->status === 'void') {
+            $this->last_error = 'Cannot create card checkout for a voided invoice.';
+            return false;
+        }
+        if (isset($invoice->status) && $invoice->status === 'paid') {
+            $this->last_error = 'This invoice is already paid.';
+            return false;
+        }
+
+        $invoice_id = (int) $invoice->id;
+        $invoice_number = !empty($invoice->invoice_number) ? $invoice->invoice_number : ('INV' . $invoice_id);
+        $amount = $amount !== null ? (float) $amount : (float) $invoice->balance_due;
+        if ($amount <= 0 && isset($invoice->total_amount)) {
+            $amount = (float) $invoice->total_amount;
+        }
+        if ($amount < 20) {
+            $this->last_error = 'Card payment requires a minimum of ₱20.00.';
+            return false;
+        }
+
+        return $this->create_card_checkout_session(array(
+            'booking' => null,
+            'invoice_id' => $invoice_id,
+            'invoice_number' => $invoice_number,
+            'amount' => $amount,
+            'force_new' => $force_new,
+            'guest_name' => isset($invoice->guest_name) ? $invoice->guest_name : null,
+            'guest_email' => isset($invoice->guest_email) ? $invoice->guest_email : null
+        ));
+    }
+
+    /**
+     * Fulfill a paid Hosted Checkout session (card or legacy).
+     * Resolves booking or invoice from metadata / payment row.
+     */
+    public function fulfill_paid_checkout_by_session($session, $session_id = null) {
+        if (!$session || !is_array($session)) {
+            return false;
+        }
+        $sid = $session_id ?: (isset($session['id']) ? $session['id'] : null);
+        $attrs = isset($session['attributes']) ? $session['attributes'] : array();
+        $meta = isset($attrs['metadata']) && is_array($attrs['metadata']) ? $attrs['metadata'] : array();
+
+        $booking = null;
+        $invoice = null;
+
+        if (!empty($meta['booking_id'])) {
+            $booking = $this->CI->Booking_model->get_booking((int) $meta['booking_id']);
+        }
+        if (!$booking && !empty($meta['booking_number'])) {
+            $booking = $this->CI->Booking_model->get_booking_by_number($meta['booking_number']);
+        }
+        if (!$booking && !empty($attrs['reference_number'])) {
+            $booking = $this->CI->Booking_model->get_booking_by_number($attrs['reference_number']);
+        }
+
+        if (!empty($meta['invoice_id'])) {
+            $invoice = $this->CI->Invoice_model->get((int) $meta['invoice_id']);
+        }
+        if (!$invoice && $sid) {
+            $payment = $this->find_payment_by_checkout_session_id($sid);
+            if ($payment && !empty($payment->invoice_id)) {
+                $invoice = $this->CI->Invoice_model->get((int) $payment->invoice_id);
+            }
+            if ($payment && !empty($payment->booking_id) && !$booking) {
+                $booking = $this->CI->Booking_model->get_booking((int) $payment->booking_id);
+            }
+        }
+
+        if ($booking) {
+            return $this->fulfill_paid_session($booking, $session, $sid);
+        }
+        if ($invoice) {
+            // Build intent-like payload from session for amount / ids
+            $pi = isset($attrs['payment_intent']) ? $attrs['payment_intent'] : null;
+            $intent = is_array($pi) ? $pi : array(
+                'id' => is_string($pi) ? $pi : $sid,
+                'attributes' => $attrs
+            );
+            if (empty($intent['id']) && !empty($attrs['payments'][0]['attributes']['payment_intent_id'])) {
+                $intent['id'] = $attrs['payments'][0]['attributes']['payment_intent_id'];
+            }
+            return $this->fulfill_paid_intent_for_invoice($invoice, $intent);
+        }
+
+        return false;
+    }
+
+    public function find_payment_by_checkout_session_id($session_id) {
+        if (!$session_id || !$this->CI->db->table_exists('payments')) {
+            return null;
+        }
+        $this->CI->db->where('transaction_id', $session_id);
+        $row = $this->CI->db->get('payments')->row();
+        if ($row) {
+            return $row;
+        }
+        // Fallback: notes JSON may store checkout_session_id
+        $this->CI->db->like('notes', $session_id);
+        $this->CI->db->order_by('id', 'DESC');
+        return $this->CI->db->get('payments')->row();
+    }
+
+    /**
      * Build online_payment payload for invoice/booking APIs from stored payment row.
      */
     public function get_online_payment_for_booking($booking_id) {
@@ -402,6 +566,13 @@ class Paymongo_service {
         if (!$payment_row) {
             $payment_row = $this->find_latest_online_payment((int) $booking->id);
         }
+        if (!$payment_row) {
+            $this->CI->db->where('booking_id', (int) $booking->id);
+            $this->CI->db->where('payment_method', 'card');
+            $this->CI->db->where('payment_status', 'pending');
+            $this->CI->db->order_by('id', 'DESC');
+            $payment_row = $this->CI->db->get('payments')->row();
+        }
 
         $invoice_id = $payment_row && !empty($payment_row->invoice_id) ? (int) $payment_row->invoice_id : null;
         if (!$invoice_id) {
@@ -411,7 +582,10 @@ class Paymongo_service {
             }
         }
 
-        $method = $this->online_payment_method();
+        $method = ($payment_row && !empty($payment_row->payment_method))
+            ? $payment_row->payment_method
+            : $this->online_payment_method();
+        $method_label = ($method === 'card') ? 'card' : 'qrph';
         $update = array(
             'amount' => $amount,
             'payment_method' => $method,
@@ -420,7 +594,7 @@ class Paymongo_service {
             'transaction_id' => $intent_id ?: ($paymongo_payment_id ?: null),
             'notes' => json_encode(array(
                 'provider' => 'paymongo',
-                'method' => 'qrph',
+                'method' => $method_label,
                 'status' => 'paid',
                 'payment_intent_id' => $intent_id,
                 'paymongo_payment_id' => $paymongo_payment_id
@@ -491,6 +665,13 @@ class Paymongo_service {
         if (!$payment_row) {
             $payment_row = $this->find_latest_online_payment_for_invoice($invoice_id);
         }
+        if (!$payment_row) {
+            $this->CI->db->where('invoice_id', $invoice_id);
+            $this->CI->db->where('payment_method', 'card');
+            $this->CI->db->where('payment_status', 'pending');
+            $this->CI->db->order_by('id', 'DESC');
+            $payment_row = $this->CI->db->get('payments')->row();
+        }
 
         // Already paid for this intent
         if ($payment_row && $payment_row->payment_status === 'paid') {
@@ -498,7 +679,10 @@ class Paymongo_service {
             return true;
         }
 
-        $method = $this->online_payment_method();
+        $method = ($payment_row && !empty($payment_row->payment_method))
+            ? $payment_row->payment_method
+            : $this->online_payment_method();
+        $method_label = ($method === 'card') ? 'card' : 'qrph';
         $invoice_number = !empty($invoice->invoice_number) ? $invoice->invoice_number : ('INV' . $invoice_id);
         $update = array(
             'amount' => $amount,
@@ -509,7 +693,7 @@ class Paymongo_service {
             'invoice_id' => $invoice_id,
             'notes' => json_encode(array(
                 'provider' => 'paymongo',
-                'method' => 'qrph',
+                'method' => $method_label,
                 'status' => 'paid',
                 'payment_intent_id' => $intent_id,
                 'paymongo_payment_id' => $paymongo_payment_id
@@ -693,6 +877,181 @@ class Paymongo_service {
         }
 
         return (int) $this->CI->Payment_model->create($payload);
+    }
+
+    /**
+     * Create (or reuse) a pending card payment + PayMongo Hosted Checkout session.
+     *
+     * @param array $ctx booking?, invoice_id, invoice_number, amount, force_new, guest_name?, guest_email?
+     * @return array|false
+     */
+    private function create_card_checkout_session(array $ctx) {
+        $booking = !empty($ctx['booking']) ? $ctx['booking'] : null;
+        $invoice_id = !empty($ctx['invoice_id']) ? (int) $ctx['invoice_id'] : null;
+        $invoice_number = !empty($ctx['invoice_number']) ? $ctx['invoice_number'] : null;
+        $amount = (float) $ctx['amount'];
+        $force_new = !empty($ctx['force_new']);
+
+        $payment_id = $this->ensure_pending_card_payment($booking, $invoice_id, $amount, $invoice_number);
+        $existing = $this->CI->Payment_model->get($payment_id);
+        $meta = $this->parse_payment_meta($existing);
+
+        if (!$force_new && !empty($meta['checkout_url']) && !empty($meta['checkout_session_id'])) {
+            return $this->format_card_checkout_payload($booking, $payment_id, $meta, $invoice_id, $invoice_number, $amount);
+        }
+
+        $site = $this->CI->paymongo->get_public_site_base_url();
+        $success_url = $site . '/';
+        $cancel_url = $site . '/';
+        if ($booking && !empty($booking->booking_number)) {
+            $success_url = $site . '/booking-confirmation.php?booking=' . rawurlencode($booking->booking_number) . '&payment=card&status=success';
+            $cancel_url = $site . '/booking-confirmation.php?booking=' . rawurlencode($booking->booking_number) . '&payment=card&status=cancelled';
+        } elseif ($invoice_id) {
+            $success_url = $site . '/customer-invoices.php?id=' . (int) $invoice_id . '&payment=card&status=success';
+            $cancel_url = $site . '/customer-invoices.php?id=' . (int) $invoice_id . '&payment=card&status=cancelled';
+        }
+
+        $line_name = $invoice_number
+            ? ('Invoice ' . $invoice_number)
+            : ($booking && !empty($booking->booking_number) ? ('Reservation ' . $booking->booking_number) : 'BODARE Payment');
+        $description = 'BODARE Card Payment — ' . $line_name;
+        $reference = $booking && !empty($booking->booking_number)
+            ? $booking->booking_number
+            : ($invoice_number ?: ('PAY' . $payment_id));
+
+        $metadata = array(
+            'payment_id' => (string) $payment_id,
+            'invoice_id' => $invoice_id ? (string) $invoice_id : '',
+            'invoice_number' => $invoice_number ? (string) $invoice_number : '',
+            'booking_id' => $booking ? (string) $booking->id : '',
+            'booking_number' => ($booking && !empty($booking->booking_number)) ? (string) $booking->booking_number : '',
+            'method' => 'card'
+        );
+
+        $billing = array();
+        if (!empty($ctx['guest_name'])) {
+            $billing['name'] = substr((string) $ctx['guest_name'], 0, 100);
+        }
+        if (!empty($ctx['guest_email'])) {
+            $billing['email'] = substr((string) $ctx['guest_email'], 0, 100);
+        }
+
+        $session = $this->CI->paymongo->create_checkout_session(array(
+            'name' => $line_name,
+            'amount_php' => $amount,
+            'description' => $description,
+            'reference_number' => $reference,
+            'success_url' => $success_url,
+            'cancel_url' => $cancel_url,
+            'payment_method_types' => array('card'),
+            'send_email_receipt' => true,
+            'metadata' => $metadata,
+            'billing' => !empty($billing) ? $billing : null
+        ));
+
+        if (!$session || empty($session['checkout_url'])) {
+            $this->last_error = $this->CI->paymongo->get_last_error() ?: 'Unable to create PayMongo card checkout session.';
+            return false;
+        }
+
+        $intent_id = null;
+        if (!empty($session['payment_intent'])) {
+            if (is_array($session['payment_intent']) && !empty($session['payment_intent']['id'])) {
+                $intent_id = $session['payment_intent']['id'];
+            } elseif (is_string($session['payment_intent'])) {
+                $intent_id = $session['payment_intent'];
+            }
+        }
+
+        $meta = array(
+            'provider' => 'paymongo',
+            'method' => 'card',
+            'status' => 'awaiting_payment',
+            'checkout_session_id' => $session['id'],
+            'checkout_url' => $session['checkout_url'],
+            'payment_intent_id' => $intent_id
+        );
+
+        $update = array(
+            'amount' => $amount,
+            'payment_method' => 'card',
+            'payment_status' => 'pending',
+            'transaction_id' => $session['id'],
+            'notes' => json_encode($meta)
+        );
+        if ($invoice_id) {
+            $update['invoice_id'] = $invoice_id;
+        }
+        if ($this->CI->db->field_exists('reference_number', 'payments')) {
+            $update['reference_number'] = $reference;
+        }
+        if ($intent_id && $this->CI->db->field_exists('paymongo_intent_id', 'payments')) {
+            $update['paymongo_intent_id'] = $intent_id;
+        }
+
+        $this->CI->Payment_model->update((int) $payment_id, $update);
+
+        return $this->format_card_checkout_payload($booking, $payment_id, $meta, $invoice_id, $invoice_number, $amount);
+    }
+
+    private function ensure_pending_card_payment($booking, $invoice_id, $amount, $invoice_number = null) {
+        $existing = null;
+        if ($invoice_id) {
+            $this->CI->db->where('invoice_id', (int) $invoice_id);
+            $this->CI->db->where('payment_method', 'card');
+            $this->CI->db->where('payment_status', 'pending');
+            $this->CI->db->order_by('id', 'DESC');
+            $existing = $this->CI->db->get('payments')->row();
+        }
+        if (!$existing && $booking) {
+            $this->CI->db->where('booking_id', (int) $booking->id);
+            $this->CI->db->where('payment_method', 'card');
+            $this->CI->db->where('payment_status', 'pending');
+            $this->CI->db->order_by('id', 'DESC');
+            $existing = $this->CI->db->get('payments')->row();
+        }
+
+        if ($existing) {
+            $update = array('amount' => $amount);
+            if ($invoice_id) {
+                $update['invoice_id'] = $invoice_id;
+            }
+            $this->CI->Payment_model->update($existing->id, $update);
+            return (int) $existing->id;
+        }
+
+        $payload = array(
+            'booking_id' => $booking ? (int) $booking->id : null,
+            'invoice_id' => $invoice_id,
+            'amount' => $amount,
+            'payment_method' => 'card',
+            'payment_status' => 'pending',
+            'payment_date' => null,
+            'notes' => json_encode(array('provider' => 'paymongo', 'method' => 'card', 'status' => 'pending'))
+        );
+        if ($this->CI->db->field_exists('reference_number', 'payments')) {
+            $payload['reference_number'] = $booking && !empty($booking->booking_number)
+                ? $booking->booking_number
+                : ($invoice_number ?: null);
+        }
+
+        return (int) $this->CI->Payment_model->create($payload);
+    }
+
+    private function format_card_checkout_payload($booking, $payment_id, $meta, $invoice_id, $invoice_number, $amount) {
+        return array(
+            'method' => 'card',
+            'provider' => 'paymongo',
+            'status' => 'awaiting_payment',
+            'checkout_session_id' => isset($meta['checkout_session_id']) ? $meta['checkout_session_id'] : null,
+            'checkout_url' => isset($meta['checkout_url']) ? $meta['checkout_url'] : null,
+            'payment_intent_id' => isset($meta['payment_intent_id']) ? $meta['payment_intent_id'] : null,
+            'payment_id' => (int) $payment_id,
+            'invoice_id' => $invoice_id,
+            'invoice_number' => $invoice_number,
+            'booking_number' => ($booking && !empty($booking->booking_number)) ? $booking->booking_number : null,
+            'amount' => (float) $amount
+        );
     }
 
     private function store_qrph_meta($payment_id, $booking, $amount, $invoice_id, $meta, $reference = null) {

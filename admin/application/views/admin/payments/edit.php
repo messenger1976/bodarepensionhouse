@@ -1,13 +1,16 @@
 <?php
 $pm = set_value('payment_method', $payment->payment_method);
-$qrph_meta = array();
+$paymongo_meta = array();
 if (!empty($payment->notes)) {
     $decoded = json_decode($payment->notes, true);
     if (is_array($decoded)) {
-        $qrph_meta = $decoded;
+        $paymongo_meta = $decoded;
     }
 }
-$has_qrph_meta = ($payment->payment_method === 'qrph') || !empty($payment->paymongo_intent_id) || !empty($qrph_meta['qr_image_url']);
+$has_qrph_meta = ($payment->payment_method === 'qrph') || !empty($payment->paymongo_intent_id) || !empty($paymongo_meta['qr_image_url']);
+$has_card_checkout = ($payment->payment_method === 'card') && (
+    !empty($paymongo_meta['checkout_url']) || !empty($paymongo_meta['checkout_session_id']) || (!empty($paymongo_meta['provider']) && $paymongo_meta['provider'] === 'paymongo')
+);
 ?>
 <div class="content-card">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -77,19 +80,23 @@ $has_qrph_meta = ($payment->payment_method === 'qrph') || !empty($payment->paymo
         </div>
 
         <div class="col-12 method-panel d-none" id="panel-card">
-            <div class="border rounded p-3 bg-light">
-                <h6 class="mb-3">Card details</h6>
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Card last 4 digits *</label>
-                        <input type="text" name="card_last4" id="card_last4" class="form-control" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" autocomplete="off" value="<?php echo set_value('card_last4', isset($payment->card_last4) ? $payment->card_last4 : ''); ?>" placeholder="1234">
-                        <small class="form-text text-muted">Enter last 4 only. Do not enter the full card number or CVV.</small>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Expiry (MM/YY) *</label>
-                        <input type="text" name="card_exp" id="card_exp" class="form-control" maxlength="5" placeholder="MM/YY" value="<?php echo set_value('card_exp', isset($payment->card_exp) ? $payment->card_exp : ''); ?>">
-                    </div>
-                </div>
+            <div class="alert alert-secondary mb-0">
+                <strong>Card / PayMongo Hosted Checkout</strong>
+                <?php if ($has_card_checkout): ?>
+                    <ul class="mb-0 mt-2">
+                        <?php if (!empty($paymongo_meta['checkout_session_id'])): ?>
+                        <li>Session: <code><?php echo htmlspecialchars($paymongo_meta['checkout_session_id']); ?></code></li>
+                        <?php elseif (!empty($payment->transaction_id)): ?>
+                        <li>Session: <code><?php echo htmlspecialchars($payment->transaction_id); ?></code></li>
+                        <?php endif; ?>
+                        <?php if (!empty($paymongo_meta['checkout_url'])): ?>
+                        <li class="mt-2"><a href="<?php echo htmlspecialchars($paymongo_meta['checkout_url']); ?>" target="_blank" rel="noopener">Open checkout link</a></li>
+                        <?php endif; ?>
+                    </ul>
+                    <p class="mb-0 mt-2 text-muted small">To send a new card link, create a new Card payment from Record Payment.</p>
+                <?php else: ?>
+                    <p class="mb-0 mt-1">No PayMongo checkout on this payment. Use Record Payment with method Card to email a secure checkout link. Do not enter full card numbers here.</p>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -131,11 +138,11 @@ $has_qrph_meta = ($payment->payment_method === 'qrph') || !empty($payment->paymo
                         <?php endif; ?>
                         <?php if (!empty($payment->qrph_expires_at)): ?>
                         <li>QR expires: <?php echo date('M d, Y h:i A', strtotime($payment->qrph_expires_at)); ?></li>
-                        <?php elseif (!empty($qrph_meta['expires_at'])): ?>
-                        <li>QR expires: <?php echo htmlspecialchars($qrph_meta['expires_at']); ?></li>
+                        <?php elseif (!empty($paymongo_meta['expires_at'])): ?>
+                        <li>QR expires: <?php echo htmlspecialchars($paymongo_meta['expires_at']); ?></li>
                         <?php endif; ?>
-                        <?php if (!empty($qrph_meta['qr_image_url'])): ?>
-                        <li class="mt-2"><img src="<?php echo htmlspecialchars($qrph_meta['qr_image_url']); ?>" alt="QRPH" style="max-width:160px;height:auto;"></li>
+                        <?php if (!empty($paymongo_meta['qr_image_url'])): ?>
+                        <li class="mt-2"><img src="<?php echo htmlspecialchars($paymongo_meta['qr_image_url']); ?>" alt="QRPH" style="max-width:160px;height:auto;"></li>
                         <?php endif; ?>
                     </ul>
                     <p class="mb-0 mt-2 text-muted small">Regenerating QRPH is done from the guest portal or by creating a new QRPH payment from Record Payment.</p>
@@ -174,7 +181,6 @@ document.addEventListener('DOMContentLoaded', function() {
         var isGcash = method === 'gcash';
         var isBank = method === 'bank_transfer';
 
-        // Keep status/date editable for QRPH; only swap detail panels
         document.querySelectorAll('.method-ref-field').forEach(function(el) {
             setVisible(el, !isQrph && !isCard && !isBank);
         });
@@ -195,12 +201,17 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('transaction_id').required = false;
         }
 
-        document.getElementById('card_last4').required = isCard;
-        document.getElementById('card_exp').required = isCard;
-
-        ['bank_name', 'bank_account_name', 'bank_account_number', 'bank_transfer_date', 'bank_reference'].forEach(function(id) {
-            document.getElementById(id).required = isBank;
-        });
+        if (isBank) {
+            ['bank_name', 'bank_account_name', 'bank_account_number', 'bank_transfer_date', 'bank_reference'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.required = true;
+            });
+        } else {
+            ['bank_name', 'bank_account_name', 'bank_account_number', 'bank_transfer_date', 'bank_reference'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.required = false;
+            });
+        }
     }
 
     methodSelect.addEventListener('change', syncMethodPanels);

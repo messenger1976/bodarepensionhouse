@@ -330,19 +330,12 @@ class Payment extends CI_Controller {
 
         if ($event_type === 'checkout_session.payment.paid' && $resource) {
             $session_id = isset($resource['id']) ? $resource['id'] : null;
-            $attrs = isset($resource['attributes']) ? $resource['attributes'] : array();
-            $booking = null;
-            if (!empty($attrs['reference_number'])) {
-                $booking = $this->Booking_model->get_booking_by_number($attrs['reference_number']);
-            }
-            if (!$booking && !empty($attrs['metadata']['booking_number'])) {
-                $booking = $this->Booking_model->get_booking_by_number($attrs['metadata']['booking_number']);
-            }
-            if ($booking && $session_id && strpos($session_id, 'cs_') === 0) {
+            if ($session_id && strpos($session_id, 'cs_') === 0) {
                 $session = $this->paymongo->retrieve_checkout_session($session_id);
                 if ($session && $this->paymongo->session_is_paid($session)) {
-                    $this->paymongo_service->fulfill_paid_session($booking, $session, $session_id);
-                    $handled = true;
+                    $handled = $this->paymongo_service->fulfill_paid_checkout_by_session($session, $session_id) || $handled;
+                } elseif ($this->paymongo->session_is_paid($resource)) {
+                    $handled = $this->paymongo_service->fulfill_paid_checkout_by_session($resource, $session_id) || $handled;
                 }
             }
         }

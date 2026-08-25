@@ -136,10 +136,10 @@
 
                 <div class="card mb-4">
                     <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0"><i class="bi bi-wallet2"></i> PayMongo (GCash / QR Ph)</h6>
+                        <h6 class="mb-0"><i class="bi bi-wallet2"></i> PayMongo (QR Ph / Card)</h6>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted small">When guests choose <strong>GCash / QR Ph</strong> at checkout, a dynamic QR Ph code is shown on the thank-you page and again under My Invoices. Guests scan it with GCash (or any QR Ph app). No PayMongo redirect.</p>
+                        <p class="text-muted small">When guests choose <strong>GCash / QR Ph</strong> at checkout, a dynamic QR Ph code is shown on the thank-you page and again under My Invoices. From <strong>Record Payment</strong>, admins can also email a <strong>QR Ph</strong> code or a <strong>Card</strong> Hosted Checkout link. Guests never enter full card numbers in the admin panel.</p>
                         <div class="mb-3">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="paymongo_enabled" name="paymongo_enabled" value="1"
@@ -169,7 +169,7 @@
                                 placeholder="Webhook signing secret">
                             <small class="form-text text-muted">
                                 Webhook URL: <code><?php echo rtrim(base_url(), '/'); ?>/api/payment/webhook</code><br>
-                                Subscribe to <code>payment.paid</code> (recommended) and optionally <code>qrph.expired</code>. Enable <strong>QR Ph</strong> in your PayMongo payment methods.
+                                Subscribe to <code>payment.paid</code> and <code>checkout_session.payment.paid</code> (for card Hosted Checkout). Optionally <code>qrph.expired</code>. Enable <strong>QR Ph</strong> and <strong>Cards</strong> in your PayMongo payment methods.
                             </small>
                         </div>
                         <div class="mb-0">

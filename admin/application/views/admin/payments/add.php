@@ -103,21 +103,15 @@
             <input type="text" name="transaction_id" id="transaction_id" class="form-control" value="<?php echo set_value('transaction_id'); ?>">
         </div>
 
-        <!-- Card details -->
+        <!-- Card / PayMongo Hosted Checkout -->
         <div class="col-12 method-panel d-none" id="panel-card">
-            <div class="border rounded p-3 bg-light">
-                <h6 class="mb-3">Card details</h6>
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Card last 4 digits *</label>
-                        <input type="text" name="card_last4" id="card_last4" class="form-control" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" autocomplete="off" value="<?php echo set_value('card_last4'); ?>" placeholder="1234">
-                        <small class="form-text text-muted">Enter last 4 only. Do not enter the full card number or CVV.</small>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Expiry (MM/YY) *</label>
-                        <input type="text" name="card_exp" id="card_exp" class="form-control" maxlength="5" placeholder="MM/YY" value="<?php echo set_value('card_exp'); ?>">
-                    </div>
-                </div>
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-credit-card"></i>
+                <strong>PayMongo card checkout &amp; email guest.</strong>
+                A secure PayMongo Hosted Checkout link (card only) will be created and emailed to the guest.
+                Guests enter card details on PayMongo — this system never stores full card numbers or CVV.
+                Payment status stays <em>pending</em> until the guest pays (or the webhook confirms).
+                Link an invoice or booking with a guest email address.
             </div>
         </div>
 
@@ -218,12 +212,13 @@ document.addEventListener('DOMContentLoaded', function() {
         var isCard = method === 'card';
         var isGcash = method === 'gcash';
         var isBank = method === 'bank_transfer';
+        var isPaymongoOnline = isQrph || isCard;
 
         document.querySelectorAll('.method-standard-field').forEach(function(el) {
-            setVisible(el, !isQrph);
+            setVisible(el, !isPaymongoOnline);
         });
         document.querySelectorAll('.method-ref-field').forEach(function(el) {
-            setVisible(el, !isQrph && !isCard && !isBank);
+            setVisible(el, !isPaymongoOnline && !isBank);
         });
 
         setVisible(document.getElementById('panel-card'), isCard);
@@ -244,14 +239,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('transaction_id').required = false;
         }
 
-        if (isCard) {
-            document.getElementById('card_last4').required = true;
-            document.getElementById('card_exp').required = true;
-        } else {
-            document.getElementById('card_last4').required = false;
-            document.getElementById('card_exp').required = false;
-        }
-
         if (isBank) {
             ['bank_name', 'bank_account_name', 'bank_account_number', 'bank_transfer_date', 'bank_reference'].forEach(function(id) {
                 document.getElementById(id).required = true;
@@ -264,17 +251,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (isQrph) {
             submitLabel.textContent = 'Generate QRPH & Email Guest';
+        } else if (isCard) {
+            submitLabel.textContent = 'Send Card Checkout Link';
+        } else {
+            submitLabel.textContent = 'Save Payment';
+        }
+
+        if (isPaymongoOnline) {
             if (statusSelect) {
                 statusSelect.value = 'pending';
                 statusSelect.disabled = true;
                 statusSelect.required = false;
             }
-        } else {
-            submitLabel.textContent = 'Save Payment';
-            if (statusSelect) {
-                statusSelect.disabled = false;
-                statusSelect.required = true;
-            }
+        } else if (statusSelect) {
+            statusSelect.disabled = false;
+            statusSelect.required = true;
         }
     }
 

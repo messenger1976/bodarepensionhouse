@@ -40,6 +40,20 @@ $method = $payment->payment_method;
         <?php if ($method === 'card'): ?>
         <tr><th>Card last 4</th><td><?php echo !empty($payment->card_last4) ? '•••• ' . htmlspecialchars($payment->card_last4) : '—'; ?></td></tr>
         <tr><th>Card expiry</th><td><?php echo !empty($payment->card_exp) ? htmlspecialchars($payment->card_exp) : '—'; ?></td></tr>
+        <?php if (!empty($qrph_meta['checkout_url']) || !empty($qrph_meta['checkout_session_id']) || (!empty($qrph_meta['provider']) && $qrph_meta['provider'] === 'paymongo')): ?>
+        <tr><th>PayMongo checkout</th><td>
+            <?php if (!empty($qrph_meta['checkout_session_id'])): ?>
+                <code><?php echo htmlspecialchars($qrph_meta['checkout_session_id']); ?></code><br>
+            <?php endif; ?>
+            <?php if (!empty($qrph_meta['checkout_url']) && $payment->payment_status === 'pending'): ?>
+                <a href="<?php echo htmlspecialchars($qrph_meta['checkout_url']); ?>" target="_blank" rel="noopener">Open guest checkout link</a>
+            <?php elseif (!empty($qrph_meta['checkout_url'])): ?>
+                <span class="text-muted">Checkout link was issued</span>
+            <?php else: ?>
+                —
+            <?php endif; ?>
+        </td></tr>
+        <?php endif; ?>
         <?php endif; ?>
 
         <?php if ($method === 'bank_transfer'): ?>

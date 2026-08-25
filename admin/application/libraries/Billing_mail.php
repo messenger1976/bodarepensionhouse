@@ -280,6 +280,115 @@ class Billing_mail {
         return $html;
     }
 
+    /**
+     * Email guest a PayMongo Hosted Checkout link for card payment.
+     *
+     * @param object|null $booking
+     * @param array $card_payload from Paymongo_service::start_card_checkout_*
+     * @param object|null $invoice
+     * @param string|null $to_email
+     */
+    public function send_card_checkout($booking, $card_payload, $invoice = null, $to_email = null) {
+        if (empty($card_payload) || empty($card_payload['checkout_url']) || (!$booking && !$invoice)) {
+            return false;
+        }
+
+        $recipient = $to_email ? trim($to_email) : '';
+        if ($recipient === '' && $invoice && !empty($invoice->guest_email)) {
+            $recipient = trim($invoice->guest_email);
+        }
+        if ($recipient === '' && $booking && !empty($booking->guest_email)) {
+            $recipient = trim($booking->guest_email);
+        }
+        if ($recipient === '' || !filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        if ($invoice && !empty($invoice->invoice_number)) {
+            $label = $invoice->invoice_number;
+        } elseif (!empty($card_payload['invoice_number'])) {
+            $label = $card_payload['invoice_number'];
+        } elseif ($booking && !empty($booking->booking_number)) {
+            $label = $booking->booking_number;
+        } elseif ($booking) {
+            $label = 'BK' . $booking->id;
+        } else {
+            $label = 'payment';
+        }
+
+        $subject = 'Pay by Card — ' . $label . ' - BODARE Pension House';
+        $message = $this->build_card_checkout_html($booking, $card_payload, $invoice);
+
+        $this->CI->coop_mail->set_profile('account');
+        return $this->CI->coop_mail->send($recipient, $subject, $message);
+    }
+
+    public function build_card_checkout_html($booking, $card_payload, $invoice = null) {
+        $guest_name = 'Guest';
+        if ($invoice && !empty($invoice->guest_name)) {
+            $guest_name = $invoice->guest_name;
+        } elseif ($booking && !empty($booking->guest_name)) {
+            $guest_name = $booking->guest_name;
+        }
+
+        $amount = isset($card_payload['amount']) ? (float) $card_payload['amount'] : 0;
+        $checkout_url = !empty($card_payload['checkout_url']) ? $card_payload['checkout_url'] : null;
+
+        $invoice_number = null;
+        if ($invoice && !empty($invoice->invoice_number)) {
+            $invoice_number = $invoice->invoice_number;
+        } elseif (!empty($card_payload['invoice_number'])) {
+            $invoice_number = $card_payload['invoice_number'];
+        }
+
+        $booking_label = null;
+        if ($booking && !empty($booking->booking_number)) {
+            $booking_label = $booking->booking_number;
+        } elseif (!empty($card_payload['booking_number'])) {
+            $booking_label = $card_payload['booking_number'];
+        }
+
+        $html = '
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:640px;margin:0 auto;">
+            <div style="border-bottom:3px solid #6576ff;padding-bottom:16px;margin-bottom:24px;">
+                <h1 style="margin:0;color:#6576ff;font-size:22px;">BODARE Pension House</h1>
+                <p style="margin:4px 0 0;color:#666;">Secure Card Payment</p>
+            </div>
+            <p>Dear <strong>' . htmlspecialchars($guest_name, ENT_QUOTES, 'UTF-8') . '</strong>,</p>
+            <p>Please use the secure PayMongo checkout link below to pay by credit or debit card. Your card details are entered only on PayMongo&rsquo;s page — we never store your full card number.</p>
+            <table style="width:100%;margin:16px 0;border-collapse:collapse;">
+                <tr>
+                    <td style="padding:4px 0;"><strong>Amount:</strong> ₱' . number_format($amount, 2) . '</td>
+                </tr>';
+
+        if ($invoice_number) {
+            $html .= '
+                <tr>
+                    <td style="padding:4px 0;"><strong>Invoice #:</strong> ' . htmlspecialchars($invoice_number, ENT_QUOTES, 'UTF-8') . '</td>
+                </tr>';
+        }
+        if ($booking_label) {
+            $html .= '
+                <tr>
+                    <td style="padding:4px 0;"><strong>Booking #:</strong> ' . htmlspecialchars($booking_label, ENT_QUOTES, 'UTF-8') . '</td>
+                </tr>';
+        }
+
+        $html .= '
+            </table>';
+
+        if ($checkout_url) {
+            $html .= '<p style="margin:24px 0;text-align:center;"><a href="' . htmlspecialchars($checkout_url, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;background:#6576ff;color:#fff;padding:12px 22px;text-decoration:none;border-radius:6px;font-weight:bold;">Pay securely by card</a></p>';
+            $html .= '<p style="font-size:13px;color:#666;word-break:break-all;">Or copy this link:<br>' . htmlspecialchars($checkout_url, ENT_QUOTES, 'UTF-8') . '</p>';
+        }
+
+        $html .= '
+            <p style="margin-top:24px;font-size:13px;color:#888;">If the link expires, ask the hotel to send a new card payment link. Thank you for choosing BODARE Pension House.</p>
+        </div>';
+
+        return $html;
+    }
+
     protected function build_customer_portal_url($invoice_id) {
         $this->CI->load->helper('url');
         $admin_base = rtrim(base_url(), '/');

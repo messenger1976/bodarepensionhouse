@@ -197,11 +197,15 @@ class Paymongo {
     }
 
     /**
-     * Create a Payment Intent for QRPH (amount in PHP pesos).
+     * Create a Payment Intent (amount in PHP pesos).
      *
+     * @param float $amount_php
+     * @param string $description
+     * @param array $metadata
+     * @param array|null $payment_method_allowed default qrph; pass ['card'] for cards
      * @return array|false { id, client_key, status, raw }
      */
-    public function create_payment_intent($amount_php, $description = '', $metadata = array()) {
+    public function create_payment_intent($amount_php, $description = '', $metadata = array(), $payment_method_allowed = null) {
         $this->last_error = '';
         if (!$this->is_configured()) {
             $this->last_error = 'PayMongo is not enabled or secret key is missing.';
@@ -214,10 +218,14 @@ class Paymongo {
             return false;
         }
 
+        $methods = (!empty($payment_method_allowed) && is_array($payment_method_allowed))
+            ? array_values($payment_method_allowed)
+            : array('qrph');
+
         $attributes = array(
             'amount' => $amount_centavos,
             'currency' => 'PHP',
-            'payment_method_allowed' => array('qrph'),
+            'payment_method_allowed' => $methods,
             'description' => $description !== '' ? substr((string) $description, 0, 255) : 'Room reservation',
             'statement_descriptor' => 'BODARE'
         );
