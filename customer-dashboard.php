@@ -66,7 +66,7 @@ include __DIR__ . '/includes/site-head.php';
                 <div id="invoice-detail-panel" style="display: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                         <h2 id="invoice-detail-title" style="margin: 0; color: #1a2238;">Invoice Details</h2>
-                        <button type="button" id="invoice-back-btn" class="cta-button" style="background: #6c757d; padding: 0.5rem 1.25rem;">Back to List</button>
+                        <button type="button" id="invoice-back-btn" class="cta-button" style="background: #6c757d; border-color: #6c757d; color: #fff; padding: 0.5rem 1.25rem;">Back to List</button>
                     </div>
                     <div id="invoice-detail-content"></div>
                 </div>
@@ -1388,7 +1388,7 @@ include __DIR__ . '/includes/site-head.php';
                             <p style="margin:0.75rem 0 0;font-weight:700;color:#b2945b;">Amount due: ₱${formatInvoiceMoney(onlinePayment.amount != null ? onlinePayment.amount : inv.balance_due)}</p>
                             ${onlinePayment.expires_at ? `<p style="margin:0.35rem 0 0;color:#666;font-size:0.85rem;">Expires: ${escapeHtml(onlinePayment.expires_at)}</p>` : ''}
                             <p id="invoice-qrph-poll" style="margin:0.75rem 0 0;color:#0c5460;font-size:0.9rem;">Waiting for payment…</p>
-                            <button type="button" id="invoice-qrph-regenerate" class="cta-button" style="margin-top:1rem;background:#1a2238;">${hasQr ? 'Refresh / New QR' : 'Generate QR Code'}</button>
+                            <button type="button" id="invoice-qrph-regenerate" class="cta-button" style="margin-top:1rem;background:#1a2238;border-color:#1a2238;color:#fff;">${hasQr ? 'Refresh / New QR' : 'Generate QR Code'}</button>
                         </div>`;
                 }
 
@@ -1864,6 +1864,16 @@ include __DIR__ . '/includes/site-head.php';
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
+        }
+        #invoice-back-btn.cta-button:hover {
+            background: #5a6268;
+            border-color: #5a6268;
+            color: #fff;
+        }
+        #invoice-qrph-regenerate.cta-button:hover {
+            background: #2a3350;
+            border-color: #2a3350;
+            color: #fff;
         }
     </style>
 </body>
