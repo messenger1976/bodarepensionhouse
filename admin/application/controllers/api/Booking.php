@@ -201,6 +201,25 @@ class Booking extends CI_Controller {
         $this->form_validation->set_rules('guest_name', 'Guest Name', 'required|trim');
         $this->form_validation->set_rules('guest_email', 'Guest Email', 'required|valid_email|trim');
         $this->form_validation->set_rules('guest_phone', 'Guest Phone', 'required|trim');
+
+        $payment_method = isset($data['payment_method']) ? strtolower(trim((string) $data['payment_method'])) : 'pay_at_hotel';
+        $allowed_payment_methods = array('pay_at_hotel', 'card', 'gcash');
+        if (!in_array($payment_method, $allowed_payment_methods, true)) {
+            $payment_method = 'pay_at_hotel';
+        }
+
+        // Fail fast for GCash before room holds / availability work
+        if ($payment_method === 'gcash') {
+            $this->load->library('paymongo_service');
+            if (!$this->paymongo_service->is_ready()) {
+                $this->output->set_status_header(503);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Online GCash (PayMongo) is not configured yet. Please choose Pay at the Hotel, or ask the administrator to enable PayMongo in Booking Settings.'
+                ]);
+                return;
+            }
+        }
         
         // If room_selections is provided, validate it; otherwise validate old format
         if ($room_selections && !empty($room_selections)) {
@@ -518,23 +537,8 @@ class Booking extends CI_Controller {
         $this->load->library('billing_service');
         $booking_status = $this->billing_service->resolve_initial_booking_status();
 
-        $payment_method = isset($data['payment_method']) ? strtolower(trim((string) $data['payment_method'])) : 'pay_at_hotel';
-        $allowed_payment_methods = array('pay_at_hotel', 'card', 'gcash');
-        if (!in_array($payment_method, $allowed_payment_methods, true)) {
-            $payment_method = 'pay_at_hotel';
-        }
-
         // Online GCash must stay pending until PayMongo confirms payment
         if ($payment_method === 'gcash') {
-            $this->load->library('paymongo_service');
-            if (!$this->paymongo_service->is_ready()) {
-                $this->output->set_status_header(503);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Online GCash payment is not available right now. Please choose Pay at the Hotel or try again later.'
-                ]);
-                return;
-            }
             if ($total_amount < 20) {
                 $this->output->set_status_header(400);
                 echo json_encode([

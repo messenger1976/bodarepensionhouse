@@ -410,7 +410,11 @@ async function createBooking(bookingData) {
         } else if (error.response && error.response.message) {
             // Check response message
             const responseMessage = error.response.message.toLowerCase();
-            if (responseMessage.includes('not available') || responseMessage.includes('unavailable') || responseMessage.includes('conflict')) {
+            const isOnlinePaymentUnavailable = /gcash|paymongo|online\s+payment/.test(responseMessage)
+                && responseMessage.includes('not available');
+            if (isOnlinePaymentUnavailable) {
+                errorMessage = error.response.message;
+            } else if (responseMessage.includes('not available') || responseMessage.includes('unavailable') || responseMessage.includes('conflict')) {
                 errorMessage = 'Sorry, the selected room is not available for your chosen dates. Please select different dates or try a different room.';
             } else if (responseMessage.includes('validation')) {
                 errorMessage = 'Please check your booking details and ensure all information is correct.';
@@ -419,7 +423,12 @@ async function createBooking(bookingData) {
             }
         } else if (error.message) {
             // Check error message
-            if (error.message.includes('not available') || error.message.includes('unavailable') || error.message.includes('conflict')) {
+            const msg = error.message.toLowerCase();
+            const isOnlinePaymentUnavailable = /gcash|paymongo|online\s+payment/.test(msg)
+                && msg.includes('not available');
+            if (isOnlinePaymentUnavailable) {
+                errorMessage = error.message;
+            } else if (msg.includes('not available') || msg.includes('unavailable') || msg.includes('conflict')) {
                 errorMessage = 'Sorry, the selected room is not available for your chosen dates. Please select different dates or try a different room.';
             } else if (error.message.includes('Validation failed')) {
                 errorMessage = 'Please check your booking details and ensure all information is correct.';

@@ -37,7 +37,10 @@ class Paymongo {
     }
 
     public function get_public_site_base_url() {
+        $this->CI->load->helper('url');
         $admin_base = rtrim(base_url(), '/');
+        // Strip trailing /index.php if present (some hosts keep it in base_url)
+        $admin_base = preg_replace('#/index\.php$#', '', $admin_base);
         if (substr($admin_base, -6) === '/admin') {
             return substr($admin_base, 0, -6);
         }
