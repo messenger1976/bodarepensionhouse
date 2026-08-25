@@ -16,7 +16,51 @@ class Bookings extends Admin_Controller {
         $this->load->model('Room_model');
         $this->load->model('Customer_model');
         $this->load->model('Room_settings_model');
+        $this->load->model('Booking_settings_model');
         $this->load->library('form_validation');
+    }
+
+    /**
+     * Normalize HTML time input (HH:MM or HH:MM:SS) to TIME string.
+     */
+    private function normalize_booking_time($value, $default = '14:00')
+    {
+        $value = trim((string) $value);
+        if (preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $value, $m)) {
+            $h = (int) $m[1];
+            $i = (int) $m[2];
+            if ($h >= 0 && $h <= 23 && $i >= 0 && $i <= 59) {
+                return sprintf('%02d:%02d:00', $h, $i);
+            }
+        }
+        $default = trim((string) $default);
+        if (preg_match('/^(\d{1,2}):(\d{2})/', $default, $m)) {
+            return sprintf('%02d:%02d:00', (int) $m[1], (int) $m[2]);
+        }
+        return '14:00:00';
+    }
+
+    /**
+     * Format TIME for display (e.g. 2:00 PM).
+     */
+    private function format_booking_time_display($time)
+    {
+        if (empty($time)) {
+            return '';
+        }
+        $ts = strtotime($time);
+        return $ts ? date('g:i A', $ts) : '';
+    }
+
+    /**
+     * Default check-in / check-out times from booking settings.
+     */
+    private function get_default_booking_times()
+    {
+        return array(
+            'check_in_time' => $this->Booking_settings_model->get_setting('check_in_time', '14:00'),
+            'check_out_time' => $this->Booking_settings_model->get_setting('check_out_time', '12:00')
+        );
     }
 
     /**
@@ -249,6 +293,9 @@ class Bookings extends Admin_Controller {
             : $default_extra_bed_price;
         $data['other_extra_services'] = $parsed_extra['other_services'];
         $data['default_extra_bed_price'] = $default_extra_bed_price;
+        $default_times = $this->get_default_booking_times();
+        $data['default_check_in_time'] = $default_times['check_in_time'];
+        $data['default_check_out_time'] = $default_times['check_out_time'];
         
         if ($this->input->post()) {
             $this->form_validation->set_rules('guest_name', 'Guest Name', 'required');
@@ -438,6 +485,7 @@ class Bookings extends Admin_Controller {
                 $this->db->trans_start();
                 
                 // Update main booking
+                $default_times = $this->get_default_booking_times();
                 $update_data = array(
                     'room_id' => $first_room_id, // Keep for backward compatibility (use first room)
                     'guest_name' => $this->input->post('guest_name'),
@@ -450,6 +498,8 @@ class Bookings extends Admin_Controller {
                     'guest_zipcode' => $this->input->post('guest_zipcode'),
                     'check_in' => $check_in,
                     'check_out' => $check_out,
+                    'check_in_time' => $this->normalize_booking_time($this->input->post('check_in_time'), $default_times['check_in_time']),
+                    'check_out_time' => $this->normalize_booking_time($this->input->post('check_out_time'), $default_times['check_out_time']),
                     'guests' => $guests,
                     'rooms' => $total_rooms_count,
                     'total_amount' => $total_amount,
@@ -617,6 +667,9 @@ class Bookings extends Admin_Controller {
         $data['title'] = 'Add New Booking';
         $data['rooms'] = $this->Room_model->get_all_rooms();
         $data['customers'] = $this->Customer_model->get_all_with_user_info();
+        $default_times = $this->get_default_booking_times();
+        $data['default_check_in_time'] = $default_times['check_in_time'];
+        $data['default_check_out_time'] = $default_times['check_out_time'];
         
         if ($this->input->post()) {
             $this->form_validation->set_rules('guest_name', 'Guest Name', 'required');
@@ -768,6 +821,7 @@ class Bookings extends Admin_Controller {
                 $this->db->trans_start();
                 
                 // Prepare main booking data
+                $default_times = $this->get_default_booking_times();
                 $booking_data = array(
                     'room_id' => $first_room_id, // Keep for backward compatibility (use first room)
                     'guest_name' => $this->input->post('guest_name'),
@@ -780,6 +834,8 @@ class Bookings extends Admin_Controller {
                     'guest_zipcode' => $this->input->post('guest_zipcode'),
                     'check_in' => $check_in,
                     'check_out' => $check_out,
+                    'check_in_time' => $this->normalize_booking_time($this->input->post('check_in_time'), $default_times['check_in_time']),
+                    'check_out_time' => $this->normalize_booking_time($this->input->post('check_out_time'), $default_times['check_out_time']),
                     'guests' => $guests,
                     'rooms' => $total_rooms_count,
                     'total_amount' => $total_amount,

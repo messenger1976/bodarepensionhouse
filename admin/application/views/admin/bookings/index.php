@@ -64,6 +64,8 @@
                     <th>Email</th>
                     <th>Check-In</th>
                     <th>Check-Out</th>
+                    <th>Check-In Time</th>
+                    <th>Check-Out Time</th>
                     <th>Guests</th>
                     <th>Rooms</th>
                     <th>Status</th>
@@ -81,6 +83,24 @@
                             <td><?php echo htmlspecialchars($booking->guest_email); ?></td>
                             <td><?php echo date('M d, Y', strtotime($booking->check_in)); ?></td>
                             <td><?php echo date('M d, Y', strtotime($booking->check_out)); ?></td>
+                            <td>
+                                <?php
+                                if (!empty($booking->check_in_time)) {
+                                    echo date('g:i A', strtotime($booking->check_in_time));
+                                } else {
+                                    echo '<span class="text-muted">—</span>';
+                                }
+                                ?>
+                            </td>
+                            <td>
+                                <?php
+                                if (!empty($booking->check_out_time)) {
+                                    echo date('g:i A', strtotime($booking->check_out_time));
+                                } else {
+                                    echo '<span class="text-muted">—</span>';
+                                }
+                                ?>
+                            </td>
                             <td><?php echo $booking->guests; ?></td>
                             <td>
                                 <span class="badge bg-info">
@@ -130,7 +150,7 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="11" class="text-center text-muted">No bookings found</td>
+                        <td colspan="13" class="text-center text-muted">No bookings found</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

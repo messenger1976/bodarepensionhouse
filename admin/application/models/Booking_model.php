@@ -82,7 +82,14 @@ class Booking_model extends CI_Model {
         if (!in_array('extra_services', $fields) && isset($data['extra_services'])) {
             unset($data['extra_services']);
         }
-        
+
+        if (!in_array('check_in_time', $fields) && isset($data['check_in_time'])) {
+            unset($data['check_in_time']);
+        }
+        if (!in_array('check_out_time', $fields) && isset($data['check_out_time'])) {
+            unset($data['check_out_time']);
+        }
+
         $this->db->insert('bookings', $data);
         
         // Check for database errors
