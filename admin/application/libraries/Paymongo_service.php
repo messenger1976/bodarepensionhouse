@@ -2,12 +2,13 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Business logic for PayMongo GCash checkout tied to bookings/payments.
+ * Business logic for PayMongo QRPH payments tied to bookings/invoices.
  */
 class Paymongo_service {
 
     protected $CI;
     protected $last_error = '';
+    protected $default_qr_expiry = 1800;
 
     public function __construct() {
         $this->CI =& get_instance();
@@ -28,7 +29,30 @@ class Paymongo_service {
         return $this->last_error ?: $this->CI->paymongo->get_last_error();
     }
 
-    public function start_gcash_checkout_for_booking($booking, $amount = null) {
+    /**
+     * Preferred online payment method label stored on payments rows.
+     */
+    public function online_payment_method() {
+        if ($this->CI->db->table_exists('payments') && $this->payment_method_allows('qrph')) {
+            return 'qrph';
+        }
+        return 'gcash';
+    }
+
+    private function payment_method_allows($method) {
+        $row = $this->CI->db->query("SHOW COLUMNS FROM `payments` LIKE 'payment_method'")->row();
+        if (!$row || empty($row->Type)) {
+            return false;
+        }
+        return stripos($row->Type, "'" . $method . "'") !== false;
+    }
+
+    /**
+     * Start or reuse QRPH for a booking. Creates unpaid issued invoice when needed.
+     *
+     * @return array|false
+     */
+    public function start_qrph_for_booking($booking, $amount = null, $force_new_qr = false) {
         $this->last_error = '';
         if (!$this->is_ready()) {
             $this->last_error = 'PayMongo is not enabled or secret key is missing.';
@@ -40,64 +64,166 @@ class Paymongo_service {
         }
 
         $amount = $amount !== null ? (float) $amount : (float) $booking->total_amount;
-        if ($amount <= 0) {
-            $this->last_error = 'Booking total is invalid for online payment.';
+        if ($amount < 20) {
+            $this->last_error = 'QR Ph payment requires a minimum total of ₱20.00.';
             return false;
         }
 
-        $site = rtrim($this->CI->paymongo->get_public_site_base_url(), '/');
-        $booking_number = $booking->booking_number;
-        $payment_id = $this->ensure_pending_gcash_payment($booking, $amount);
+        if ($this->find_paid_payment((int) $booking->id)) {
+            $this->last_error = 'This booking is already paid.';
+            return false;
+        }
 
-        $success_url = $site . '/booking-confirmation.php?booking=' . rawurlencode($booking_number)
-            . '&payment=success';
-        $cancel_url = $site . '/checkout.php?payment=cancelled&booking=' . rawurlencode($booking_number);
+        $invoice_info = $this->CI->billing_service->ensure_issued_invoice_for_booking((int) $booking->id);
+        $invoice_id = $invoice_info && !empty($invoice_info['invoice_id']) ? (int) $invoice_info['invoice_id'] : null;
+        $invoice_number = $invoice_info && !empty($invoice_info['invoice_number']) ? $invoice_info['invoice_number'] : null;
 
-        $session = $this->CI->paymongo->create_checkout_session(array(
-            'name' => 'BODARE Reservation ' . $booking_number,
-            'description' => 'Room reservation payment for booking ' . $booking_number,
-            'amount_php' => $amount,
-            'reference_number' => $booking_number,
-            'payment_method_types' => array('gcash'),
-            'success_url' => $success_url,
-            'cancel_url' => $cancel_url,
-            'send_email_receipt' => true,
-            'metadata' => array(
-                'booking_number' => $booking_number,
-                'booking_id' => (string) $booking->id,
-                'payment_id' => (string) $payment_id
-            ),
-            'billing' => array(
-                'name' => $booking->guest_name,
-                'email' => $booking->guest_email,
-                'phone' => $booking->guest_phone
-            )
+        $payment_id = $this->ensure_pending_online_payment($booking, $amount, $invoice_id);
+        $existing = $this->CI->Payment_model->get($payment_id);
+        $meta = $this->parse_payment_meta($existing);
+
+        // Reuse active QR if still valid
+        if (!$force_new_qr && !empty($meta['qr_image_url']) && !empty($meta['expires_at'])) {
+            $expires_ts = strtotime($meta['expires_at']);
+            if ($expires_ts && $expires_ts > (time() + 60) && !empty($meta['payment_intent_id'])) {
+                return $this->format_qrph_payload($booking, $payment_id, $meta, $invoice_id, $invoice_number, $amount);
+            }
+        }
+
+        $intent_id = !empty($meta['payment_intent_id']) ? $meta['payment_intent_id'] : null;
+        $client_key = !empty($meta['client_key']) ? $meta['client_key'] : null;
+
+        // Create new intent if missing, or if previous QR expired and intent is no longer attachable
+        $need_new_intent = !$intent_id;
+        if ($intent_id && $force_new_qr) {
+            $existing_intent = $this->CI->paymongo->retrieve_payment_intent($intent_id);
+            if ($existing_intent && $this->CI->paymongo->intent_is_paid($existing_intent)) {
+                $this->fulfill_paid_intent($booking, $existing_intent);
+                $this->last_error = 'This booking is already paid.';
+                return false;
+            }
+            $status = '';
+            if ($existing_intent && isset($existing_intent['attributes']['status'])) {
+                $status = strtolower((string) $existing_intent['attributes']['status']);
+            }
+            // Reuse intent when awaiting_payment_method; otherwise create fresh
+            if (!in_array($status, array('awaiting_payment_method', 'awaiting_next_action'), true)) {
+                $need_new_intent = true;
+                $intent_id = null;
+                $client_key = null;
+            } elseif ($status === 'awaiting_next_action' && !$force_new_qr) {
+                $qr = $this->CI->paymongo->extract_qrph_from_intent($existing_intent);
+                if ($qr) {
+                    $meta = $this->store_qrph_meta($payment_id, $booking, $amount, $invoice_id, array(
+                        'payment_intent_id' => $intent_id,
+                        'client_key' => $client_key ?: (isset($qr['client_key']) ? $qr['client_key'] : null),
+                        'qr_image_url' => $qr['qr_image_url'],
+                        'payment_method_id' => isset($meta['payment_method_id']) ? $meta['payment_method_id'] : null,
+                        'expires_at' => date('Y-m-d H:i:s', time() + $this->default_qr_expiry)
+                    ));
+                    return $this->format_qrph_payload($booking, $payment_id, $meta, $invoice_id, $invoice_number, $amount);
+                }
+            }
+        }
+
+        if ($need_new_intent) {
+            $intent = $this->CI->paymongo->create_payment_intent(
+                $amount,
+                'BODARE Reservation ' . $booking->booking_number,
+                array(
+                    'booking_number' => $booking->booking_number,
+                    'booking_id' => (string) $booking->id,
+                    'payment_id' => (string) $payment_id,
+                    'invoice_id' => $invoice_id ? (string) $invoice_id : ''
+                )
+            );
+            if (!$intent || empty($intent['id'])) {
+                $this->last_error = $this->CI->paymongo->get_last_error() ?: 'Unable to create PayMongo payment intent.';
+                return false;
+            }
+            $intent_id = $intent['id'];
+            $client_key = $intent['client_key'];
+        }
+
+        $method = $this->CI->paymongo->create_qrph_payment_method($this->default_qr_expiry);
+        if (!$method || empty($method['id'])) {
+            $this->last_error = $this->CI->paymongo->get_last_error() ?: 'Unable to create QRPH payment method.';
+            return false;
+        }
+
+        $attached = $this->CI->paymongo->attach_payment_method($intent_id, $method['id'], $client_key);
+        if (!$attached) {
+            $this->last_error = $this->CI->paymongo->get_last_error() ?: 'Unable to attach QRPH payment method.';
+            return false;
+        }
+
+        $qr = $this->CI->paymongo->extract_qrph_from_intent($attached);
+        if (!$qr || empty($qr['qr_image_url'])) {
+            $this->last_error = 'PayMongo did not return a QR Ph image.';
+            return false;
+        }
+
+        if (!empty($qr['client_key'])) {
+            $client_key = $qr['client_key'];
+        }
+
+        $meta = $this->store_qrph_meta($payment_id, $booking, $amount, $invoice_id, array(
+            'payment_intent_id' => $intent_id,
+            'client_key' => $client_key,
+            'qr_image_url' => $qr['qr_image_url'],
+            'payment_method_id' => $method['id'],
+            'expires_at' => date('Y-m-d H:i:s', time() + $this->default_qr_expiry)
         ));
 
-        if (!$session || empty($session['checkout_url'])) {
-            $this->last_error = $this->CI->paymongo->get_last_error() ?: 'PayMongo did not return a checkout URL.';
-            return false;
+        return $this->format_qrph_payload($booking, $payment_id, $meta, $invoice_id, $invoice_number, $amount);
+    }
+
+    public function regenerate_qrph_for_booking($booking) {
+        return $this->start_qrph_for_booking($booking, null, true);
+    }
+
+    /**
+     * Build online_payment payload for invoice/booking APIs from stored payment row.
+     */
+    public function get_online_payment_for_booking($booking_id) {
+        $payment = $this->find_latest_online_payment((int) $booking_id);
+        if (!$payment) {
+            return null;
+        }
+        if ($payment->payment_status === 'paid') {
+            return array(
+                'provider' => 'paymongo',
+                'method' => 'qrph',
+                'status' => 'paid',
+                'qr_image_url' => null,
+                'expires_at' => null,
+                'can_regenerate' => false,
+                'payment_intent_id' => $payment->transaction_id
+            );
         }
 
-        $update = array(
-            'transaction_id' => $session['id'],
-            'payment_status' => 'pending',
-            'payment_method' => 'gcash',
-            'notes' => 'PayMongo GCash checkout initiated. Session: ' . $session['id']
-        );
-        if ($this->CI->db->field_exists('reference_number', 'payments')) {
-            $update['reference_number'] = $booking_number;
+        $meta = $this->parse_payment_meta($payment);
+        $expired = true;
+        if (!empty($meta['expires_at'])) {
+            $ts = strtotime($meta['expires_at']);
+            $expired = !($ts && $ts > time());
         }
-        $this->CI->Payment_model->update($payment_id, $update);
 
+        $booking = $this->CI->Booking_model->get_booking((int) $booking_id);
         return array(
-            'checkout_url' => $session['checkout_url'],
-            'checkout_session_id' => $session['id'],
-            'payment_id' => $payment_id
+            'provider' => 'paymongo',
+            'method' => 'qrph',
+            'status' => $expired ? 'expired' : 'awaiting_payment',
+            'qr_image_url' => (!$expired && !empty($meta['qr_image_url'])) ? $meta['qr_image_url'] : null,
+            'expires_at' => isset($meta['expires_at']) ? $meta['expires_at'] : null,
+            'can_regenerate' => true,
+            'payment_intent_id' => isset($meta['payment_intent_id']) ? $meta['payment_intent_id'] : $payment->transaction_id,
+            'booking_number' => $booking ? $booking->booking_number : null,
+            'amount' => (float) $payment->amount
         );
     }
 
-    public function fulfill_paid_session($booking, $session, $session_id) {
+    public function fulfill_paid_intent($booking, $intent) {
         if (!$booking || !$this->CI->db->table_exists('payments')) {
             return false;
         }
@@ -106,47 +232,58 @@ class Paymongo_service {
             return true;
         }
 
-        $paymongo_payment_id = $this->CI->paymongo->get_session_payment_id($session);
+        $intent_id = isset($intent['id']) ? $intent['id'] : null;
+        $paymongo_payment_id = $this->CI->paymongo->get_intent_payment_id($intent);
         $amount = (float) $booking->total_amount;
-        $attrs = isset($session['attributes']) ? $session['attributes'] : array();
-        if (!empty($attrs['payments'][0]['attributes']['amount'])) {
-            $amount = ((float) $attrs['payments'][0]['attributes']['amount']) / 100;
-        } elseif (!empty($attrs['line_items'][0]['amount'])) {
-            $amount = ((float) $attrs['line_items'][0]['amount']) / 100;
+        $attrs = isset($intent['attributes']) ? $intent['attributes'] : array();
+        if (!empty($attrs['amount'])) {
+            $amount = ((float) $attrs['amount']) / 100;
         }
 
         $payment_row = null;
-        if ($session_id) {
-            $this->CI->db->where('transaction_id', $session_id);
+        if ($intent_id) {
+            $this->CI->db->where('transaction_id', $intent_id);
             $this->CI->db->where('booking_id', (int) $booking->id);
             $payment_row = $this->CI->db->get('payments')->row();
         }
         if (!$payment_row) {
-            $payment_row = $this->find_latest_gcash_payment((int) $booking->id);
+            $payment_row = $this->find_latest_online_payment((int) $booking->id);
         }
 
         $invoice_id = $payment_row && !empty($payment_row->invoice_id) ? (int) $payment_row->invoice_id : null;
-        if (!$invoice_id && $this->CI->db->table_exists('invoices')) {
-            $primary = $this->CI->Invoice_model->get_primary_for_booking((int) $booking->id);
-            if ($primary) {
-                $invoice_id = (int) $primary->id;
+        if (!$invoice_id) {
+            $ensured = $this->CI->billing_service->ensure_issued_invoice_for_booking((int) $booking->id);
+            if ($ensured && !empty($ensured['invoice_id'])) {
+                $invoice_id = (int) $ensured['invoice_id'];
             }
         }
 
+        $method = $this->online_payment_method();
         $update = array(
             'amount' => $amount,
-            'payment_method' => 'gcash',
+            'payment_method' => $method,
             'payment_status' => 'paid',
             'payment_date' => date('Y-m-d H:i:s'),
-            'transaction_id' => $session_id ?: ($paymongo_payment_id ?: null),
-            'notes' => 'Paid via PayMongo GCash'
-                . ($paymongo_payment_id ? (' | Payment: ' . $paymongo_payment_id) : '')
+            'transaction_id' => $intent_id ?: ($paymongo_payment_id ?: null),
+            'notes' => json_encode(array(
+                'provider' => 'paymongo',
+                'method' => 'qrph',
+                'status' => 'paid',
+                'payment_intent_id' => $intent_id,
+                'paymongo_payment_id' => $paymongo_payment_id
+            ))
         );
         if ($invoice_id) {
             $update['invoice_id'] = $invoice_id;
         }
         if ($this->CI->db->field_exists('reference_number', 'payments')) {
             $update['reference_number'] = $booking->booking_number;
+        }
+        if ($this->CI->db->field_exists('paymongo_intent_id', 'payments') && $intent_id) {
+            $update['paymongo_intent_id'] = $intent_id;
+        }
+        if ($this->CI->db->field_exists('qrph_expires_at', 'payments')) {
+            $update['qrph_expires_at'] = null;
         }
 
         if ($payment_row) {
@@ -163,21 +300,30 @@ class Paymongo_service {
         $confirm_on_paid = $this->CI->Booking_settings_model->get_setting('paymongo_confirm_on_paid', '1') === '1';
         if ($confirm_on_paid && strtolower((string) $booking->status) === 'pending') {
             $this->CI->Booking_model->update_booking((int) $booking->id, array('status' => 'confirmed'));
-            $this->CI->billing_service->maybe_create_invoice_for_booking((int) $booking->id, null);
-
-            if (!$invoice_id && $this->CI->db->table_exists('invoices')) {
-                $primary = $this->CI->Invoice_model->get_primary_for_booking((int) $booking->id);
-                if ($primary) {
-                    $payment_after = $this->find_paid_payment((int) $booking->id);
-                    if ($payment_after) {
-                        $this->CI->Payment_model->update((int) $payment_after->id, array('invoice_id' => (int) $primary->id));
-                        $this->CI->Invoice_model->recalculate_totals((int) $primary->id);
-                    }
-                }
-            }
         }
 
         return true;
+    }
+
+    /** @deprecated kept for older checkout-session webhook path */
+    public function fulfill_paid_session($booking, $session, $session_id) {
+        if ($session && isset($session['id']) && strpos($session['id'], 'pi_') === 0) {
+            return $this->fulfill_paid_intent($booking, $session);
+        }
+        // Map checkout session to intent-like fulfill if payments present
+        if (!$booking) {
+            return false;
+        }
+        $fake_intent = array(
+            'id' => $session_id,
+            'attributes' => isset($session['attributes']) ? $session['attributes'] : array()
+        );
+        return $this->fulfill_paid_intent($booking, $fake_intent);
+    }
+
+    /** @deprecated use start_qrph_for_booking */
+    public function start_gcash_checkout_for_booking($booking, $amount = null) {
+        return $this->start_qrph_for_booking($booking, $amount, false);
     }
 
     public function find_paid_payment($booking_id) {
@@ -191,24 +337,53 @@ class Paymongo_service {
     }
 
     public function find_latest_gcash_payment($booking_id) {
+        return $this->find_latest_online_payment($booking_id);
+    }
+
+    public function find_latest_online_payment($booking_id) {
         if (!$this->CI->db->table_exists('payments')) {
             return null;
         }
         $this->CI->db->where('booking_id', (int) $booking_id);
-        $this->CI->db->where('payment_method', 'gcash');
+        $this->CI->db->group_start();
+        $this->CI->db->where('payment_method', 'qrph');
+        $this->CI->db->or_where('payment_method', 'gcash');
+        $this->CI->db->group_end();
         $this->CI->db->order_by('id', 'DESC');
         return $this->CI->db->get('payments')->row();
     }
 
-    private function ensure_pending_gcash_payment($booking, $amount) {
-        $existing = $this->find_latest_gcash_payment((int) $booking->id);
+    public function find_booking_by_intent_id($intent_id) {
+        if (!$intent_id || !$this->CI->db->table_exists('payments')) {
+            return null;
+        }
+        if ($this->CI->db->field_exists('paymongo_intent_id', 'payments')) {
+            $this->CI->db->where('paymongo_intent_id', $intent_id);
+            $row = $this->CI->db->get('payments')->row();
+            if ($row) {
+                return $this->CI->Booking_model->get_booking((int) $row->booking_id);
+            }
+        }
+        $this->CI->db->where('transaction_id', $intent_id);
+        $row = $this->CI->db->get('payments')->row();
+        if ($row) {
+            return $this->CI->Booking_model->get_booking((int) $row->booking_id);
+        }
+        return null;
+    }
+
+    private function ensure_pending_online_payment($booking, $amount, $invoice_id = null) {
+        $existing = $this->find_latest_online_payment((int) $booking->id);
         if ($existing && $existing->payment_status === 'pending') {
-            $this->CI->Payment_model->update($existing->id, array('amount' => $amount));
+            $update = array('amount' => $amount);
+            if ($invoice_id) {
+                $update['invoice_id'] = $invoice_id;
+            }
+            $this->CI->Payment_model->update($existing->id, $update);
             return (int) $existing->id;
         }
 
-        $invoice_id = null;
-        if ($this->CI->db->table_exists('invoices')) {
+        if (!$invoice_id && $this->CI->db->table_exists('invoices')) {
             $primary = $this->CI->Invoice_model->get_primary_for_booking((int) $booking->id);
             if ($primary) {
                 $invoice_id = (int) $primary->id;
@@ -219,15 +394,102 @@ class Paymongo_service {
             'booking_id' => (int) $booking->id,
             'invoice_id' => $invoice_id,
             'amount' => $amount,
-            'payment_method' => 'gcash',
+            'payment_method' => $this->online_payment_method(),
             'payment_status' => 'pending',
             'payment_date' => null,
-            'notes' => 'Awaiting PayMongo GCash payment'
+            'notes' => json_encode(array('provider' => 'paymongo', 'method' => 'qrph', 'status' => 'pending'))
         );
         if ($this->CI->db->field_exists('reference_number', 'payments')) {
             $payload['reference_number'] = $booking->booking_number;
         }
 
         return (int) $this->CI->Payment_model->create($payload);
+    }
+
+    private function store_qrph_meta($payment_id, $booking, $amount, $invoice_id, $meta) {
+        $update = array(
+            'amount' => $amount,
+            'payment_method' => $this->online_payment_method(),
+            'payment_status' => 'pending',
+            'transaction_id' => $meta['payment_intent_id'],
+            'notes' => json_encode(array(
+                'provider' => 'paymongo',
+                'method' => 'qrph',
+                'status' => 'awaiting_payment',
+                'payment_intent_id' => $meta['payment_intent_id'],
+                'client_key' => isset($meta['client_key']) ? $meta['client_key'] : null,
+                'qr_image_url' => $meta['qr_image_url'],
+                'payment_method_id' => isset($meta['payment_method_id']) ? $meta['payment_method_id'] : null,
+                'expires_at' => $meta['expires_at']
+            ))
+        );
+        if ($invoice_id) {
+            $update['invoice_id'] = $invoice_id;
+        }
+        if ($this->CI->db->field_exists('reference_number', 'payments')) {
+            $update['reference_number'] = $booking->booking_number;
+        }
+        if ($this->CI->db->field_exists('paymongo_intent_id', 'payments')) {
+            $update['paymongo_intent_id'] = $meta['payment_intent_id'];
+        }
+        if ($this->CI->db->field_exists('paymongo_client_key', 'payments')) {
+            $update['paymongo_client_key'] = isset($meta['client_key']) ? $meta['client_key'] : null;
+        }
+        if ($this->CI->db->field_exists('qrph_expires_at', 'payments')) {
+            $update['qrph_expires_at'] = $meta['expires_at'];
+        }
+
+        $this->CI->Payment_model->update((int) $payment_id, $update);
+        return $meta;
+    }
+
+    private function parse_payment_meta($payment) {
+        $meta = array();
+        if (!$payment) {
+            return $meta;
+        }
+        if ($this->CI->db->field_exists('paymongo_intent_id', 'payments') && !empty($payment->paymongo_intent_id)) {
+            $meta['payment_intent_id'] = $payment->paymongo_intent_id;
+        } elseif (!empty($payment->transaction_id) && strpos($payment->transaction_id, 'pi_') === 0) {
+            $meta['payment_intent_id'] = $payment->transaction_id;
+        }
+        if ($this->CI->db->field_exists('paymongo_client_key', 'payments') && !empty($payment->paymongo_client_key)) {
+            $meta['client_key'] = $payment->paymongo_client_key;
+        }
+        if ($this->CI->db->field_exists('qrph_expires_at', 'payments') && !empty($payment->qrph_expires_at)) {
+            $meta['expires_at'] = $payment->qrph_expires_at;
+        }
+
+        if (!empty($payment->notes)) {
+            $decoded = json_decode($payment->notes, true);
+            if (is_array($decoded)) {
+                $meta = array_merge($meta, $decoded);
+            }
+        }
+        return $meta;
+    }
+
+    private function format_qrph_payload($booking, $payment_id, $meta, $invoice_id, $invoice_number, $amount) {
+        $expires_at = isset($meta['expires_at']) ? $meta['expires_at'] : null;
+        $can_regenerate = true;
+        if ($expires_at) {
+            $ts = strtotime($expires_at);
+            $can_regenerate = !($ts && $ts > time());
+        }
+
+        return array(
+            'method' => 'qrph',
+            'provider' => 'paymongo',
+            'status' => 'awaiting_payment',
+            'payment_intent_id' => isset($meta['payment_intent_id']) ? $meta['payment_intent_id'] : null,
+            'qr_image_url' => isset($meta['qr_image_url']) ? $meta['qr_image_url'] : null,
+            'expires_at' => $expires_at,
+            'payment_id' => (int) $payment_id,
+            'invoice_id' => $invoice_id,
+            'invoice_number' => $invoice_number,
+            'booking_number' => $booking->booking_number,
+            'amount' => (float) $amount,
+            'can_regenerate' => $can_regenerate
+        );
     }
 }

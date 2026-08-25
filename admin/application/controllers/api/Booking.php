@@ -215,7 +215,7 @@ class Booking extends CI_Controller {
                 $this->output->set_status_header(503);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Online GCash (PayMongo) is not configured yet. Please choose Pay at the Hotel, or ask the administrator to enable PayMongo in Booking Settings.'
+                    'message' => 'Online GCash / QR Ph (PayMongo) is not configured yet. Please choose Pay at the Hotel, or ask the administrator to enable PayMongo in Booking Settings.'
                 ]);
                 return;
             }
@@ -692,17 +692,17 @@ class Booking extends CI_Controller {
         if ($payment_method === 'gcash') {
             $this->load->library('paymongo_service');
             if ($this->paymongo_service->is_ready()) {
-                $checkout = $this->paymongo_service->start_gcash_checkout_for_booking($booking, $total_amount);
-                if ($checkout && !empty($checkout['checkout_url'])) {
-                    $payment_payload = array(
-                        'method' => 'gcash',
-                        'provider' => 'paymongo',
-                        'status' => 'pending',
-                        'checkout_url' => $checkout['checkout_url'],
-                        'checkout_session_id' => $checkout['checkout_session_id'],
-                        'payment_id' => $checkout['payment_id']
-                    );
-                    $response_message = 'Reservation created. Redirecting you to PayMongo to complete GCash payment.';
+                $qrph = $this->paymongo_service->start_qrph_for_booking($booking, $total_amount);
+                if ($qrph && !empty($qrph['qr_image_url'])) {
+                    $payment_payload = $qrph;
+                    $response_message = 'Reservation created. Scan the QR Ph code to pay with GCash.';
+                    if (!empty($qrph['invoice_id'])) {
+                        $auto_invoice = array(
+                            'created' => true,
+                            'invoice_id' => $qrph['invoice_id'],
+                            'invoice_number' => isset($qrph['invoice_number']) ? $qrph['invoice_number'] : null
+                        );
+                    }
                 } else {
                     $this->output->set_status_header(502);
                     echo json_encode([
@@ -710,7 +710,7 @@ class Booking extends CI_Controller {
                         'booking_created' => true,
                         'can_retry_payment' => true,
                         'booking_number' => $booking->booking_number,
-                        'message' => 'Your booking was saved (' . $booking->booking_number . '), but we could not start GCash payment: '
+                        'message' => 'Your booking was saved (' . $booking->booking_number . '), but we could not start QR Ph payment: '
                             . ($this->paymongo_service->get_last_error() ?: 'Please contact us to complete payment.')
                             . ' You can retry payment without creating a new booking.'
                     ]);
@@ -729,7 +729,7 @@ class Booking extends CI_Controller {
             'items_count' => count($booking_items),
             'payment_method' => $payment_method,
             'payment' => $payment_payload,
-            'invoice' => ($auto_invoice && !empty($auto_invoice['created'])) ? array(
+            'invoice' => ($auto_invoice && !empty($auto_invoice['invoice_id'])) ? array(
                 'id' => $auto_invoice['invoice_id'],
                 'invoice_number' => $auto_invoice['invoice_number']
             ) : null

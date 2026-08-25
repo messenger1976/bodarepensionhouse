@@ -929,17 +929,30 @@ async function handleCheckoutSubmit(e) {
             };
             localStorage.setItem('bookingResult', JSON.stringify(confirmationPayload));
 
-            // GCash via PayMongo: clear cart, then redirect to hosted checkout
+            // GCash / QR Ph via PayMongo: stay on-site and show QR on confirmation
+            if (paymentMethod === 'gcash' && response.payment && response.payment.qr_image_url) {
+                clearCartLocal();
+                localStorage.removeItem('cartServices');
+                sessionStorage.setItem('paymongo_booking_number', response.booking_number);
+                if (response.payment.payment_intent_id) {
+                    sessionStorage.setItem('paymongo_payment_intent_id', response.payment.payment_intent_id);
+                }
+                try {
+                    sessionStorage.setItem('paymongo_qrph_payment', JSON.stringify(response.payment));
+                } catch (e) {}
+                sessionStorage.removeItem('paymongo_retry_booking');
+                showMessage('Reservation created. Opening QR Ph payment…', 'success');
+                submitBtn.textContent = 'Opening QR payment…';
+                const invQs = response.payment.invoice_id ? `&invoice=${encodeURIComponent(response.payment.invoice_id)}` : '';
+                window.location.href = `booking-confirmation.php?booking=${encodeURIComponent(response.booking_number)}&payment=qrph${invQs}`;
+                return;
+            }
+
+            // Legacy hosted checkout URL (should not be returned for QRPH flow)
             const checkoutUrl = response.payment && response.payment.checkout_url;
             if (paymentMethod === 'gcash' && checkoutUrl) {
                 clearCartLocal();
                 localStorage.removeItem('cartServices');
-                if (response.payment.checkout_session_id) {
-                    sessionStorage.setItem('paymongo_session_id', response.payment.checkout_session_id);
-                }
-                sessionStorage.setItem('paymongo_booking_number', response.booking_number);
-                showMessage('Redirecting to PayMongo GCash checkout…', 'success');
-                submitBtn.textContent = 'Redirecting to GCash…';
                 window.location.href = checkoutUrl;
                 return;
             }

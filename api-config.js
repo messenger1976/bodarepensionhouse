@@ -322,9 +322,17 @@ const API = {
             });
         },
 
+        async createQrph(payload) {
+            return API.request('payment/qrph', {
+                method: 'POST',
+                body: JSON.stringify(payload || {})
+            });
+        },
+
         async verify(payload) {
             const params = new URLSearchParams();
             if (payload && payload.booking_number) params.set('booking', payload.booking_number);
+            if (payload && payload.payment_intent_id) params.set('payment_intent_id', payload.payment_intent_id);
             if (payload && payload.session_id) params.set('session_id', payload.session_id);
             const qs = params.toString();
             return API.request(`payment/verify${qs ? `?${qs}` : ''}`);

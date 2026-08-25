@@ -5,7 +5,10 @@ $bookingNumber = isset($_GET['booking']) ? trim((string) $_GET['booking']) : '';
 $confirmation = $bookingNumber !== '' ? bodare_get_booking_confirmation($bookingNumber) : null;
 $paymentFlag = isset($_GET['payment']) ? strtolower(trim((string) $_GET['payment'])) : '';
 $sessionId = isset($_GET['session_id']) ? trim((string) $_GET['session_id']) : '';
+$invoiceIdParam = isset($_GET['invoice']) ? trim((string) $_GET['invoice']) : '';
+$showQrph = ($paymentFlag === 'qrph' && $bookingNumber !== '');
 $awaitingPaymentVerify = ($paymentFlag === 'success' && $bookingNumber !== '');
+$isPendingBooking = $confirmation && strtolower((string) ($confirmation['booking']['status'] ?? '')) === 'pending';
 
 $pageSeo = [
     'title' => 'Booking Confirmation | BODARE Pension House',
@@ -39,8 +42,24 @@ function bodare_confirmation_date($dateString)
 
     <section class="page-header">
         <div class="page-header-content">
-            <h1 id="confirmation-page-title"><?php echo $awaitingPaymentVerify ? 'Payment Processing' : 'Booking Confirmed!'; ?></h1>
-            <p id="confirmation-page-subtitle"><?php echo $awaitingPaymentVerify ? 'Confirming your GCash payment…' : 'Thank you for your reservation'; ?></p>
+            <h1 id="confirmation-page-title"><?php
+                if ($showQrph) {
+                    echo 'Scan to Pay';
+                } elseif ($awaitingPaymentVerify) {
+                    echo 'Payment Processing';
+                } else {
+                    echo 'Booking Confirmed!';
+                }
+            ?></h1>
+            <p id="confirmation-page-subtitle"><?php
+                if ($showQrph) {
+                    echo 'Use GCash or any QR Ph app to complete payment';
+                } elseif ($awaitingPaymentVerify) {
+                    echo 'Confirming your payment…';
+                } else {
+                    echo 'Thank you for your reservation';
+                }
+            ?></p>
         </div>
     </section>
 
@@ -64,18 +83,44 @@ function bodare_confirmation_date($dateString)
                     $status = htmlspecialchars((string) ($booking['status'] ?? 'pending'), ENT_QUOTES, 'UTF-8');
                     $bookingNumberSafe = htmlspecialchars((string) $booking['booking_number'], ENT_QUOTES, 'UTF-8');
                 ?>
-                    <div id="confirmation-banner" style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 2rem; margin-bottom: 2rem; text-align: center;">
-                        <h2 id="confirmation-banner-title" style="color: #155724; margin: 0 0 1rem 0;">
-                            <?php echo $awaitingPaymentVerify ? '⏳ Confirming your GCash payment…' : '✓ Your booking has been confirmed!'; ?>
+                    <div id="confirmation-banner" style="background: <?php echo $showQrph ? '#e8f4fd' : '#d4edda'; ?>; border: 1px solid <?php echo $showQrph ? '#b6d9f2' : '#c3e6cb'; ?>; border-radius: 8px; padding: 2rem; margin-bottom: 2rem; text-align: center;">
+                        <h2 id="confirmation-banner-title" style="color: <?php echo $showQrph ? '#0c5460' : '#155724'; ?>; margin: 0 0 1rem 0;">
+                            <?php
+                            if ($showQrph) {
+                                echo 'Scan the QR Ph code to pay with GCash';
+                            } elseif ($awaitingPaymentVerify) {
+                                echo 'Confirming your payment…';
+                            } else {
+                                echo '✓ Your booking has been confirmed!';
+                            }
+                            ?>
                         </h2>
-                        <p style="color: #155724; margin: 0; font-size: 1.125rem;">Booking Number: <strong><?php echo $bookingNumberSafe; ?></strong></p>
-                        <p id="confirmation-payment-status" style="color: #155724; margin: 0.75rem 0 0; font-size: 0.95rem;">
-                            <?php if ($awaitingPaymentVerify): ?>
+                        <p style="color: <?php echo $showQrph ? '#0c5460' : '#155724'; ?>; margin: 0; font-size: 1.125rem;">Booking Number: <strong><?php echo $bookingNumberSafe; ?></strong></p>
+                        <p id="confirmation-payment-status" style="color: <?php echo $showQrph ? '#0c5460' : '#155724'; ?>; margin: 0.75rem 0 0; font-size: 0.95rem;">
+                            <?php if ($showQrph): ?>
+                                Your booking is pending until QR Ph payment is completed.
+                            <?php elseif ($awaitingPaymentVerify): ?>
                                 Please wait while we verify your PayMongo payment.
                             <?php elseif (strtolower((string) ($booking['status'] ?? '')) === 'pending'): ?>
                                 Status: Pending — our team will confirm your reservation shortly.
                             <?php endif; ?>
                         </p>
+                    </div>
+
+                    <div id="qrph-payment-panel" style="display: <?php echo $showQrph ? 'block' : 'none'; ?>; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                        <h3 style="margin-top: 0; color: #1a2238;">QR Ph Payment</h3>
+                        <p style="color: #666; margin-bottom: 1rem;">Open GCash → Scan QR, or use any bank / e-wallet that supports QR Ph.</p>
+                        <div id="qrph-image-wrap" style="min-height: 220px; display: flex; align-items: center; justify-content: center;">
+                            <p id="qrph-loading" style="color: #666;">Loading QR code…</p>
+                            <img id="qrph-image" alt="QR Ph payment code" style="display:none; max-width: 280px; width: 100%; height: auto; border: 1px solid #eee; border-radius: 8px;">
+                        </div>
+                        <p id="qrph-amount" style="font-size: 1.25rem; font-weight: 700; color: #b2945b; margin: 1rem 0 0.5rem;"></p>
+                        <p id="qrph-expiry" style="color: #666; font-size: 0.9rem; margin: 0;"></p>
+                        <p id="qrph-poll-status" style="color: #0c5460; font-size: 0.95rem; margin: 0.75rem 0 0;">Waiting for payment…</p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-top: 1.25rem;">
+                            <button type="button" id="qrph-regenerate-btn" class="cta-button" style="display:none; background: #1a2238;">Generate New QR</button>
+                            <a id="qrph-invoice-link" href="customer-dashboard.php?tab=invoices" class="cta-button" style="background: #6c757d; text-decoration: none;">View invoice / pay later</a>
+                        </div>
                     </div>
 
                     <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
@@ -142,10 +187,10 @@ function bodare_confirmation_date($dateString)
                     <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
                         <h4 style="margin-top: 0; color: #856404;">Important Information</h4>
                         <ul style="color: #856404; margin: 0; padding-left: 1.5rem;">
-                            <li>Your booking is currently <strong><?php echo $status; ?></strong>. You will receive a confirmation email shortly.</li>
+                            <li>Your booking is currently <strong><?php echo $status; ?></strong>.<?php echo $showQrph ? ' Complete QR Ph payment above to confirm.' : ' You will receive a confirmation email shortly.'; ?></li>
                             <li>Please arrive at the hotel during check-in hours (typically 2:00 PM).</li>
                             <li>If you need to modify or cancel your booking, please contact us using your booking number.</li>
-                            <li>Payment will be collected at the hotel upon check-in.</li>
+                            <li><?php echo $showQrph ? 'You can also pay later from My Account → My Invoices.' : 'Payment will be collected at the hotel upon check-in.'; ?></li>
                         </ul>
                     </div>
 
@@ -169,44 +214,198 @@ function bodare_confirmation_date($dateString)
         (function () {
             const bookingNumber = <?php echo json_encode($bookingNumber); ?>;
             const sessionId = <?php echo json_encode($sessionId); ?>;
+            const invoiceIdParam = <?php echo json_encode($invoiceIdParam); ?>;
             const shouldVerifyPayment = <?php echo $awaitingPaymentVerify ? 'true' : 'false'; ?>;
+            const showQrph = <?php echo $showQrph ? 'true' : 'false'; ?>;
+            const displayTotal = <?php echo json_encode((float) ($confirmation['display_total'] ?? 0)); ?>;
+
+            const banner = document.getElementById('confirmation-banner');
+            const bannerTitle = document.getElementById('confirmation-banner-title');
+            const statusEl = document.getElementById('confirmation-payment-status');
+            const pageTitle = document.getElementById('confirmation-page-title');
+            const pageSubtitle = document.getElementById('confirmation-page-subtitle');
+
+            function markPaidUI() {
+                if (pageTitle) pageTitle.textContent = 'Payment Successful!';
+                if (pageSubtitle) pageSubtitle.textContent = 'Your QR Ph payment was received';
+                if (banner) {
+                    banner.style.background = '#d4edda';
+                    banner.style.borderColor = '#c3e6cb';
+                }
+                if (bannerTitle) {
+                    bannerTitle.style.color = '#155724';
+                    bannerTitle.textContent = '✓ Payment received — booking confirmed!';
+                }
+                if (statusEl) {
+                    statusEl.style.color = '#155724';
+                    statusEl.textContent = 'Paid securely via PayMongo QR Ph.';
+                }
+                const panel = document.getElementById('qrph-payment-panel');
+                if (panel) {
+                    panel.style.display = 'block';
+                    panel.innerHTML = '<h3 style="margin-top:0;color:#155724;">Payment complete</h3><p style="color:#155724;">Thank you. Your invoice is now marked as paid.</p>';
+                }
+                sessionStorage.removeItem('paymongo_session_id');
+                sessionStorage.removeItem('paymongo_booking_number');
+                sessionStorage.removeItem('paymongo_payment_intent_id');
+                sessionStorage.removeItem('paymongo_qrph_payment');
+                try { localStorage.removeItem('bookingCart'); } catch (e) {}
+                try { localStorage.removeItem('cartServices'); } catch (e) {}
+            }
+
+            function formatPeso(amount) {
+                return '₱' + Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function renderQrph(payment) {
+                const panel = document.getElementById('qrph-payment-panel');
+                const img = document.getElementById('qrph-image');
+                const loading = document.getElementById('qrph-loading');
+                const amountEl = document.getElementById('qrph-amount');
+                const expiryEl = document.getElementById('qrph-expiry');
+                const pollEl = document.getElementById('qrph-poll-status');
+                const regenBtn = document.getElementById('qrph-regenerate-btn');
+                const invoiceLink = document.getElementById('qrph-invoice-link');
+                if (!panel) return;
+
+                panel.style.display = 'block';
+                const qrUrl = payment.qr_image_url || payment.qrImageUrl;
+                if (img && qrUrl) {
+                    img.src = qrUrl;
+                    img.style.display = 'block';
+                    if (loading) loading.style.display = 'none';
+                } else if (loading) {
+                    loading.textContent = 'QR code unavailable. Tap Generate New QR.';
+                }
+
+                if (amountEl) {
+                    amountEl.textContent = 'Amount due: ' + formatPeso(payment.amount != null ? payment.amount : displayTotal);
+                }
+                if (expiryEl && payment.expires_at) {
+                    expiryEl.textContent = 'QR expires: ' + new Date(payment.expires_at.replace(' ', 'T')).toLocaleString();
+                    const expTs = Date.parse(payment.expires_at.replace(' ', 'T'));
+                    if (regenBtn) {
+                        regenBtn.style.display = (!expTs || expTs <= Date.now()) ? 'inline-block' : 'none';
+                    }
+                } else if (regenBtn) {
+                    regenBtn.style.display = payment.can_regenerate ? 'inline-block' : 'none';
+                }
+
+                const invId = payment.invoice_id || invoiceIdParam;
+                if (invoiceLink) {
+                    invoiceLink.href = invId
+                        ? ('customer-dashboard.php?tab=invoices&id=' + encodeURIComponent(invId))
+                        : 'customer-dashboard.php?tab=invoices';
+                }
+                if (pollEl) pollEl.textContent = 'Waiting for payment… this page updates automatically.';
+
+                if (payment.payment_intent_id) {
+                    sessionStorage.setItem('paymongo_payment_intent_id', payment.payment_intent_id);
+                }
+            }
+
+            let pollTimer = null;
+            async function pollQrphPayment(intentId) {
+                if (typeof API === 'undefined' || !API.payment) return;
+                try {
+                    const result = await API.payment.verify({
+                        booking_number: bookingNumber,
+                        payment_intent_id: intentId || sessionStorage.getItem('paymongo_payment_intent_id') || ''
+                    });
+                    if (result && result.paid) {
+                        if (pollTimer) clearInterval(pollTimer);
+                        markPaidUI();
+                        return;
+                    }
+                    const pollEl = document.getElementById('qrph-poll-status');
+                    if (pollEl) {
+                        pollEl.textContent = 'Waiting for payment… status: ' + (result.intent_status || result.status || 'pending');
+                    }
+                    if (result && result.online_payment && result.online_payment.status === 'expired') {
+                        const regenBtn = document.getElementById('qrph-regenerate-btn');
+                        if (regenBtn) regenBtn.style.display = 'inline-block';
+                        if (pollEl) pollEl.textContent = 'QR code expired. Generate a new QR to continue.';
+                    }
+                } catch (error) {
+                    console.error('QRPH poll failed', error);
+                }
+            }
+
+            async function initQrph() {
+                if (!showQrph || typeof API === 'undefined' || !API.payment) {
+                    return;
+                }
+
+                let payment = null;
+                try {
+                    payment = JSON.parse(sessionStorage.getItem('paymongo_qrph_payment') || 'null');
+                } catch (e) {
+                    payment = null;
+                }
+
+                if (!payment || !payment.qr_image_url) {
+                    try {
+                        const result = await API.payment.createQrph({ booking_number: bookingNumber });
+                        if (result.already_paid) {
+                            markPaidUI();
+                            return;
+                        }
+                        payment = result.payment || result;
+                        try { sessionStorage.setItem('paymongo_qrph_payment', JSON.stringify(payment)); } catch (e) {}
+                    } catch (error) {
+                        const loading = document.getElementById('qrph-loading');
+                        if (loading) loading.textContent = error.message || 'Unable to load QR code.';
+                        const regenBtn = document.getElementById('qrph-regenerate-btn');
+                        if (regenBtn) regenBtn.style.display = 'inline-block';
+                        return;
+                    }
+                }
+
+                renderQrph(payment);
+                const intentId = payment.payment_intent_id || '';
+                pollQrphPayment(intentId);
+                pollTimer = setInterval(function () { pollQrphPayment(intentId); }, 5000);
+
+                const regenBtn = document.getElementById('qrph-regenerate-btn');
+                if (regenBtn) {
+                    regenBtn.addEventListener('click', async function () {
+                        regenBtn.disabled = true;
+                        regenBtn.textContent = 'Generating…';
+                        try {
+                            const result = await API.payment.createQrph({ booking_number: bookingNumber, regenerate: true });
+                            if (result.already_paid) {
+                                markPaidUI();
+                                return;
+                            }
+                            payment = result.payment || result;
+                            try { sessionStorage.setItem('paymongo_qrph_payment', JSON.stringify(payment)); } catch (e) {}
+                            renderQrph(payment);
+                            if (pollTimer) clearInterval(pollTimer);
+                            pollTimer = setInterval(function () {
+                                pollQrphPayment(payment.payment_intent_id || '');
+                            }, 5000);
+                        } catch (error) {
+                            alert(error.message || 'Unable to regenerate QR.');
+                        } finally {
+                            regenBtn.disabled = false;
+                            regenBtn.textContent = 'Generate New QR';
+                        }
+                    });
+                }
+            }
 
             async function verifyPaymongoPayment() {
                 if (!shouldVerifyPayment || typeof API === 'undefined' || !API.payment) {
                     return;
                 }
-
-                const banner = document.getElementById('confirmation-banner');
-                const bannerTitle = document.getElementById('confirmation-banner-title');
-                const statusEl = document.getElementById('confirmation-payment-status');
-                const pageTitle = document.getElementById('confirmation-page-title');
-                const pageSubtitle = document.getElementById('confirmation-page-subtitle');
-
                 try {
                     const result = await API.payment.verify({
                         booking_number: bookingNumber,
-                        session_id: sessionId || sessionStorage.getItem('paymongo_session_id') || ''
+                        session_id: sessionId || sessionStorage.getItem('paymongo_session_id') || '',
+                        payment_intent_id: sessionStorage.getItem('paymongo_payment_intent_id') || ''
                     });
-
                     if (result && result.paid) {
-                        if (pageTitle) pageTitle.textContent = 'Payment Successful!';
-                        if (pageSubtitle) pageSubtitle.textContent = 'Your GCash payment was received';
-                        if (banner) {
-                            banner.style.background = '#d4edda';
-                            banner.style.borderColor = '#c3e6cb';
-                        }
-                        if (bannerTitle) {
-                            bannerTitle.style.color = '#155724';
-                            bannerTitle.textContent = '✓ GCash payment received — booking confirmed!';
-                        }
-                        if (statusEl) {
-                            statusEl.style.color = '#155724';
-                            statusEl.textContent = 'Paid securely via PayMongo. A receipt may also be sent to your email.';
-                        }
-                        sessionStorage.removeItem('paymongo_session_id');
-                        sessionStorage.removeItem('paymongo_booking_number');
-                        try { localStorage.removeItem('bookingCart'); } catch (e) {}
-                        try { localStorage.removeItem('cartServices'); } catch (e) {}
+                        markPaidUI();
                     } else {
                         if (pageTitle) pageTitle.textContent = 'Booking Received';
                         if (pageSubtitle) pageSubtitle.textContent = 'Payment still pending';
@@ -216,11 +415,11 @@ function bodare_confirmation_date($dateString)
                         }
                         if (bannerTitle) {
                             bannerTitle.style.color = '#856404';
-                            bannerTitle.textContent = '⚠ Payment not confirmed yet';
+                            bannerTitle.textContent = 'Payment not confirmed yet';
                         }
                         if (statusEl) {
                             statusEl.style.color = '#856404';
-                            statusEl.textContent = 'If you completed GCash payment, it may take a moment. Keep your booking number and contact us if needed.';
+                            statusEl.textContent = 'If you already paid, it may take a moment. You can also pay from My Invoices.';
                         }
                     }
                 } catch (error) {
@@ -231,6 +430,7 @@ function bodare_confirmation_date($dateString)
                 }
             }
 
+            initQrph();
             verifyPaymongoPayment();
 
             const hasExtraBedRows = <?php echo !empty($extraBedLines) ? 'true' : 'false'; ?>;
@@ -260,7 +460,7 @@ function bodare_confirmation_date($dateString)
                 return;
             }
 
-            const formatPeso = (amount) => `₱${Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const formatPesoLocal = (amount) => `₱${Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             let extraBedTotal = 0;
 
             extraBedItems.forEach(item => {
@@ -273,20 +473,20 @@ function bodare_confirmation_date($dateString)
                 row.className = 'summary-item extra-bed-row';
                 row.style.cssText = 'display: flex; justify-content: space-between; gap: 1rem; padding: 0.65rem 0; border-bottom: 1px solid #eee;';
                 row.innerHTML = `
-                    <span style="color: #333;">Extra Bed (${extraBeds} bed${extraBeds > 1 ? 's' : ''} × ${item.nights} night${item.nights > 1 ? 's' : ''} @ ${formatPeso(extraBedCost)} — ${item.roomName || 'Room'})</span>
-                    <strong style="color: #b2945b;">${formatPeso(itemExtraTotal)}</strong>
+                    <span style="color: #333;">Extra Bed (${extraBeds} bed${extraBeds > 1 ? 's' : ''} × ${item.nights} night${item.nights > 1 ? 's' : ''} @ ${formatPesoLocal(extraBedCost)} — ${item.roomName || 'Room'})</span>
+                    <strong style="color: #b2945b;">${formatPesoLocal(itemExtraTotal)}</strong>
                 `;
                 extraBedRows.appendChild(row);
             });
 
             const roomsSubtotal = parseFloat(document.getElementById('rooms-subtotal')?.textContent.replace(/[₱,]/g, '') || '0');
             const serverTotal = parseFloat(totalEl.dataset.serverTotal || '0');
-            const displayTotal = parseFloat(totalEl.dataset.displayTotal || '0');
-            const baseTotal = Math.max(serverTotal, displayTotal, roomsSubtotal);
+            const displayTotalStored = parseFloat(totalEl.dataset.displayTotal || '0');
+            const baseTotal = Math.max(serverTotal, displayTotalStored, roomsSubtotal);
             const computedTotal = roomsSubtotal + extraBedTotal;
 
             if (computedTotal > baseTotal) {
-                totalEl.textContent = formatPeso(computedTotal);
+                totalEl.textContent = formatPesoLocal(computedTotal);
             }
         })();
     </script>

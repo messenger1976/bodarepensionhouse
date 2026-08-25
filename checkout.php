@@ -162,7 +162,7 @@ include __DIR__ . '/includes/site-head.php';
                                 ">
                                     <option value="pay_at_hotel">Pay at the Hotel</option>
                                     <option value="card">Credit/Debit Card</option>
-                                    <option value="gcash">GCash</option>
+                                    <option value="gcash">GCash / QR Ph</option>
                                 </select>
                             </div>
                             
@@ -207,9 +207,10 @@ include __DIR__ . '/includes/site-head.php';
                                 border-radius: 4px;
                                 margin-top: 1rem;
                             ">
-                                <strong>Pay with GCash (PayMongo):</strong>
-                                After you confirm, your reservation will be created and you will be redirected to PayMongo’s secure checkout to pay with GCash.
-                                Your booking stays pending until payment is completed.
+                                <strong>Pay with GCash / QR Ph:</strong>
+                                <span id="gcash-payment-message-text">
+                                    After you confirm, your reservation and invoice will be created. You will see a QR Ph code on the next page to scan with GCash (or any QR Ph app). Your booking stays pending until payment is completed.
+                                </span>
                             </div>
                             
                             <button type="submit" id="confirm-reservation-btn" class="cta-button" style="margin-top: 1.5rem;">Confirm Reservation</button>
@@ -233,8 +234,8 @@ include __DIR__ . '/includes/site-head.php';
 ?>
     
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="api-config.js"></script>
-    <script src="booking-api.js"></script>
+    <script src="api-config.js?v=<?php echo @filemtime(__DIR__ . '/api-config.js') ?: time(); ?>"></script>
+    <script src="booking-api.js?v=<?php echo @filemtime(__DIR__ . '/booking-api.js') ?: time(); ?>"></script>
     <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
     <script>
         // Check if user is logged in and update UI
@@ -527,14 +528,23 @@ include __DIR__ . '/includes/site-head.php';
                 if (cardFields) cardFields.style.display = method === 'card' ? 'block' : 'none';
                 if (payAtHotelMessage) payAtHotelMessage.style.display = method === 'pay_at_hotel' ? 'block' : 'none';
                 if (gcashMessage) gcashMessage.style.display = method === 'gcash' ? 'block' : 'none';
+                const gcashText = document.getElementById('gcash-payment-message-text');
+                const retryBooking = sessionStorage.getItem('paymongo_retry_booking');
                 if (confirmBtn) {
                     if (method === 'gcash') {
-                        confirmBtn.textContent = 'Continue to GCash Payment';
+                        confirmBtn.textContent = retryBooking
+                            ? ('Retry QR Payment (' + retryBooking + ')')
+                            : 'Continue to QR Payment';
                     } else if (method === 'card') {
                         confirmBtn.textContent = 'Confirm & Pay by Card';
                     } else {
                         confirmBtn.textContent = 'Confirm Reservation';
                     }
+                }
+                if (gcashText) {
+                    gcashText.textContent = retryBooking
+                        ? (' Booking ' + retryBooking + ' is saved. Click the button below to open the QR Ph code again and finish payment with GCash.')
+                        : ' After you confirm, your reservation and invoice will be created. You will see a QR Ph code on the next page to scan with GCash (or any QR Ph app). Your booking stays pending until payment is completed.';
                 }
             };
             
@@ -548,13 +558,13 @@ include __DIR__ . '/includes/site-head.php';
                 syncPaymentMethodUI(paymentMethod.value);
             }
 
-            // Show notice if guest cancelled PayMongo checkout
+            // Show notice if guest cancelled / returned without paying
             const params = new URLSearchParams(window.location.search);
             if (params.get('payment') === 'cancelled') {
                 const bookingRef = params.get('booking') || '';
                 const msg = bookingRef
-                    ? `GCash payment was cancelled. Your booking ${bookingRef} is still reserved as pending. Select GCash and click Continue to retry payment, or choose Pay at the Hotel.`
-                    : 'GCash payment was cancelled. You can try again or choose another payment method.';
+                    ? `QR payment was not completed. Your booking ${bookingRef} is still reserved as pending. Select GCash / QR Ph and click Continue to retry, or choose Pay at the Hotel.`
+                    : 'QR payment was not completed. You can try again or choose another payment method.';
                 if (typeof showMessage === 'function') {
                     showMessage(msg, 'error');
                 } else {
@@ -569,7 +579,7 @@ include __DIR__ . '/includes/site-head.php';
                 }
             }
 
-            // Retry GCash for an existing pending booking (after PayMongo cancel)
+            // Retry QRPH for an existing pending booking
             const checkoutForm = document.getElementById('checkout-login-form');
             if (checkoutForm) {
                 checkoutForm.addEventListener('submit', async (e) => {
@@ -582,29 +592,37 @@ include __DIR__ . '/includes/site-head.php';
                     e.stopImmediatePropagation();
                     if (confirmBtn) {
                         confirmBtn.disabled = true;
-                        confirmBtn.textContent = 'Redirecting to GCash…';
+                        confirmBtn.textContent = 'Opening QR payment…';
                     }
                     try {
-                        const result = await API.payment.createGcashCheckout({ booking_number: retryBooking });
+                        const result = await API.payment.createQrph({
+                            booking_number: retryBooking,
+                            regenerate: true
+                        });
                         if (result.already_paid) {
                             sessionStorage.removeItem('paymongo_retry_booking');
                             window.location.href = `booking-confirmation.php?booking=${encodeURIComponent(retryBooking)}&payment=success`;
                             return;
                         }
-                        if (result.success && result.checkout_url) {
+                        if (result.success && (result.qr_image_url || (result.payment && result.payment.qr_image_url))) {
                             sessionStorage.removeItem('paymongo_retry_booking');
-                            if (result.checkout_session_id) {
-                                sessionStorage.setItem('paymongo_session_id', result.checkout_session_id);
+                            const payment = result.payment || result;
+                            try {
+                                sessionStorage.setItem('paymongo_qrph_payment', JSON.stringify(payment));
+                            } catch (err) {}
+                            if (payment.payment_intent_id) {
+                                sessionStorage.setItem('paymongo_payment_intent_id', payment.payment_intent_id);
                             }
-                            window.location.href = result.checkout_url;
+                            const invQs = payment.invoice_id ? `&invoice=${encodeURIComponent(payment.invoice_id)}` : '';
+                            window.location.href = `booking-confirmation.php?booking=${encodeURIComponent(retryBooking)}&payment=qrph${invQs}`;
                             return;
                         }
-                        throw new Error(result.message || 'Unable to restart GCash payment.');
+                        throw new Error(result.message || 'Unable to restart QR Ph payment.');
                     } catch (err) {
                         if (typeof showMessage === 'function') {
-                            showMessage(err.message || 'Unable to restart GCash payment.', 'error');
+                            showMessage(err.message || 'Unable to restart QR Ph payment.', 'error');
                         } else {
-                            alert(err.message || 'Unable to restart GCash payment.');
+                            alert(err.message || 'Unable to restart QR Ph payment.');
                         }
                         if (confirmBtn) {
                             confirmBtn.disabled = false;

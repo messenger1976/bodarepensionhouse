@@ -147,11 +147,22 @@ class Invoice extends CI_Controller {
         $items = $this->Invoice_item_model->get_by_invoice($invoice->id);
         $payments = $this->Payment_model->get_by_invoice($invoice->id);
 
+        $online_payment = null;
+        $balance = isset($invoice->balance_due) ? (float) $invoice->balance_due : 0;
+        if ($balance > 0 && !empty($invoice->booking_id)) {
+            $this->load->library('paymongo_service');
+            $online_payment = $this->paymongo_service->get_online_payment_for_booking((int) $invoice->booking_id);
+            if ($online_payment) {
+                $online_payment['invoice_id'] = (int) $invoice->id;
+            }
+        }
+
         echo json_encode(array(
             'success' => true,
             'invoice' => $this->Invoice_model->format_for_api($invoice, true),
             'items' => $this->Invoice_model->format_items_for_api($items),
-            'payments' => $this->Invoice_model->format_payments_for_api($payments)
+            'payments' => $this->Invoice_model->format_payments_for_api($payments),
+            'online_payment' => $online_payment
         ));
     }
 

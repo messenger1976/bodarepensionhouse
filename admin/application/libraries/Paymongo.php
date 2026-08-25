@@ -197,6 +197,213 @@ class Paymongo {
     }
 
     /**
+     * Create a Payment Intent for QRPH (amount in PHP pesos).
+     *
+     * @return array|false { id, client_key, status, raw }
+     */
+    public function create_payment_intent($amount_php, $description = '', $metadata = array()) {
+        $this->last_error = '';
+        if (!$this->is_configured()) {
+            $this->last_error = 'PayMongo is not enabled or secret key is missing.';
+            return false;
+        }
+
+        $amount_centavos = (int) round(((float) $amount_php) * 100);
+        if ($amount_centavos < 2000) {
+            $this->last_error = 'Payment amount must be at least ₱20.00.';
+            return false;
+        }
+
+        $attributes = array(
+            'amount' => $amount_centavos,
+            'currency' => 'PHP',
+            'payment_method_allowed' => array('qrph'),
+            'description' => $description !== '' ? substr((string) $description, 0, 255) : 'Room reservation',
+            'statement_descriptor' => 'BODARE'
+        );
+        if (!empty($metadata) && is_array($metadata)) {
+            $attributes['metadata'] = $metadata;
+        }
+
+        $response = $this->request('POST', '/v1/payment_intents', array(
+            'data' => array('attributes' => $attributes)
+        ));
+        if ($response === false) {
+            return false;
+        }
+
+        $data = isset($response['data']) ? $response['data'] : null;
+        if (!$data || empty($data['id'])) {
+            $this->last_error = 'Unexpected PayMongo response when creating payment intent.';
+            return false;
+        }
+
+        $attrs = isset($data['attributes']) ? $data['attributes'] : array();
+        return array(
+            'id' => $data['id'],
+            'client_key' => isset($attrs['client_key']) ? $attrs['client_key'] : null,
+            'status' => isset($attrs['status']) ? $attrs['status'] : null,
+            'raw' => $data
+        );
+    }
+
+    /**
+     * Create a QRPH Payment Method (secret key).
+     *
+     * @return array|false { id, raw }
+     */
+    public function create_qrph_payment_method($expiry_seconds = 1800) {
+        $this->last_error = '';
+        if (!$this->is_configured()) {
+            $this->last_error = 'PayMongo is not enabled or secret key is missing.';
+            return false;
+        }
+
+        $expiry_seconds = (int) $expiry_seconds;
+        if ($expiry_seconds < 60) {
+            $expiry_seconds = 60;
+        }
+        if ($expiry_seconds > 9000) {
+            $expiry_seconds = 9000;
+        }
+
+        $response = $this->request('POST', '/v1/payment_methods', array(
+            'data' => array(
+                'attributes' => array(
+                    'type' => 'qrph',
+                    'expiry_seconds' => $expiry_seconds
+                )
+            )
+        ));
+        if ($response === false) {
+            return false;
+        }
+
+        $data = isset($response['data']) ? $response['data'] : null;
+        if (!$data || empty($data['id'])) {
+            $this->last_error = 'Unexpected PayMongo response when creating QRPH payment method.';
+            return false;
+        }
+
+        return array(
+            'id' => $data['id'],
+            'raw' => $data
+        );
+    }
+
+    /**
+     * Attach a payment method to a payment intent.
+     *
+     * @return array|false Intent resource data
+     */
+    public function attach_payment_method($intent_id, $method_id, $client_key = null) {
+        $this->last_error = '';
+        if (!$this->is_configured()) {
+            $this->last_error = 'PayMongo is not enabled or secret key is missing.';
+            return false;
+        }
+        if (!$intent_id || !$method_id) {
+            $this->last_error = 'Payment intent and payment method are required.';
+            return false;
+        }
+
+        $attributes = array(
+            'payment_method' => $method_id
+        );
+        if ($client_key) {
+            $attributes['client_key'] = $client_key;
+        }
+
+        $response = $this->request(
+            'POST',
+            '/v1/payment_intents/' . rawurlencode($intent_id) . '/attach',
+            array('data' => array('attributes' => $attributes))
+        );
+        if ($response === false) {
+            return false;
+        }
+
+        return isset($response['data']) ? $response['data'] : false;
+    }
+
+    public function retrieve_payment_intent($intent_id) {
+        $this->last_error = '';
+        if (!$intent_id) {
+            $this->last_error = 'Payment intent ID is required.';
+            return false;
+        }
+
+        $response = $this->request('GET', '/v1/payment_intents/' . rawurlencode($intent_id));
+        if ($response === false) {
+            return false;
+        }
+
+        return isset($response['data']) ? $response['data'] : false;
+    }
+
+    public function intent_is_paid($intent) {
+        if (!$intent || !is_array($intent)) {
+            return false;
+        }
+        $attrs = isset($intent['attributes']) ? $intent['attributes'] : array();
+        $status = isset($attrs['status']) ? strtolower((string) $attrs['status']) : '';
+        return in_array($status, array('succeeded', 'paid'), true);
+    }
+
+    /**
+     * Extract QR image URL + related fields from an attached Payment Intent.
+     *
+     * @return array|null
+     */
+    public function extract_qrph_from_intent($intent) {
+        if (!$intent || !is_array($intent)) {
+            return null;
+        }
+        $attrs = isset($intent['attributes']) ? $intent['attributes'] : array();
+        $next = isset($attrs['next_action']) ? $attrs['next_action'] : null;
+        if (!$next || !is_array($next)) {
+            return null;
+        }
+
+        $image = null;
+        if (!empty($next['code']['image_url'])) {
+            $image = $next['code']['image_url'];
+        } elseif (!empty($next['redirect']['url'])) {
+            // Fallback unused for QRPH, but keep shape safe
+            $image = null;
+        }
+
+        if (!$image) {
+            return null;
+        }
+
+        // Ensure usable as <img src>
+        if (strpos($image, 'data:') !== 0 && preg_match('/^[A-Za-z0-9+\/=]+$/', $image)) {
+            $image = 'data:image/png;base64,' . $image;
+        }
+
+        return array(
+            'qr_image_url' => $image,
+            'status' => isset($attrs['status']) ? $attrs['status'] : null,
+            'client_key' => isset($attrs['client_key']) ? $attrs['client_key'] : null
+        );
+    }
+
+    public function get_intent_payment_id($intent) {
+        if (!$intent || !is_array($intent)) {
+            return null;
+        }
+        $attrs = isset($intent['attributes']) ? $intent['attributes'] : array();
+        if (!empty($attrs['payments'][0]['id'])) {
+            return $attrs['payments'][0]['id'];
+        }
+        if (!empty($attrs['payments'][0]) && is_string($attrs['payments'][0])) {
+            return $attrs['payments'][0];
+        }
+        return isset($intent['id']) ? $intent['id'] : null;
+    }
+
+    /**
      * Optional webhook signature check (Paymongo-Signature header).
      * If no webhook secret is configured, returns true (rely on session retrieve).
      */

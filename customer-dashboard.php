@@ -1352,6 +1352,7 @@ include __DIR__ . '/includes/site-head.php';
                 const inv = response.invoice;
                 const items = response.items || [];
                 const payments = response.payments || [];
+                const onlinePayment = response.online_payment || null;
 
                 if (detailTitle) detailTitle.textContent = 'Invoice ' + inv.invoice_number;
 
@@ -1373,6 +1374,24 @@ include __DIR__ . '/includes/site-head.php';
                         </tr>`).join('')
                     : '<tr><td colspan="3" style="padding:0.5rem 0;color:#999;">No payments recorded yet</td></tr>';
 
+                let qrphHtml = '';
+                const balanceDue = parseFloat(inv.balance_due || 0);
+                if (balanceDue > 0 && onlinePayment && onlinePayment.method === 'qrph') {
+                    const hasQr = !!onlinePayment.qr_image_url;
+                    qrphHtml = `
+                        <div id="invoice-qrph-panel" style="background:#e8f4fd;border:1px solid #b6d9f2;border-radius:8px;padding:1.25rem;margin-bottom:1.5rem;text-align:center;">
+                            <h4 style="margin:0 0 0.5rem;color:#0c5460;">Pay with GCash / QR Ph</h4>
+                            <p style="margin:0 0 1rem;color:#0c5460;font-size:0.95rem;">Scan this code in GCash or any QR Ph app. Booking stays pending until paid.</p>
+                            ${hasQr
+                                ? `<img id="invoice-qrph-image" src="${escapeHtml(onlinePayment.qr_image_url)}" alt="QR Ph payment" style="max-width:260px;width:100%;height:auto;border:1px solid #fff;border-radius:8px;background:#fff;">`
+                                : `<p id="invoice-qrph-missing" style="color:#856404;margin:0 0 1rem;">QR code expired or unavailable.</p>`}
+                            <p style="margin:0.75rem 0 0;font-weight:700;color:#b2945b;">Amount due: ₱${formatInvoiceMoney(onlinePayment.amount != null ? onlinePayment.amount : inv.balance_due)}</p>
+                            ${onlinePayment.expires_at ? `<p style="margin:0.35rem 0 0;color:#666;font-size:0.85rem;">Expires: ${escapeHtml(onlinePayment.expires_at)}</p>` : ''}
+                            <p id="invoice-qrph-poll" style="margin:0.75rem 0 0;color:#0c5460;font-size:0.9rem;">Waiting for payment…</p>
+                            <button type="button" id="invoice-qrph-regenerate" class="cta-button" style="margin-top:1rem;background:#1a2238;">${hasQr ? 'Refresh / New QR' : 'Generate QR Code'}</button>
+                        </div>`;
+                }
+
                 detailContent.innerHTML = `
                     <div style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:1.5rem;">
                         <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
@@ -1381,10 +1400,11 @@ include __DIR__ . '/includes/site-head.php';
                                 ${inv.guest_email ? `<p style="margin:0;color:#666;">${escapeHtml(inv.guest_email)}</p>` : ''}
                             </div>
                             <div style="text-align:right;">
-                                <p style="margin:0;"><strong>Status:</strong> ${escapeHtml(inv.status)}</p>
+                                <p style="margin:0;"><strong>Status:</strong> <span id="invoice-detail-status">${escapeHtml(inv.status)}</span></p>
                                 <p style="margin:0.25rem 0 0;color:#666;">Due: ${inv.due_date ? formatInvoiceDate(inv.due_date) : 'Upon receipt'}</p>
                             </div>
                         </div>
+                        ${qrphHtml}
                         <div style="overflow-x:auto;margin-bottom:1.5rem;">
                             <table style="width:100%;border-collapse:collapse;font-size:0.95rem;">
                                 <thead>
@@ -1402,8 +1422,8 @@ include __DIR__ . '/includes/site-head.php';
                                     ${inv.tax_amount > 0 ? `<tr><td colspan="3" style="padding:0.5rem;text-align:right;">Tax</td><td style="padding:0.5rem;text-align:right;">₱${formatInvoiceMoney(inv.tax_amount)}</td></tr>` : ''}
                                     ${inv.service_charge_amount > 0 ? `<tr><td colspan="3" style="padding:0.5rem;text-align:right;">Service Charge</td><td style="padding:0.5rem;text-align:right;">₱${formatInvoiceMoney(inv.service_charge_amount)}</td></tr>` : ''}
                                     <tr><td colspan="3" style="padding:0.75rem;text-align:right;font-weight:bold;">Total</td><td style="padding:0.75rem;text-align:right;font-weight:bold;">₱${formatInvoiceMoney(inv.total_amount)}</td></tr>
-                                    <tr><td colspan="3" style="padding:0.5rem;text-align:right;color:#059669;">Amount Paid</td><td style="padding:0.5rem;text-align:right;color:#059669;">₱${formatInvoiceMoney(inv.amount_paid)}</td></tr>
-                                    <tr><td colspan="3" style="padding:0.75rem;text-align:right;font-weight:bold;color:#c62828;">Balance Due</td><td style="padding:0.75rem;text-align:right;font-weight:bold;color:#c62828;">₱${formatInvoiceMoney(inv.balance_due)}</td></tr>
+                                    <tr><td colspan="3" style="padding:0.5rem;text-align:right;color:#059669;">Amount Paid</td><td id="invoice-amount-paid" style="padding:0.5rem;text-align:right;color:#059669;">₱${formatInvoiceMoney(inv.amount_paid)}</td></tr>
+                                    <tr><td colspan="3" style="padding:0.75rem;text-align:right;font-weight:bold;color:#c62828;">Balance Due</td><td id="invoice-balance-due" style="padding:0.75rem;text-align:right;font-weight:bold;color:#c62828;">₱${formatInvoiceMoney(inv.balance_due)}</td></tr>
                                 </tfoot>
                             </table>
                         </div>
@@ -1415,8 +1435,97 @@ include __DIR__ . '/includes/site-head.php';
                         ${inv.notes ? `<p style="color:#666;font-size:0.9rem;margin:0;"><strong>Notes:</strong> ${escapeHtml(inv.notes)}</p>` : ''}
                         <p style="margin-top:1.5rem;font-size:0.85rem;color:#888;">For payment inquiries, please contact the front desk or reply to your invoice email.</p>
                     </div>`;
+
+                if (qrphHtml && typeof API !== 'undefined' && API.payment) {
+                    bindInvoiceQrphHandlers(inv, onlinePayment);
+                }
             } catch (error) {
                 detailContent.innerHTML = `<div style="color:#c62828;padding:2rem;text-align:center;"><p>${escapeHtml(error.message || 'Failed to load invoice')}</p></div>`;
+            }
+        }
+
+        function bindInvoiceQrphHandlers(inv, onlinePayment) {
+            const regenBtn = document.getElementById('invoice-qrph-regenerate');
+            const pollEl = document.getElementById('invoice-qrph-poll');
+            let intentId = onlinePayment && onlinePayment.payment_intent_id ? onlinePayment.payment_intent_id : '';
+            let pollTimer = null;
+
+            const stopPoll = () => { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } };
+
+            const markInvoicePaid = async () => {
+                stopPoll();
+                if (pollEl) pollEl.textContent = 'Payment received! Refreshing invoice…';
+                try {
+                    await loadInvoiceDetail(inv.id);
+                } catch (e) {
+                    const statusEl = document.getElementById('invoice-detail-status');
+                    if (statusEl) statusEl.textContent = 'paid';
+                    const panel = document.getElementById('invoice-qrph-panel');
+                    if (panel) {
+                        panel.innerHTML = '<h4 style="margin:0;color:#155724;">Payment complete</h4><p style="margin:0.5rem 0 0;color:#155724;">This invoice is paid.</p>';
+                        panel.style.background = '#d4edda';
+                        panel.style.borderColor = '#c3e6cb';
+                    }
+                }
+            };
+
+            const poll = async () => {
+                try {
+                    const result = await API.payment.verify({
+                        booking_number: onlinePayment.booking_number || '',
+                        payment_intent_id: intentId
+                    });
+                    if (result && result.paid) {
+                        await markInvoicePaid();
+                    } else if (pollEl) {
+                        pollEl.textContent = 'Waiting for payment… ' + (result.intent_status || inv.status || '');
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            };
+
+            if (intentId || (onlinePayment && onlinePayment.booking_number)) {
+                poll();
+                pollTimer = setInterval(poll, 5000);
+            }
+
+            if (regenBtn) {
+                regenBtn.addEventListener('click', async () => {
+                    regenBtn.disabled = true;
+                    regenBtn.textContent = 'Generating…';
+                    try {
+                        const result = await API.payment.createQrph({
+                            invoice_id: inv.id,
+                            booking_number: onlinePayment.booking_number || '',
+                            regenerate: true
+                        });
+                        if (result.already_paid) {
+                            await markInvoicePaid();
+                            return;
+                        }
+                        const payment = result.payment || result;
+                        intentId = payment.payment_intent_id || intentId;
+                        const img = document.getElementById('invoice-qrph-image');
+                        const missing = document.getElementById('invoice-qrph-missing');
+                        if (payment.qr_image_url) {
+                            if (img) {
+                                img.src = payment.qr_image_url;
+                                img.style.display = 'inline-block';
+                            } else if (missing) {
+                                missing.outerHTML = `<img id="invoice-qrph-image" src="${payment.qr_image_url.replace(/"/g, '&quot;')}" alt="QR Ph payment" style="max-width:260px;width:100%;height:auto;border:1px solid #fff;border-radius:8px;background:#fff;">`;
+                            }
+                        }
+                        if (pollEl) pollEl.textContent = 'Waiting for payment… this page updates automatically.';
+                        stopPoll();
+                        pollTimer = setInterval(poll, 5000);
+                    } catch (error) {
+                        alert(error.message || 'Unable to generate QR code.');
+                    } finally {
+                        regenBtn.disabled = false;
+                        regenBtn.textContent = 'Refresh / New QR';
+                    }
+                });
             }
         }
 

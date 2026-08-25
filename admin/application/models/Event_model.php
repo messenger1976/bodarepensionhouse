@@ -131,7 +131,7 @@ class Event_model extends CI_Model {
         $this->db->from('events');
         $this->db->join('bookings', 'bookings.id = events.booking_id', 'left');
         $this->db->where('events.event_date >=', $start_date);
-        $this->db->where('events.event_date <=', $end_date);
+        $this->db->where('events.event_date <', $end_date);
 
         if (!$include_cancelled) {
             $this->db->where('events.status !=', 'cancelled');

@@ -3068,6 +3068,8 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
         /* Unified Hotel Calendar entries */
         .fc-event.cal-room {
             border-left: 3px solid rgba(255, 255, 255, 0.55) !important;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: #fff;
         }
 
         .fc-event.cal-event {

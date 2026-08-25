@@ -36,7 +36,7 @@
         <div class="col-md-4">
             <label class="form-label">Payment Method *</label>
             <select name="payment_method" class="form-select" required>
-                <?php foreach (array('cash','card','gcash','bank_transfer') as $m): ?>
+                <?php foreach (array('cash','card','gcash','qrph','bank_transfer') as $m): ?>
                 <option value="<?php echo $m; ?>" <?php echo set_select('payment_method', $m, $payment->payment_method === $m); ?>><?php echo ucfirst(str_replace('_', ' ', $m)); ?></option>
                 <?php endforeach; ?>
             </select>

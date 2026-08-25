@@ -120,6 +120,80 @@ class Billing_service {
     }
 
     /**
+     * Ensure an issued unpaid invoice exists for online QRPH (even if booking is still pending).
+     * Does not depend on auto_create_invoice setting — required for My Invoices QR display.
+     *
+     * @return array|null ['created'=>bool, 'invoice_id'=>int, 'invoice_number'=>string]
+     */
+    public function ensure_issued_invoice_for_booking($booking_id, $admin_id = null) {
+        $booking_id = (int) $booking_id;
+        if ($booking_id <= 0 || !$this->CI->db->table_exists('invoices')) {
+            return null;
+        }
+
+        $booking = $this->CI->Booking_model->get_booking($booking_id);
+        if (!$booking || strtolower((string) $booking->status) === 'cancelled') {
+            return null;
+        }
+
+        $existing = $this->CI->Invoice_model->get_primary_for_booking($booking_id);
+        if ($existing) {
+            if ($existing->status === 'draft') {
+                $this->CI->Invoice_model->issue((int) $existing->id);
+                $existing = $this->CI->Invoice_model->get((int) $existing->id);
+            }
+            return array(
+                'created' => false,
+                'invoice_id' => (int) $existing->id,
+                'invoice_number' => $existing->invoice_number,
+                'emailed' => false,
+                'skipped' => 'already_exists'
+            );
+        }
+
+        $booking_items = $this->CI->db->table_exists('booking_items')
+            ? $this->CI->Booking_item_model->get_booking_items($booking_id)
+            : array();
+
+        $rates = $this->CI->Invoice_model->get_default_rates();
+        $items = $this->CI->Invoice_model->build_items_from_booking($booking, $booking_items);
+
+        if (empty($items)) {
+            log_message('warning', 'QRPH invoice skipped for booking #' . $booking_id . ': no line items.');
+            return null;
+        }
+
+        $invoice_id = $this->CI->Invoice_model->create(array(
+            'booking_id' => $booking_id,
+            'guest_name' => $booking->guest_name,
+            'guest_email' => $booking->guest_email,
+            'guest_phone' => $booking->guest_phone,
+            'tax_rate' => $rates['tax_rate'],
+            'service_charge_rate' => $rates['service_charge_rate'],
+            'discount_amount' => 0,
+            'due_date' => date('Y-m-d', strtotime('+7 days')),
+            'notes' => 'Online QR Ph payment invoice for booking ' . ($booking->booking_number ?: ('#' . $booking_id)),
+            'status' => 'draft',
+            'admin_id' => $admin_id
+        ), $items);
+
+        if (!$invoice_id) {
+            log_message('error', 'QRPH invoice create failed for booking #' . $booking_id);
+            return null;
+        }
+
+        $this->CI->Invoice_model->issue($invoice_id);
+        $invoice = $this->CI->Invoice_model->get($invoice_id);
+
+        return array(
+            'created' => true,
+            'invoice_id' => (int) $invoice_id,
+            'invoice_number' => $invoice->invoice_number,
+            'emailed' => false
+        );
+    }
+
+    /**
      * Resolve initial booking status from booking settings (API/public bookings).
      */
     public function resolve_initial_booking_status() {
