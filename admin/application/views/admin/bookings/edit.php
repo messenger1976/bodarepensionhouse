@@ -134,18 +134,6 @@
                 $edit_co_time = substr($edit_co_time, 0, 5);
             }
             ?>
-            <div class="row g-3 mb-3">
-                <div class="col-md-3">
-                    <label for="check_in_time" class="form-label small fw-bold">Check-In Time *</label>
-                    <input type="time" class="form-control" id="check_in_time" name="check_in_time"
-                        value="<?php echo htmlspecialchars($edit_ci_time); ?>" required>
-                </div>
-                <div class="col-md-3">
-                    <label for="check_out_time" class="form-label small fw-bold">Check-Out Time *</label>
-                    <input type="time" class="form-control" id="check_out_time" name="check_out_time"
-                        value="<?php echo htmlspecialchars($edit_co_time); ?>" required>
-                </div>
-            </div>
             
             <div id="rooms-container">
                 <!-- Room selection rows will be populated from existing booking items or default -->
@@ -176,10 +164,15 @@
                     }
                     
                     foreach ($grouped_items as $grouped_item):
+                        $is_first_room_row = ($room_index === 0);
+                        $item_check_in = new DateTime($grouped_item['check_in']);
+                        $item_check_out = new DateTime($grouped_item['check_out']);
+                        $item_nights = max(1, (int) $item_check_in->diff($item_check_out)->days);
+                        $item_subtotal = $grouped_item['price_per_night'] * $item_nights * $grouped_item['quantity'];
                 ?>
                 <div class="room-row mb-3 p-3 border rounded" data-room-index="<?php echo $room_index; ?>">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label small fw-bold">Select Room *</label>
                             <select class="form-select room-select" name="room_selections[<?php echo $room_index; ?>][room_id]" data-index="<?php echo $room_index; ?>" required>
                                 <option value="">-- Choose a room --</option>
@@ -190,43 +183,52 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label small fw-bold">Check-In Date *</label>
-                            <input type="date" class="form-control room-checkin" name="room_selections[<?php echo $room_index; ?>][check_in]" value="<?php echo $grouped_item['check_in']; ?>" data-index="<?php echo $room_index; ?>" required>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Check-In *</label>
+                            <div class="row g-1">
+                                <div class="col-7">
+                                    <input type="date" class="form-control room-checkin" name="room_selections[<?php echo $room_index; ?>][check_in]" value="<?php echo $grouped_item['check_in']; ?>" data-index="<?php echo $room_index; ?>" required title="Check-in date">
+                                </div>
+                                <div class="col-5">
+                                    <input type="time" class="form-control room-checkin-time"
+                                        <?php if ($is_first_room_row): ?>id="check_in_time" name="check_in_time" required<?php endif; ?>
+                                        value="<?php echo htmlspecialchars($edit_ci_time); ?>" title="Check-in time">
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label small fw-bold">Check-Out Date *</label>
-                            <input type="date" class="form-control room-checkout" name="room_selections[<?php echo $room_index; ?>][check_out]" value="<?php echo $grouped_item['check_out']; ?>" data-index="<?php echo $room_index; ?>" required>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Check-Out *</label>
+                            <div class="row g-1">
+                                <div class="col-7">
+                                    <input type="date" class="form-control room-checkout" name="room_selections[<?php echo $room_index; ?>][check_out]" value="<?php echo $grouped_item['check_out']; ?>" data-index="<?php echo $room_index; ?>" required title="Check-out date">
+                                </div>
+                                <div class="col-5">
+                                    <input type="time" class="form-control room-checkout-time"
+                                        <?php if ($is_first_room_row): ?>id="check_out_time" name="check_out_time" required<?php endif; ?>
+                                        value="<?php echo htmlspecialchars($edit_co_time); ?>" title="Check-out time">
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-1">
                             <label class="form-label small fw-bold">Guests</label>
                             <input type="number" class="form-control room-guests" name="room_selections[<?php echo $room_index; ?>][guests]" value="<?php echo $grouped_item['guests']; ?>" min="1" data-index="<?php echo $room_index; ?>" required>
                         </div>
                         <div class="col-md-1">
-                            <label class="form-label small fw-bold">Quantity</label>
+                            <label class="form-label small fw-bold">Qty</label>
                             <input type="number" class="form-control room-quantity" name="room_selections[<?php echo $room_index; ?>][quantity]" value="<?php echo $grouped_item['quantity']; ?>" min="1" data-index="<?php echo $room_index; ?>" required>
                         </div>
                         <div class="col-md-1">
                             <label class="form-label small fw-bold">Price/Night</label>
                             <input type="text" class="form-control room-price-display" readonly value="₱<?php echo number_format($grouped_item['price_per_night'], 2); ?>" style="font-size: 0.85rem;">
                         </div>
-                        <div class="col-md-1">
+                        <div class="col">
                             <label class="form-label small fw-bold">Subtotal</label>
-                            <?php 
-                            // Calculate subtotal for this grouped item
-                            $item_check_in = new DateTime($grouped_item['check_in']);
-                            $item_check_out = new DateTime($grouped_item['check_out']);
-                            $item_nights = $item_check_in->diff($item_check_out)->days;
-                            $item_nights = max($item_nights, 1);
-                            $item_subtotal = $grouped_item['price_per_night'] * $item_nights * $grouped_item['quantity'];
-                            ?>
-                            <input type="text" class="form-control room-subtotal" readonly value="₱<?php echo number_format($item_subtotal, 2); ?>" style="font-weight: bold; font-size: 0.85rem;">
-                        </div>
-                        <div class="col-md-1">
-                            <label class="form-label small fw-bold">&nbsp;</label>
-                            <button type="button" class="btn btn-sm btn-danger remove-room-btn w-100">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            <div class="d-flex gap-1">
+                                <input type="text" class="form-control room-subtotal" readonly value="₱<?php echo number_format($item_subtotal, 2); ?>" style="font-weight: bold; font-size: 0.85rem;">
+                                <button type="button" class="btn btn-sm btn-danger remove-room-btn">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -238,7 +240,7 @@
                 ?>
                 <div class="room-row mb-3 p-3 border rounded" data-room-index="0">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label small fw-bold">Select Room *</label>
                             <select class="form-select room-select" name="room_selections[0][room_id]" data-index="0" required>
                                 <option value="">-- Choose a room --</option>
@@ -249,35 +251,50 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label small fw-bold">Check-In Date *</label>
-                            <input type="date" class="form-control room-checkin" name="room_selections[0][check_in]" value="<?php echo $booking->check_in; ?>" data-index="0" required>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Check-In *</label>
+                            <div class="row g-1">
+                                <div class="col-7">
+                                    <input type="date" class="form-control room-checkin" name="room_selections[0][check_in]" value="<?php echo $booking->check_in; ?>" data-index="0" required title="Check-in date">
+                                </div>
+                                <div class="col-5">
+                                    <input type="time" class="form-control room-checkin-time" id="check_in_time" name="check_in_time"
+                                        value="<?php echo htmlspecialchars($edit_ci_time); ?>" required title="Check-in time">
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label small fw-bold">Check-Out Date *</label>
-                            <input type="date" class="form-control room-checkout" name="room_selections[0][check_out]" value="<?php echo $booking->check_out; ?>" data-index="0" required>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">Check-Out *</label>
+                            <div class="row g-1">
+                                <div class="col-7">
+                                    <input type="date" class="form-control room-checkout" name="room_selections[0][check_out]" value="<?php echo $booking->check_out; ?>" data-index="0" required title="Check-out date">
+                                </div>
+                                <div class="col-5">
+                                    <input type="time" class="form-control room-checkout-time" id="check_out_time" name="check_out_time"
+                                        value="<?php echo htmlspecialchars($edit_co_time); ?>" required title="Check-out time">
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-1">
                             <label class="form-label small fw-bold">Guests</label>
                             <input type="number" class="form-control room-guests" name="room_selections[0][guests]" value="<?php echo $booking->guests; ?>" min="1" data-index="0" required>
                         </div>
                         <div class="col-md-1">
-                            <label class="form-label small fw-bold">Quantity</label>
+                            <label class="form-label small fw-bold">Qty</label>
                             <input type="number" class="form-control room-quantity" name="room_selections[0][quantity]" value="<?php echo isset($booking->rooms) ? $booking->rooms : 1; ?>" min="1" data-index="0" required>
                         </div>
                         <div class="col-md-1">
                             <label class="form-label small fw-bold">Price/Night</label>
                             <input type="text" class="form-control room-price-display" readonly value="₱0.00" style="font-size: 0.85rem;">
                         </div>
-                        <div class="col-md-1">
+                        <div class="col">
                             <label class="form-label small fw-bold">Subtotal</label>
-                            <input type="text" class="form-control room-subtotal" readonly value="₱0.00" style="font-weight: bold; font-size: 0.85rem;">
-                        </div>
-                        <div class="col-md-1">
-                            <label class="form-label small fw-bold">&nbsp;</label>
-                            <button type="button" class="btn btn-sm btn-danger remove-room-btn w-100" style="display: none;">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            <div class="d-flex gap-1">
+                                <input type="text" class="form-control room-subtotal" readonly value="₱0.00" style="font-weight: bold; font-size: 0.85rem;">
+                                <button type="button" class="btn btn-sm btn-danger remove-room-btn" style="display: none;">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -514,6 +531,41 @@ document.addEventListener('DOMContentLoaded', function() {
     let roomIndex = <?php echo $room_index; ?>;
     const roomsContainer = document.getElementById('rooms-container');
     const addRoomBtn = document.getElementById('add-room-btn');
+    const defaultCheckInTime = <?php echo json_encode($edit_ci_time); ?>;
+    const defaultCheckOutTime = <?php echo json_encode($edit_co_time); ?>;
+
+    function syncBookingTimeFieldNames() {
+        document.querySelectorAll('.room-checkin-time, .room-checkout-time').forEach(function(el) {
+            el.removeAttribute('name');
+            el.removeAttribute('id');
+            el.required = false;
+        });
+        const firstRow = document.querySelector('.room-row');
+        if (!firstRow) return;
+        const ci = firstRow.querySelector('.room-checkin-time');
+        const co = firstRow.querySelector('.room-checkout-time');
+        if (ci) {
+            ci.name = 'check_in_time';
+            ci.id = 'check_in_time';
+            ci.required = true;
+        }
+        if (co) {
+            co.name = 'check_out_time';
+            co.id = 'check_out_time';
+            co.required = true;
+        }
+    }
+
+    function syncBookingTimesFrom(source) {
+        if (!source) return;
+        const isCheckIn = source.classList.contains('room-checkin-time');
+        const selector = isCheckIn ? '.room-checkin-time' : '.room-checkout-time';
+        document.querySelectorAll(selector).forEach(function(el) {
+            if (el !== source) {
+                el.value = source.value;
+            }
+        });
+    }
 
     // Guests Names List
     let guestIndex = <?php echo !empty($existing_guests) ? count($existing_guests) : 1; ?>;
@@ -639,9 +691,11 @@ document.addEventListener('DOMContentLoaded', function() {
         newRow.className = 'room-row mb-3 p-3 border rounded';
         newRow.setAttribute('data-room-index', roomIndex);
         
-        // Get dates from first room row or use defaults
+        // Get dates/times from first room row or use defaults
         const firstCheckIn = document.querySelector('.room-checkin')?.value || today;
         const firstCheckOut = document.querySelector('.room-checkout')?.value || '';
+        const firstCheckInTime = document.querySelector('.room-checkin-time')?.value || defaultCheckInTime;
+        const firstCheckOutTime = document.querySelector('.room-checkout-time')?.value || defaultCheckOutTime;
         const tomorrow = firstCheckOut || (() => {
             const t = new Date(firstCheckIn);
             t.setDate(t.getDate() + 1);
@@ -650,7 +704,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         newRow.innerHTML = `
             <div class="row g-3 align-items-end">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold">Select Room *</label>
                     <select class="form-select room-select" name="room_selections[${roomIndex}][room_id]" data-index="${roomIndex}" required>
                         <option value="">-- Choose a room --</option>
@@ -661,41 +715,55 @@ document.addEventListener('DOMContentLoaded', function() {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small fw-bold">Check-In Date *</label>
-                    <input type="date" class="form-control room-checkin" name="room_selections[${roomIndex}][check_in]" value="${firstCheckIn}" data-index="${roomIndex}" required>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Check-In *</label>
+                    <div class="row g-1">
+                        <div class="col-7">
+                            <input type="date" class="form-control room-checkin" name="room_selections[${roomIndex}][check_in]" value="${firstCheckIn}" data-index="${roomIndex}" required title="Check-in date">
+                        </div>
+                        <div class="col-5">
+                            <input type="time" class="form-control room-checkin-time" value="${firstCheckInTime}" title="Check-in time">
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small fw-bold">Check-Out Date *</label>
-                    <input type="date" class="form-control room-checkout" name="room_selections[${roomIndex}][check_out]" value="${tomorrow}" data-index="${roomIndex}" required>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Check-Out *</label>
+                    <div class="row g-1">
+                        <div class="col-7">
+                            <input type="date" class="form-control room-checkout" name="room_selections[${roomIndex}][check_out]" value="${tomorrow}" data-index="${roomIndex}" required title="Check-out date">
+                        </div>
+                        <div class="col-5">
+                            <input type="time" class="form-control room-checkout-time" value="${firstCheckOutTime}" title="Check-out time">
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-1">
                     <label class="form-label small fw-bold">Guests</label>
                     <input type="number" class="form-control room-guests" name="room_selections[${roomIndex}][guests]" value="1" min="1" data-index="${roomIndex}" required>
                 </div>
                 <div class="col-md-1">
-                    <label class="form-label small fw-bold">Quantity</label>
+                    <label class="form-label small fw-bold">Qty</label>
                     <input type="number" class="form-control room-quantity" name="room_selections[${roomIndex}][quantity]" value="1" min="1" data-index="${roomIndex}" required>
                 </div>
                 <div class="col-md-1">
                     <label class="form-label small fw-bold">Price/Night</label>
                     <input type="text" class="form-control room-price-display" readonly value="₱0.00" style="font-size: 0.85rem;">
                 </div>
-                <div class="col-md-1">
+                <div class="col">
                     <label class="form-label small fw-bold">Subtotal</label>
-                    <input type="text" class="form-control room-subtotal" readonly value="₱0.00" style="font-weight: bold; font-size: 0.85rem;">
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label small fw-bold">&nbsp;</label>
-                    <button type="button" class="btn btn-sm btn-danger remove-room-btn w-100">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                    <div class="d-flex gap-1">
+                        <input type="text" class="form-control room-subtotal" readonly value="₱0.00" style="font-weight: bold; font-size: 0.85rem;">
+                        <button type="button" class="btn btn-sm btn-danger remove-room-btn">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
         
         roomsContainer.appendChild(newRow);
         updateRemoveButtons();
+        syncBookingTimeFieldNames();
         attachRoomRowEvents(newRow);
         
         // Set up date validation for new row
@@ -726,6 +794,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const roomRow = e.target.closest('.room-row');
             roomRow.remove();
             updateRemoveButtons();
+            syncBookingTimeFieldNames();
             calculateTotals();
         }
     });
@@ -737,8 +806,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const guestsInput = row.querySelector('.room-guests');
         const checkInInput = row.querySelector('.room-checkin');
         const checkOutInput = row.querySelector('.room-checkout');
+        const checkInTimeInput = row.querySelector('.room-checkin-time');
+        const checkOutTimeInput = row.querySelector('.room-checkout-time');
         const priceDisplay = row.querySelector('.room-price-display');
         const subtotalDisplay = row.querySelector('.room-subtotal');
+
+        if (checkInTimeInput) {
+            checkInTimeInput.addEventListener('change', function() {
+                syncBookingTimesFrom(checkInTimeInput);
+            });
+        }
+        if (checkOutTimeInput) {
+            checkOutTimeInput.addEventListener('change', function() {
+                syncBookingTimesFrom(checkOutTimeInput);
+            });
+        }
         
         roomSelect.addEventListener('change', function() {
             calculateRoomSubtotal(row);
@@ -917,6 +999,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Attach events to initial room rows
     document.querySelectorAll('.room-row').forEach(row => attachRoomRowEvents(row));
+    syncBookingTimeFieldNames();
 
     ['extra_beds', 'extra_bed_price'].forEach(function(fieldId) {
         const field = document.getElementById(fieldId);
