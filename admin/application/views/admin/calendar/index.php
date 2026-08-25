@@ -175,6 +175,9 @@ $summary = isset($today_summary) ? $today_summary : array(
                         <span class="text-base">Pending / Inquiry</span>
                     </div>
                 </div>
+                <div class="col-12 mt-1">
+                    <small class="text-soft">Room stay bars start/end mid-day based on check-in and check-out times (e.g. 2:00 PM → 12:00 PM).</small>
+                </div>
             </div>
         </div>
     </div>
@@ -295,7 +298,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<div class="info-row"><span class="info-label">Booking #</span><span class="info-value"><code>' + escapeHtml(p.bookingNumber || '-') + '</code></span></div>' +
                 '<div class="info-row"><span class="info-label">Room</span><span class="info-value">' + escapeHtml(p.roomName || '-') + ' <span class="text-soft">(' + escapeHtml(p.roomCode || '-') + ')</span></span></div>' +
                 '<div class="info-row"><span class="info-label">Type</span><span class="info-value">' + escapeHtml(p.roomType || '-') + '</span></div>' +
-                '<div class="info-row"><span class="info-label">Stay</span><span class="info-value">' + escapeHtml(p.checkIn || '') + ' → ' + escapeHtml(p.checkOut || '') + '</span></div>' +
+                '<div class="info-row"><span class="info-label">Stay</span><span class="info-value">' +
+                    escapeHtml(p.checkIn || '') +
+                    (p.checkInTime ? (' <span class="text-soft">' + escapeHtml(formatTime12(p.checkInTime)) + '</span>') : '') +
+                    ' → ' +
+                    escapeHtml(p.checkOut || '') +
+                    (p.checkOutTime ? (' <span class="text-soft">' + escapeHtml(formatTime12(p.checkOutTime)) + '</span>') : '') +
+                '</span></div>' +
                 '<div class="info-row"><span class="info-label">Guests</span><span class="info-value">' + (p.guests || 1) + '</span></div>' +
                 '<div class="info-row"><span class="info-label">Status</span><span class="info-value"><span class="badge bg-' + statusBadge(p.status) + '">' + capitalize(p.status) + '</span></span></div>' +
                 '<div class="info-row"><span class="info-label">Amount</span><span class="info-value"><strong>' + formatMoney(p.amount) + '</strong></span></div>';
@@ -349,6 +358,76 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
 
+    function timeToDayPercent(timeStr) {
+        if (!timeStr) return 0;
+        var parts = String(timeStr).split(':');
+        var hours = parseInt(parts[0], 10);
+        var minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+        if (isNaN(hours)) return 0;
+        if (isNaN(minutes)) minutes = 0;
+        return Math.max(0, Math.min(100, ((hours * 60 + minutes) / (24 * 60)) * 100));
+    }
+
+    function formatTime12(timeStr) {
+        if (!timeStr) return '';
+        var parts = String(timeStr).split(':');
+        var hours = parseInt(parts[0], 10);
+        var minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+        if (isNaN(hours)) return timeStr;
+        if (isNaN(minutes)) minutes = 0;
+        var suffix = hours >= 12 ? 'PM' : 'AM';
+        var h12 = hours % 12;
+        if (h12 === 0) h12 = 12;
+        return h12 + ':' + (minutes < 10 ? '0' : '') + minutes + ' ' + suffix;
+    }
+
+    function applyPartialDayBar(info) {
+        var p = info.event.extendedProps || {};
+        if (p.source !== 'room') return;
+        if (!info.view || String(info.view.type).indexOf('dayGrid') !== 0) return;
+
+        var el = info.el;
+        if (!el) return;
+
+        // Combine date+time into a fraction of the day for clipping
+        var startPct = timeToDayPercent(p.checkInTime || '14:00');
+        var endPct = timeToDayPercent(p.checkOutTime || '12:00');
+        var isStart = el.classList.contains('fc-event-start');
+        var isEnd = el.classList.contains('fc-event-end');
+
+        // FullCalendar positions day segments via the harness left/right insets
+        var harness = el.closest ? el.closest('.fc-daygrid-event-harness') : null;
+        if (!harness) {
+            harness = el.parentElement;
+        }
+        if (!harness) return;
+
+        function setInset(leftPct, rightPct) {
+            harness.style.marginLeft = '0';
+            harness.style.width = '';
+            harness.style.maxWidth = '';
+            harness.style.inset = '';
+            harness.style.removeProperty('inset');
+            harness.style.setProperty('left', leftPct + '%', 'important');
+            harness.style.setProperty('right', rightPct + '%', 'important');
+            el.style.marginLeft = '';
+            el.style.width = '100%';
+            el.style.maxWidth = '100%';
+        }
+
+        if (isStart && isEnd) {
+            var left = Math.min(startPct, Math.max(endPct - 8, 0));
+            var right = Math.max(0, 100 - Math.max(endPct, left + 8));
+            setInset(left, right);
+        } else if (isStart) {
+            setInset(startPct, 0);
+        } else if (isEnd) {
+            setInset(0, Math.max(0, 100 - endPct));
+        } else {
+            setInset(0, 0);
+        }
+    }
+
     function refreshSummary(dateStr) {
         fetch(calendarSummaryUrl + '?date=' + encodeURIComponent(dateStr || '<?php echo date("Y-m-d"); ?>'), { credentials: 'same-origin' })
             .then(function(r) { return r.json(); })
@@ -377,6 +456,9 @@ document.addEventListener('DOMContentLoaded', function() {
         dayMaxEvents: true,
         nowIndicator: true,
         eventDisplay: 'block',
+        displayEventTime: false,
+        // Keep all-day room bars continuous across nights
+        nextDayThreshold: '00:00:00',
         events: function(info, successCallback, failureCallback) {
             var errorEl = document.getElementById('calendar-feed-error');
             fetch(buildFeedUrl(info), { credentials: 'same-origin' })
@@ -419,6 +501,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     failureCallback(err);
                 });
+        },
+        eventDidMount: function(info) {
+            applyPartialDayBar(info);
         },
         eventClick: function(info) {
             info.jsEvent.preventDefault();

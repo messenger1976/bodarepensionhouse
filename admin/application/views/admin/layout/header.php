@@ -3072,6 +3072,15 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             color: #fff;
         }
 
+        /* Partial-day stay bars (check-in / check-out times via harness left/right) */
+        .fc-daygrid-event.cal-timed-stay {
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .fc-daygrid-event-harness:has(.cal-timed-stay) {
+            overflow: visible;
+        }
+
         .fc-event.cal-event {
             border-left: 3px solid rgba(255, 255, 255, 0.85) !important;
             background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
