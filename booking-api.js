@@ -407,11 +407,21 @@ async function createBooking(bookingData) {
             }
             
             errorMessage = `Sorry, ${roomName} is not available for your chosen dates (${formatDate(checkIn)} to ${formatDate(checkOut)}).${conflictDetails}${availabilityInfo} Please select different dates or try a different room.`;
+        } else if (error.response && error.response.booking_created && error.response.booking_number) {
+            // Booking exists; PayMongo checkout failed — allow retry without a new booking
+            try {
+                sessionStorage.setItem('paymongo_retry_booking', error.response.booking_number);
+                localStorage.setItem('booking_number', error.response.booking_number);
+            } catch (storageError) {
+                console.warn('Unable to store PayMongo retry booking number', storageError);
+            }
+            errorMessage = error.response.message
+                || `Your booking ${error.response.booking_number} was saved, but GCash checkout could not start. Click Continue to GCash Payment again to retry.`;
         } else if (error.response && error.response.message) {
             // Check response message
             const responseMessage = error.response.message.toLowerCase();
             const isOnlinePaymentUnavailable = /gcash|paymongo|online\s+payment/.test(responseMessage)
-                && responseMessage.includes('not available');
+                && (responseMessage.includes('not available') || responseMessage.includes('not configured'));
             if (isOnlinePaymentUnavailable) {
                 errorMessage = error.response.message;
             } else if (responseMessage.includes('not available') || responseMessage.includes('unavailable') || responseMessage.includes('conflict')) {
@@ -425,7 +435,7 @@ async function createBooking(bookingData) {
             // Check error message
             const msg = error.message.toLowerCase();
             const isOnlinePaymentUnavailable = /gcash|paymongo|online\s+payment/.test(msg)
-                && msg.includes('not available');
+                && (msg.includes('not available') || msg.includes('not configured'));
             if (isOnlinePaymentUnavailable) {
                 errorMessage = error.message;
             } else if (msg.includes('not available') || msg.includes('unavailable') || msg.includes('conflict')) {

@@ -231,20 +231,71 @@ class Paymongo {
 
     protected function request($method, $path, $body = null) {
         $url = $this->api_base . $path;
+        $method = strtoupper($method);
+        $payload = ($body !== null) ? json_encode($body) : null;
+        $auth = 'Basic ' . base64_encode($this->secret_key . ':');
+
+        if (function_exists('curl_init')) {
+            $result = $this->request_with_curl($url, $method, $payload, $auth);
+            if ($result !== false) {
+                return $result;
+            }
+            $curl_error = $this->last_error;
+            // Fall through to streams if cURL could not connect
+            if (strpos($curl_error, 'Could not reach PayMongo') === 0) {
+                $fallback = $this->request_with_streams($url, $method, $payload, $auth);
+                if ($fallback !== false) {
+                    return $fallback;
+                }
+                // Keep the more specific transport error
+                if ($curl_error !== '') {
+                    $this->last_error = $curl_error
+                        . ' Hosting must allow outbound HTTPS to api.paymongo.com (port 443).';
+                }
+            }
+            return false;
+        }
+
+        return $this->request_with_streams($url, $method, $payload, $auth);
+    }
+
+    protected function request_with_curl($url, $method, $payload, $auth) {
         $ch = curl_init($url);
+        if ($ch === false) {
+            $this->last_error = 'Could not reach PayMongo: cURL failed to initialize.';
+            return false;
+        }
+
         $headers = array(
             'Accept: application/json',
             'Content-Type: application/json',
-            'Authorization: Basic ' . base64_encode($this->secret_key . ':')
+            'Authorization: ' . $auth
         );
 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 45);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 20);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+        // Prefer IPv4 + HTTP/1.1 — common fixes on shared hosting
+        if (defined('CURL_IPRESOLVE_V4')) {
+            curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+        }
+        if (defined('CURL_HTTP_VERSION_1_1')) {
+            curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+        }
 
-        if ($body !== null) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+        if ($method === 'POST') {
+            curl_setopt($ch, CURLOPT_POST, true);
+        } else {
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        }
+
+        if ($payload !== null) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
         }
 
         $raw = curl_exec($ch);
@@ -253,25 +304,87 @@ class Paymongo {
         $http = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($errno) {
-            $this->last_error = 'Could not reach PayMongo: ' . $error;
-            log_message('error', 'PayMongo cURL error: ' . $error);
+        if ($raw === false || $errno) {
+            $detail = $error;
+            if ($detail === '' && function_exists('curl_strerror')) {
+                $detail = curl_strerror($errno);
+            }
+            if ($detail === '') {
+                $detail = 'cURL error #' . $errno;
+            }
+            $this->last_error = 'Could not reach PayMongo: ' . $detail;
+            log_message('error', 'PayMongo cURL error #' . $errno . ': ' . $detail . ' URL=' . $url);
             return false;
         }
 
+        return $this->decode_paymongo_response($raw, $http);
+    }
+
+    protected function request_with_streams($url, $method, $payload, $auth) {
+        $header_lines = array(
+            'Accept: application/json',
+            'Content-Type: application/json',
+            'Authorization: ' . $auth,
+            'Connection: close'
+        );
+
+        $opts = array(
+            'http' => array(
+                'method' => $method,
+                'header' => implode("\r\n", $header_lines),
+                'timeout' => 60,
+                'ignore_errors' => true,
+                'protocol_version' => 1.1
+            ),
+            'ssl' => array(
+                'verify_peer' => true,
+                'verify_peer_name' => true
+            )
+        );
+
+        if ($payload !== null) {
+            $opts['http']['content'] = $payload;
+            $header_lines[] = 'Content-Length: ' . strlen($payload);
+            $opts['http']['header'] = implode("\r\n", $header_lines);
+        }
+
+        $context = stream_context_create($opts);
+        $raw = @file_get_contents($url, false, $context);
+        $http = 0;
+        if (isset($http_response_header[0]) && preg_match('/\s(\d{3})\s/', $http_response_header[0], $m)) {
+            $http = (int) $m[1];
+        }
+
+        if ($raw === false) {
+            $this->last_error = 'Could not reach PayMongo: outbound HTTPS request failed (streams). Hosting must allow connections to api.paymongo.com.';
+            log_message('error', 'PayMongo streams request failed for URL=' . $url);
+            return false;
+        }
+
+        return $this->decode_paymongo_response($raw, $http);
+    }
+
+    protected function decode_paymongo_response($raw, $http) {
         $decoded = json_decode($raw, true);
         if ($http < 200 || $http >= 300) {
-            $msg = 'PayMongo request failed.';
+            $msg = 'PayMongo request failed (HTTP ' . $http . ').';
             if (isset($decoded['errors'][0]['detail'])) {
                 $msg = $decoded['errors'][0]['detail'];
             } elseif (isset($decoded['errors'][0]['title'])) {
                 $msg = $decoded['errors'][0]['title'];
+            } elseif (!is_array($decoded) && is_string($raw) && $raw !== '') {
+                $msg .= ' ' . substr(strip_tags($raw), 0, 180);
             }
             $this->last_error = $msg;
             log_message('error', 'PayMongo HTTP ' . $http . ': ' . $raw);
             return false;
         }
 
-        return is_array($decoded) ? $decoded : false;
+        if (!is_array($decoded)) {
+            $this->last_error = 'PayMongo returned an invalid response.';
+            return false;
+        }
+
+        return $decoded;
     }
 }

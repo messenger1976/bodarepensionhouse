@@ -708,9 +708,11 @@ class Booking extends CI_Controller {
                     echo json_encode([
                         'success' => false,
                         'booking_created' => true,
+                        'can_retry_payment' => true,
                         'booking_number' => $booking->booking_number,
                         'message' => 'Your booking was saved (' . $booking->booking_number . '), but we could not start GCash payment: '
                             . ($this->paymongo_service->get_last_error() ?: 'Please contact us to complete payment.')
+                            . ' You can retry payment without creating a new booking.'
                     ]);
                     return;
                 }
