@@ -310,29 +310,11 @@ class Payments extends Admin_Controller {
     }
 
     /**
-     * Generate PayMongo QRPH for booking and email the guest.
+     * Generate PayMongo QRPH for booking or invoice-only charge and email the guest.
      */
     private function handle_qrph_generate_and_email($booking_id, $invoice_id, $amount) {
-        if (!$booking_id) {
-            $this->session->set_flashdata('error', 'QRPH requires a linked booking (or an invoice that has a booking).');
-            return;
-        }
-
-        $booking = $this->Booking_model->get_booking($booking_id);
-        if (!$booking) {
-            $this->session->set_flashdata('error', 'Booking not found.');
-            return;
-        }
-
-        $guest_email = isset($booking->guest_email) ? trim($booking->guest_email) : '';
-        if ($guest_email === '' || !filter_var($guest_email, FILTER_VALIDATE_EMAIL)) {
-            $this->session->set_flashdata('error', 'Guest has no valid email on the booking. Update the booking email before sending QRPH.');
-            return;
-        }
-
-        $invoice_error = $this->validate_payment_against_invoice($invoice_id, $booking_id, $amount, 'pending');
-        if ($invoice_error) {
-            $this->session->set_flashdata('error', $invoice_error);
+        if (!$booking_id && !$invoice_id) {
+            $this->session->set_flashdata('error', 'QRPH requires a linked booking or invoice.');
             return;
         }
 
@@ -342,7 +324,45 @@ class Payments extends Admin_Controller {
             return;
         }
 
-        $payload = $this->paymongo_service->start_qrph_for_booking($booking, $amount, true);
+        $booking = null;
+        $invoice = null;
+        $guest_email = '';
+
+        if ($booking_id) {
+            $booking = $this->Booking_model->get_booking($booking_id);
+            if (!$booking) {
+                $this->session->set_flashdata('error', 'Booking not found.');
+                return;
+            }
+            $guest_email = isset($booking->guest_email) ? trim($booking->guest_email) : '';
+            if ($guest_email === '' || !filter_var($guest_email, FILTER_VALIDATE_EMAIL)) {
+                $this->session->set_flashdata('error', 'Guest has no valid email on the booking. Update the booking email before sending QRPH.');
+                return;
+            }
+        } else {
+            $invoice = $this->Invoice_model->get($invoice_id);
+            if (!$invoice) {
+                $this->session->set_flashdata('error', 'Invoice not found.');
+                return;
+            }
+            $guest_email = isset($invoice->guest_email) ? trim($invoice->guest_email) : '';
+            if ($guest_email === '' || !filter_var($guest_email, FILTER_VALIDATE_EMAIL)) {
+                $this->session->set_flashdata('error', 'Guest has no valid email on the invoice. Update the invoice email before sending QRPH.');
+                return;
+            }
+        }
+
+        $invoice_error = $this->validate_payment_against_invoice($invoice_id, $booking_id, $amount, 'pending');
+        if ($invoice_error) {
+            $this->session->set_flashdata('error', $invoice_error);
+            return;
+        }
+
+        if ($booking) {
+            $payload = $this->paymongo_service->start_qrph_for_booking($booking, $amount, true);
+        } else {
+            $payload = $this->paymongo_service->start_qrph_for_invoice($invoice, $amount, true);
+        }
         if (!$payload) {
             $this->session->set_flashdata('error', $this->paymongo_service->get_last_error() ?: 'Failed to create QRPH payment.');
             return;
@@ -353,9 +373,8 @@ class Payments extends Admin_Controller {
             $this->Payment_model->update($payment_id, array('admin_id' => $this->admin_id));
         }
 
-        $invoice = null;
         $resolved_invoice_id = !empty($payload['invoice_id']) ? (int) $payload['invoice_id'] : $invoice_id;
-        if ($resolved_invoice_id) {
+        if ($resolved_invoice_id && !$invoice) {
             $invoice = $this->Invoice_model->get($resolved_invoice_id);
         }
 

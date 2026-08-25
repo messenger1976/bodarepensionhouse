@@ -183,6 +183,159 @@ class Paymongo_service {
     }
 
     /**
+     * Start or reuse QRPH for an invoice (including invoices with no booking).
+     *
+     * @return array|false
+     */
+    public function start_qrph_for_invoice($invoice, $amount = null, $force_new_qr = false) {
+        $this->last_error = '';
+        if (!$this->is_ready()) {
+            $this->last_error = 'PayMongo is not enabled or secret key is missing.';
+            return false;
+        }
+        if (!$invoice || empty($invoice->id)) {
+            $this->last_error = 'Invoice is required.';
+            return false;
+        }
+        if (!$this->CI->db->table_exists('payments')) {
+            $this->last_error = 'Payments table is missing. Run the billing module SQL first.';
+            return false;
+        }
+
+        // Prefer booking-linked flow when invoice has a booking
+        if (!empty($invoice->booking_id)) {
+            $booking = $this->CI->Booking_model->get_booking((int) $invoice->booking_id);
+            if ($booking) {
+                return $this->start_qrph_for_booking($booking, $amount, $force_new_qr);
+            }
+        }
+
+        $invoice_id = (int) $invoice->id;
+        $invoice_number = !empty($invoice->invoice_number) ? $invoice->invoice_number : ('INV' . $invoice_id);
+        $amount = $amount !== null ? (float) $amount : (float) $invoice->balance_due;
+        if ($amount <= 0 && isset($invoice->total_amount)) {
+            $amount = (float) $invoice->total_amount;
+        }
+        if ($amount < 20) {
+            $this->last_error = 'QR Ph payment requires a minimum total of ₱20.00.';
+            return false;
+        }
+
+        if (isset($invoice->status) && $invoice->status === 'void') {
+            $this->last_error = 'Cannot create QRPH for a voided invoice.';
+            return false;
+        }
+        if (isset($invoice->status) && $invoice->status === 'paid') {
+            $this->last_error = 'This invoice is already paid.';
+            return false;
+        }
+        if ($this->find_paid_payment_for_invoice($invoice_id)) {
+            $balance = isset($invoice->balance_due) ? (float) $invoice->balance_due : 0;
+            if ($balance <= 0) {
+                $this->last_error = 'This invoice is already paid.';
+                return false;
+            }
+        }
+
+        $payment_id = $this->ensure_pending_online_payment_for_invoice($invoice, $amount);
+        $existing = $this->CI->Payment_model->get($payment_id);
+        $meta = $this->parse_payment_meta($existing);
+
+        if (!$force_new_qr && !empty($meta['qr_image_url']) && !empty($meta['expires_at'])) {
+            $expires_ts = strtotime($meta['expires_at']);
+            if ($expires_ts && $expires_ts > (time() + 60) && !empty($meta['payment_intent_id'])) {
+                return $this->format_qrph_payload(null, $payment_id, $meta, $invoice_id, $invoice_number, $amount);
+            }
+        }
+
+        $intent_id = !empty($meta['payment_intent_id']) ? $meta['payment_intent_id'] : null;
+        $client_key = !empty($meta['client_key']) ? $meta['client_key'] : null;
+
+        $need_new_intent = !$intent_id;
+        if ($intent_id && $force_new_qr) {
+            $existing_intent = $this->CI->paymongo->retrieve_payment_intent($intent_id);
+            if ($existing_intent && $this->CI->paymongo->intent_is_paid($existing_intent)) {
+                $this->fulfill_paid_intent_for_invoice($invoice, $existing_intent);
+                $this->last_error = 'This invoice is already paid.';
+                return false;
+            }
+            $status = '';
+            if ($existing_intent && isset($existing_intent['attributes']['status'])) {
+                $status = strtolower((string) $existing_intent['attributes']['status']);
+            }
+            if (!in_array($status, array('awaiting_payment_method', 'awaiting_next_action'), true)) {
+                $need_new_intent = true;
+                $intent_id = null;
+                $client_key = null;
+            } elseif ($status === 'awaiting_next_action' && !$force_new_qr) {
+                $qr = $this->CI->paymongo->extract_qrph_from_intent($existing_intent);
+                if ($qr) {
+                    $meta = $this->store_qrph_meta($payment_id, null, $amount, $invoice_id, array(
+                        'payment_intent_id' => $intent_id,
+                        'client_key' => $client_key ?: (isset($qr['client_key']) ? $qr['client_key'] : null),
+                        'qr_image_url' => $qr['qr_image_url'],
+                        'payment_method_id' => isset($meta['payment_method_id']) ? $meta['payment_method_id'] : null,
+                        'expires_at' => date('Y-m-d H:i:s', time() + $this->default_qr_expiry)
+                    ), $invoice_number);
+                    return $this->format_qrph_payload(null, $payment_id, $meta, $invoice_id, $invoice_number, $amount);
+                }
+            }
+        }
+
+        if ($need_new_intent) {
+            $intent = $this->CI->paymongo->create_payment_intent(
+                $amount,
+                'BODARE Invoice ' . $invoice_number,
+                array(
+                    'invoice_number' => $invoice_number,
+                    'invoice_id' => (string) $invoice_id,
+                    'payment_id' => (string) $payment_id,
+                    'booking_id' => '',
+                    'booking_number' => ''
+                )
+            );
+            if (!$intent || empty($intent['id'])) {
+                $this->last_error = $this->CI->paymongo->get_last_error() ?: 'Unable to create PayMongo payment intent.';
+                return false;
+            }
+            $intent_id = $intent['id'];
+            $client_key = $intent['client_key'];
+        }
+
+        $method = $this->CI->paymongo->create_qrph_payment_method($this->default_qr_expiry);
+        if (!$method || empty($method['id'])) {
+            $this->last_error = $this->CI->paymongo->get_last_error() ?: 'Unable to create QRPH payment method.';
+            return false;
+        }
+
+        $attached = $this->CI->paymongo->attach_payment_method($intent_id, $method['id'], $client_key);
+        if (!$attached) {
+            $this->last_error = $this->CI->paymongo->get_last_error() ?: 'Unable to attach QRPH payment method.';
+            return false;
+        }
+
+        $qr = $this->CI->paymongo->extract_qrph_from_intent($attached);
+        if (!$qr || empty($qr['qr_image_url'])) {
+            $this->last_error = 'PayMongo did not return a QR Ph image.';
+            return false;
+        }
+
+        if (!empty($qr['client_key'])) {
+            $client_key = $qr['client_key'];
+        }
+
+        $meta = $this->store_qrph_meta($payment_id, null, $amount, $invoice_id, array(
+            'payment_intent_id' => $intent_id,
+            'client_key' => $client_key,
+            'qr_image_url' => $qr['qr_image_url'],
+            'payment_method_id' => $method['id'],
+            'expires_at' => date('Y-m-d H:i:s', time() + $this->default_qr_expiry)
+        ), $invoice_number);
+
+        return $this->format_qrph_payload(null, $payment_id, $meta, $invoice_id, $invoice_number, $amount);
+    }
+
+    /**
      * Build online_payment payload for invoice/booking APIs from stored payment row.
      */
     public function get_online_payment_for_booking($booking_id) {
@@ -305,6 +458,84 @@ class Paymongo_service {
         return true;
     }
 
+    /**
+     * Mark invoice-only (no booking) QRPH payment as paid from a PayMongo intent.
+     */
+    public function fulfill_paid_intent_for_invoice($invoice, $intent) {
+        if (!$invoice || empty($invoice->id) || !$this->CI->db->table_exists('payments')) {
+            return false;
+        }
+
+        $invoice_id = (int) $invoice->id;
+        $intent_id = isset($intent['id']) ? $intent['id'] : null;
+        $paymongo_payment_id = $this->CI->paymongo->get_intent_payment_id($intent);
+        $amount = isset($invoice->balance_due) ? (float) $invoice->balance_due : (float) $invoice->total_amount;
+        $attrs = isset($intent['attributes']) ? $intent['attributes'] : array();
+        if (!empty($attrs['amount'])) {
+            $amount = ((float) $attrs['amount']) / 100;
+        }
+
+        $payment_row = null;
+        if ($intent_id) {
+            if ($this->CI->db->field_exists('paymongo_intent_id', 'payments')) {
+                $this->CI->db->where('paymongo_intent_id', $intent_id);
+                $this->CI->db->where('invoice_id', $invoice_id);
+                $payment_row = $this->CI->db->get('payments')->row();
+            }
+            if (!$payment_row) {
+                $this->CI->db->where('transaction_id', $intent_id);
+                $this->CI->db->where('invoice_id', $invoice_id);
+                $payment_row = $this->CI->db->get('payments')->row();
+            }
+        }
+        if (!$payment_row) {
+            $payment_row = $this->find_latest_online_payment_for_invoice($invoice_id);
+        }
+
+        // Already paid for this intent
+        if ($payment_row && $payment_row->payment_status === 'paid') {
+            $this->CI->Invoice_model->recalculate_totals($invoice_id);
+            return true;
+        }
+
+        $method = $this->online_payment_method();
+        $invoice_number = !empty($invoice->invoice_number) ? $invoice->invoice_number : ('INV' . $invoice_id);
+        $update = array(
+            'amount' => $amount,
+            'payment_method' => $method,
+            'payment_status' => 'paid',
+            'payment_date' => date('Y-m-d H:i:s'),
+            'transaction_id' => $intent_id ?: ($paymongo_payment_id ?: null),
+            'invoice_id' => $invoice_id,
+            'notes' => json_encode(array(
+                'provider' => 'paymongo',
+                'method' => 'qrph',
+                'status' => 'paid',
+                'payment_intent_id' => $intent_id,
+                'paymongo_payment_id' => $paymongo_payment_id
+            ))
+        );
+        if ($this->CI->db->field_exists('reference_number', 'payments')) {
+            $update['reference_number'] = $invoice_number;
+        }
+        if ($this->CI->db->field_exists('paymongo_intent_id', 'payments') && $intent_id) {
+            $update['paymongo_intent_id'] = $intent_id;
+        }
+        if ($this->CI->db->field_exists('qrph_expires_at', 'payments')) {
+            $update['qrph_expires_at'] = null;
+        }
+
+        if ($payment_row) {
+            $this->CI->Payment_model->update((int) $payment_row->id, $update);
+        } else {
+            $update['booking_id'] = null;
+            $this->CI->Payment_model->create($update);
+        }
+
+        $this->CI->Invoice_model->recalculate_totals($invoice_id);
+        return true;
+    }
+
     /** @deprecated kept for older checkout-session webhook path */
     public function fulfill_paid_session($booking, $session, $session_id) {
         if ($session && isset($session['id']) && strpos($session['id'], 'pi_') === 0) {
@@ -336,6 +567,16 @@ class Paymongo_service {
         return $this->CI->db->get('payments')->row();
     }
 
+    public function find_paid_payment_for_invoice($invoice_id) {
+        if (!$this->CI->db->table_exists('payments') || !$invoice_id) {
+            return null;
+        }
+        $this->CI->db->where('invoice_id', (int) $invoice_id);
+        $this->CI->db->where('payment_status', 'paid');
+        $this->CI->db->order_by('id', 'DESC');
+        return $this->CI->db->get('payments')->row();
+    }
+
     public function find_latest_gcash_payment($booking_id) {
         return $this->find_latest_online_payment($booking_id);
     }
@@ -353,7 +594,31 @@ class Paymongo_service {
         return $this->CI->db->get('payments')->row();
     }
 
+    public function find_latest_online_payment_for_invoice($invoice_id) {
+        if (!$this->CI->db->table_exists('payments') || !$invoice_id) {
+            return null;
+        }
+        $this->CI->db->where('invoice_id', (int) $invoice_id);
+        $this->CI->db->group_start();
+        $this->CI->db->where('payment_method', 'qrph');
+        $this->CI->db->or_where('payment_method', 'gcash');
+        $this->CI->db->group_end();
+        $this->CI->db->order_by('id', 'DESC');
+        return $this->CI->db->get('payments')->row();
+    }
+
     public function find_booking_by_intent_id($intent_id) {
+        $row = $this->find_payment_by_intent_id($intent_id);
+        if ($row && !empty($row->booking_id)) {
+            return $this->CI->Booking_model->get_booking((int) $row->booking_id);
+        }
+        return null;
+    }
+
+    /**
+     * Find payment row by PayMongo payment intent id.
+     */
+    public function find_payment_by_intent_id($intent_id) {
         if (!$intent_id || !$this->CI->db->table_exists('payments')) {
             return null;
         }
@@ -361,15 +626,11 @@ class Paymongo_service {
             $this->CI->db->where('paymongo_intent_id', $intent_id);
             $row = $this->CI->db->get('payments')->row();
             if ($row) {
-                return $this->CI->Booking_model->get_booking((int) $row->booking_id);
+                return $row;
             }
         }
         $this->CI->db->where('transaction_id', $intent_id);
-        $row = $this->CI->db->get('payments')->row();
-        if ($row) {
-            return $this->CI->Booking_model->get_booking((int) $row->booking_id);
-        }
-        return null;
+        return $this->CI->db->get('payments')->row();
     }
 
     private function ensure_pending_online_payment($booking, $amount, $invoice_id = null) {
@@ -406,7 +667,35 @@ class Paymongo_service {
         return (int) $this->CI->Payment_model->create($payload);
     }
 
-    private function store_qrph_meta($payment_id, $booking, $amount, $invoice_id, $meta) {
+    private function ensure_pending_online_payment_for_invoice($invoice, $amount) {
+        $invoice_id = (int) $invoice->id;
+        $invoice_number = !empty($invoice->invoice_number) ? $invoice->invoice_number : ('INV' . $invoice_id);
+        $existing = $this->find_latest_online_payment_for_invoice($invoice_id);
+        if ($existing && $existing->payment_status === 'pending') {
+            $this->CI->Payment_model->update($existing->id, array(
+                'amount' => $amount,
+                'invoice_id' => $invoice_id
+            ));
+            return (int) $existing->id;
+        }
+
+        $payload = array(
+            'booking_id' => null,
+            'invoice_id' => $invoice_id,
+            'amount' => $amount,
+            'payment_method' => $this->online_payment_method(),
+            'payment_status' => 'pending',
+            'payment_date' => null,
+            'notes' => json_encode(array('provider' => 'paymongo', 'method' => 'qrph', 'status' => 'pending'))
+        );
+        if ($this->CI->db->field_exists('reference_number', 'payments')) {
+            $payload['reference_number'] = $invoice_number;
+        }
+
+        return (int) $this->CI->Payment_model->create($payload);
+    }
+
+    private function store_qrph_meta($payment_id, $booking, $amount, $invoice_id, $meta, $reference = null) {
         $update = array(
             'amount' => $amount,
             'payment_method' => $this->online_payment_method(),
@@ -427,7 +716,11 @@ class Paymongo_service {
             $update['invoice_id'] = $invoice_id;
         }
         if ($this->CI->db->field_exists('reference_number', 'payments')) {
-            $update['reference_number'] = $booking->booking_number;
+            if ($reference) {
+                $update['reference_number'] = $reference;
+            } elseif ($booking && !empty($booking->booking_number)) {
+                $update['reference_number'] = $booking->booking_number;
+            }
         }
         if ($this->CI->db->field_exists('paymongo_intent_id', 'payments')) {
             $update['paymongo_intent_id'] = $meta['payment_intent_id'];
@@ -487,7 +780,7 @@ class Paymongo_service {
             'payment_id' => (int) $payment_id,
             'invoice_id' => $invoice_id,
             'invoice_number' => $invoice_number,
-            'booking_number' => $booking->booking_number,
+            'booking_number' => ($booking && !empty($booking->booking_number)) ? $booking->booking_number : null,
             'amount' => (float) $amount,
             'can_regenerate' => $can_regenerate
         );

@@ -130,25 +130,42 @@ class Billing_mail {
     }
 
     /**
-     * Email guest a PayMongo QRPH code / payment link for a booking.
+     * Email guest a PayMongo QRPH code / payment link for a booking or invoice-only charge.
      *
-     * @param object $booking
-     * @param array  $qrph_payload from Paymongo_service::start_qrph_for_booking
+     * @param object|null $booking
+     * @param array  $qrph_payload from Paymongo_service
      * @param object|null $invoice
      * @param string|null $to_email
      */
     public function send_qrph($booking, $qrph_payload, $invoice = null, $to_email = null) {
-        if (!$booking || empty($qrph_payload)) {
+        if (empty($qrph_payload) || (!$booking && !$invoice)) {
             return false;
         }
 
-        $recipient = $to_email ? trim($to_email) : (isset($booking->guest_email) ? trim($booking->guest_email) : '');
+        $recipient = $to_email ? trim($to_email) : '';
+        if ($recipient === '' && $invoice && !empty($invoice->guest_email)) {
+            $recipient = trim($invoice->guest_email);
+        }
+        if ($recipient === '' && $booking && !empty($booking->guest_email)) {
+            $recipient = trim($booking->guest_email);
+        }
         if ($recipient === '' || !filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
             return false;
         }
 
-        $booking_label = !empty($booking->booking_number) ? $booking->booking_number : ('BK' . $booking->id);
-        $subject = 'Pay via QR Ph — ' . $booking_label . ' - BODARE Pension House';
+        if ($invoice && !empty($invoice->invoice_number)) {
+            $label = $invoice->invoice_number;
+        } elseif (!empty($qrph_payload['invoice_number'])) {
+            $label = $qrph_payload['invoice_number'];
+        } elseif ($booking && !empty($booking->booking_number)) {
+            $label = $booking->booking_number;
+        } elseif ($booking) {
+            $label = 'BK' . $booking->id;
+        } else {
+            $label = 'payment';
+        }
+
+        $subject = 'Pay via QR Ph — ' . $label . ' - BODARE Pension House';
         $message = $this->build_qrph_html($booking, $qrph_payload, $invoice);
 
         $this->CI->coop_mail->set_profile('account');
@@ -156,9 +173,27 @@ class Billing_mail {
     }
 
     public function build_qrph_html($booking, $qrph_payload, $invoice = null) {
-        $guest_name = isset($booking->guest_name) ? $booking->guest_name : 'Guest';
-        $booking_label = !empty($booking->booking_number) ? $booking->booking_number : ('BK' . $booking->id);
-        $amount = isset($qrph_payload['amount']) ? (float) $qrph_payload['amount'] : (float) $booking->total_amount;
+        $guest_name = 'Guest';
+        if ($invoice && !empty($invoice->guest_name)) {
+            $guest_name = $invoice->guest_name;
+        } elseif ($booking && !empty($booking->guest_name)) {
+            $guest_name = $booking->guest_name;
+        }
+
+        $booking_label = null;
+        if ($booking) {
+            $booking_label = !empty($booking->booking_number) ? $booking->booking_number : ('BK' . $booking->id);
+        } elseif (!empty($qrph_payload['booking_number'])) {
+            $booking_label = $qrph_payload['booking_number'];
+        }
+
+        $amount = isset($qrph_payload['amount']) ? (float) $qrph_payload['amount'] : 0;
+        if ($amount <= 0 && $invoice && isset($invoice->balance_due)) {
+            $amount = (float) $invoice->balance_due;
+        } elseif ($amount <= 0 && $booking && isset($booking->total_amount)) {
+            $amount = (float) $booking->total_amount;
+        }
+
         $expires = !empty($qrph_payload['expires_at']) ? date('F d, Y h:i A', strtotime($qrph_payload['expires_at'])) : null;
         $qr_url = !empty($qrph_payload['qr_image_url']) ? $qrph_payload['qr_image_url'] : null;
         $invoice_number = null;
@@ -179,7 +214,7 @@ class Billing_mail {
             $portal_url = $this->build_customer_portal_url($invoice_id);
         }
 
-        $confirm_url = $this->build_booking_confirmation_url($booking_label);
+        $confirm_url = $booking_label ? $this->build_booking_confirmation_url($booking_label) : null;
 
         $html = '
         <div style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:640px;margin:0 auto;">
@@ -189,11 +224,20 @@ class Billing_mail {
             </div>
             <p>Dear <strong>' . htmlspecialchars($guest_name, ENT_QUOTES, 'UTF-8') . '</strong>,</p>
             <p>Please scan the QR Ph code below with your banking or e-wallet app to complete your payment.</p>
-            <table style="width:100%;margin:16px 0;border-collapse:collapse;">
+            <table style="width:100%;margin:16px 0;border-collapse:collapse;">';
+
+        if ($booking_label) {
+            $html .= '
                 <tr>
                     <td style="padding:4px 0;"><strong>Booking #:</strong> ' . htmlspecialchars($booking_label, ENT_QUOTES, 'UTF-8') . '</td>
                     <td style="padding:4px 0;text-align:right;"><strong>Amount:</strong> ₱' . number_format($amount, 2) . '</td>
                 </tr>';
+        } else {
+            $html .= '
+                <tr>
+                    <td style="padding:4px 0;" colspan="2"><strong>Amount:</strong> ₱' . number_format($amount, 2) . '</td>
+                </tr>';
+        }
 
         if ($invoice_number) {
             $html .= '
@@ -222,8 +266,10 @@ class Billing_mail {
 
         if ($confirm_url) {
             $html .= '<p style="margin:16px 0;"><a href="' . htmlspecialchars($confirm_url, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;background:#6576ff;color:#fff;padding:10px 18px;text-decoration:none;border-radius:6px;font-weight:bold;">Open payment page</a></p>';
+        } elseif ($portal_url) {
+            $html .= '<p style="margin:16px 0;"><a href="' . htmlspecialchars($portal_url, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;background:#6576ff;color:#fff;padding:10px 18px;text-decoration:none;border-radius:6px;font-weight:bold;">View invoice &amp; pay online</a></p>';
         }
-        if ($portal_url) {
+        if ($portal_url && $confirm_url) {
             $html .= '<p style="margin:8px 0;"><a href="' . htmlspecialchars($portal_url, ENT_QUOTES, 'UTF-8') . '" style="color:#6576ff;">View invoice online</a></p>';
         }
 
