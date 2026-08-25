@@ -32,6 +32,11 @@ class Paymongo {
         return $this->enabled && $this->secret_key !== '' && strpos($this->secret_key, 'sk_') === 0;
     }
 
+    /** True when secret key is a PayMongo test key (sk_test_…). */
+    public function is_test_mode() {
+        return $this->is_configured() && strpos($this->secret_key, 'sk_test_') === 0;
+    }
+
     public function get_last_error() {
         return $this->last_error;
     }
@@ -406,8 +411,19 @@ class Paymongo {
             $image = 'data:image/png;base64,' . $image;
         }
 
+        // Test mode: PayMongo provides a URL to Authorize / Fail without scanning the QR
+        $test_url = null;
+        if (!empty($next['code']['test_url'])) {
+            $test_url = $next['code']['test_url'];
+        } elseif (!empty($next['code']['qrph']['test_url'])) {
+            $test_url = $next['code']['qrph']['test_url'];
+        } elseif (!empty($next['redirect']['url']) && $this->is_test_mode()) {
+            $test_url = $next['redirect']['url'];
+        }
+
         return array(
             'qr_image_url' => $image,
+            'test_url' => $test_url,
             'status' => isset($attrs['status']) ? $attrs['status'] : null,
             'client_key' => isset($attrs['client_key']) ? $attrs['client_key'] : null
         );

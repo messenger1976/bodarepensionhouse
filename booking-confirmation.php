@@ -121,6 +121,11 @@ function bodare_confirmation_date($dateString)
                         <p id="qrph-amount" style="font-size: 1.25rem; font-weight: 700; color: #b2945b; margin: 1rem 0 0.5rem;"></p>
                         <p id="qrph-expiry" style="color: #666; font-size: 0.9rem; margin: 0;"></p>
                         <p id="qrph-poll-status" style="color: #0c5460; font-size: 0.95rem; margin: 0.75rem 0 0;">Waiting for payment…</p>
+                        <div id="qrph-test-panel" style="display:none; margin-top: 1rem; padding: 1rem; background: #fff8e6; border: 1px dashed #c9a227; border-radius: 8px; text-align: left;">
+                            <strong style="color: #856404; display:block; margin-bottom: 0.35rem;">Test mode</strong>
+                            <p style="color: #856404; font-size: 0.9rem; margin: 0 0 0.75rem;">Do not scan this QR with a real banking app. Open PayMongo’s simulator and choose Authorize / Paid or Fail.</p>
+                            <a id="qrph-test-url" href="#" target="_blank" rel="noopener" class="cta-button" style="display:inline-block; text-decoration:none;">Simulate QR Ph payment</a>
+                        </div>
                         <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-top: 1.25rem;">
                             <button type="button" id="qrph-regenerate-btn" class="cta-button-secondary" style="display:none;">Generate New QR</button>
                             <a id="qrph-invoice-link" href="customer-dashboard.php?tab=invoices" class="cta-button" style="background: #fff; color: #1a2238; border: 1px solid #cfc4b0; text-decoration: none;">View invoice / pay later</a>
@@ -308,6 +313,17 @@ function bodare_confirmation_date($dateString)
 
                 if (payment.payment_intent_id) {
                     sessionStorage.setItem('paymongo_payment_intent_id', payment.payment_intent_id);
+                }
+
+                const testPanel = document.getElementById('qrph-test-panel');
+                const testLink = document.getElementById('qrph-test-url');
+                if (testPanel && testLink) {
+                    if (payment.test_url) {
+                        testLink.href = payment.test_url;
+                        testPanel.style.display = 'block';
+                    } else {
+                        testPanel.style.display = 'none';
+                    }
                 }
             }
 

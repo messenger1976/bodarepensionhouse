@@ -118,6 +118,7 @@ class Paymongo_service {
                         'payment_intent_id' => $intent_id,
                         'client_key' => $client_key ?: (isset($qr['client_key']) ? $qr['client_key'] : null),
                         'qr_image_url' => $qr['qr_image_url'],
+                        'test_url' => isset($qr['test_url']) ? $qr['test_url'] : null,
                         'payment_method_id' => isset($meta['payment_method_id']) ? $meta['payment_method_id'] : null,
                         'expires_at' => date('Y-m-d H:i:s', time() + $this->default_qr_expiry)
                     ));
@@ -171,6 +172,7 @@ class Paymongo_service {
             'payment_intent_id' => $intent_id,
             'client_key' => $client_key,
             'qr_image_url' => $qr['qr_image_url'],
+            'test_url' => isset($qr['test_url']) ? $qr['test_url'] : null,
             'payment_method_id' => $method['id'],
             'expires_at' => date('Y-m-d H:i:s', time() + $this->default_qr_expiry)
         ));
@@ -274,6 +276,7 @@ class Paymongo_service {
                         'payment_intent_id' => $intent_id,
                         'client_key' => $client_key ?: (isset($qr['client_key']) ? $qr['client_key'] : null),
                         'qr_image_url' => $qr['qr_image_url'],
+                        'test_url' => isset($qr['test_url']) ? $qr['test_url'] : null,
                         'payment_method_id' => isset($meta['payment_method_id']) ? $meta['payment_method_id'] : null,
                         'expires_at' => date('Y-m-d H:i:s', time() + $this->default_qr_expiry)
                     ), $invoice_number);
@@ -328,6 +331,7 @@ class Paymongo_service {
             'payment_intent_id' => $intent_id,
             'client_key' => $client_key,
             'qr_image_url' => $qr['qr_image_url'],
+            'test_url' => isset($qr['test_url']) ? $qr['test_url'] : null,
             'payment_method_id' => $method['id'],
             'expires_at' => date('Y-m-d H:i:s', time() + $this->default_qr_expiry)
         ), $invoice_number);
@@ -532,6 +536,8 @@ class Paymongo_service {
             'method' => 'qrph',
             'status' => $expired ? 'expired' : 'awaiting_payment',
             'qr_image_url' => (!$expired && !empty($meta['qr_image_url'])) ? $meta['qr_image_url'] : null,
+            'test_url' => (!$expired && !empty($meta['test_url']) && $this->CI->paymongo->is_test_mode()) ? $meta['test_url'] : null,
+            'is_test_mode' => $this->CI->paymongo->is_test_mode(),
             'expires_at' => isset($meta['expires_at']) ? $meta['expires_at'] : null,
             'can_regenerate' => true,
             'payment_intent_id' => isset($meta['payment_intent_id']) ? $meta['payment_intent_id'] : $payment->transaction_id,
@@ -1107,6 +1113,7 @@ class Paymongo_service {
                 'payment_intent_id' => $meta['payment_intent_id'],
                 'client_key' => isset($meta['client_key']) ? $meta['client_key'] : null,
                 'qr_image_url' => $meta['qr_image_url'],
+                'test_url' => isset($meta['test_url']) ? $meta['test_url'] : null,
                 'payment_method_id' => isset($meta['payment_method_id']) ? $meta['payment_method_id'] : null,
                 'expires_at' => $meta['expires_at']
             ))
@@ -1175,6 +1182,8 @@ class Paymongo_service {
             'status' => 'awaiting_payment',
             'payment_intent_id' => isset($meta['payment_intent_id']) ? $meta['payment_intent_id'] : null,
             'qr_image_url' => isset($meta['qr_image_url']) ? $meta['qr_image_url'] : null,
+            'test_url' => (!empty($meta['test_url']) && $this->CI->paymongo->is_test_mode()) ? $meta['test_url'] : null,
+            'is_test_mode' => $this->CI->paymongo->is_test_mode(),
             'expires_at' => $expires_at,
             'payment_id' => (int) $payment_id,
             'invoice_id' => $invoice_id,
