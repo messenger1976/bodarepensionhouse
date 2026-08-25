@@ -41,18 +41,6 @@ class Bookings extends Admin_Controller {
     }
 
     /**
-     * Format TIME for display (e.g. 2:00 PM).
-     */
-    private function format_booking_time_display($time)
-    {
-        if (empty($time)) {
-            return '';
-        }
-        $ts = strtotime($time);
-        return $ts ? date('g:i A', $ts) : '';
-    }
-
-    /**
      * Default check-in / check-out times from booking settings.
      */
     private function get_default_booking_times()
