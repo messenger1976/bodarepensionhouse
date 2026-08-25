@@ -621,6 +621,18 @@ body {
     min-height: 44px;
 }
 
+/* Override global .form-group select option (dark-blue bg) so Pax/Room list stays readable */
+.rooms-filter-form select option {
+    background: #fff;
+    color: var(--text-dark);
+}
+
+.rooms-filter-form select option:checked,
+.rooms-filter-form select option:hover {
+    background: #f5f0e6;
+    color: var(--dark-blue);
+}
+
 .rooms-filter-form input:focus,
 .rooms-filter-form select:focus {
     outline: none;
