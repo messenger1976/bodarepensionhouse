@@ -76,38 +76,99 @@
         </div>
         <div class="col-md-4">
             <label class="form-label">Payment Method *</label>
-            <select name="payment_method" class="form-select" required>
+            <select name="payment_method" id="payment_method" class="form-select" required>
                 <?php foreach (array('cash','card','gcash','qrph','bank_transfer') as $m): ?>
                 <option value="<?php echo $m; ?>" <?php echo set_select('payment_method', $m, $m === 'cash'); ?>><?php echo ucfirst(str_replace('_', ' ', $m)); ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 method-standard-field" id="field-payment-status">
             <label class="form-label">Payment Status *</label>
-            <select name="payment_status" class="form-select" required>
+            <select name="payment_status" id="payment_status" class="form-select" required>
                 <?php foreach (array('paid','pending','refunded','failed') as $s): ?>
                 <option value="<?php echo $s; ?>" <?php echo set_select('payment_status', $s, $s === 'paid'); ?>><?php echo ucfirst($s); ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 method-standard-field" id="field-payment-date">
             <label class="form-label">Payment Date</label>
             <input type="datetime-local" name="payment_date" class="form-control" value="<?php echo set_value('payment_date', date('Y-m-d\TH:i')); ?>">
         </div>
-        <div class="col-md-4">
-            <label class="form-label">Reference Number</label>
-            <input type="text" name="reference_number" class="form-control" value="<?php echo set_value('reference_number'); ?>" placeholder="GCash ref, check #, etc.">
+        <div class="col-md-4 method-ref-field" id="field-reference">
+            <label class="form-label" id="label-reference">Reference Number</label>
+            <input type="text" name="reference_number" id="reference_number" class="form-control" value="<?php echo set_value('reference_number'); ?>" placeholder="GCash ref, check #, etc.">
         </div>
-        <div class="col-md-4">
-            <label class="form-label">Transaction ID</label>
-            <input type="text" name="transaction_id" class="form-control" value="<?php echo set_value('transaction_id'); ?>">
+        <div class="col-md-4 method-ref-field" id="field-transaction">
+            <label class="form-label" id="label-transaction">Transaction ID</label>
+            <input type="text" name="transaction_id" id="transaction_id" class="form-control" value="<?php echo set_value('transaction_id'); ?>">
         </div>
+
+        <!-- Card details -->
+        <div class="col-12 method-panel d-none" id="panel-card">
+            <div class="border rounded p-3 bg-light">
+                <h6 class="mb-3">Card details</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Card last 4 digits *</label>
+                        <input type="text" name="card_last4" id="card_last4" class="form-control" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" autocomplete="off" value="<?php echo set_value('card_last4'); ?>" placeholder="1234">
+                        <small class="form-text text-muted">Enter last 4 only. Do not enter the full card number or CVV.</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Expiry (MM/YY) *</label>
+                        <input type="text" name="card_exp" id="card_exp" class="form-control" maxlength="5" placeholder="MM/YY" value="<?php echo set_value('card_exp'); ?>">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bank transfer details -->
+        <div class="col-12 method-panel d-none" id="panel-bank">
+            <div class="border rounded p-3 bg-light">
+                <h6 class="mb-3">Bank transfer details</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Bank name *</label>
+                        <input type="text" name="bank_name" id="bank_name" class="form-control" value="<?php echo set_value('bank_name'); ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Account name *</label>
+                        <input type="text" name="bank_account_name" id="bank_account_name" class="form-control" value="<?php echo set_value('bank_account_name'); ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Account number *</label>
+                        <input type="text" name="bank_account_number" id="bank_account_number" class="form-control" value="<?php echo set_value('bank_account_number'); ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Transfer date *</label>
+                        <input type="date" name="bank_transfer_date" id="bank_transfer_date" class="form-control" value="<?php echo set_value('bank_transfer_date'); ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Reference # *</label>
+                        <input type="text" name="bank_reference" id="bank_reference" class="form-control" value="<?php echo set_value('bank_reference', set_value('reference_number')); ?>">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- QRPH info -->
+        <div class="col-12 method-panel d-none" id="panel-qrph">
+            <div class="alert alert-warning mb-0">
+                <i class="bi bi-qr-code"></i>
+                <strong>Generate QRPH &amp; email guest.</strong>
+                A pending PayMongo QR Ph payment will be created and emailed to the guest.
+                Payment status stays <em>pending</em> until the guest pays (or the webhook confirms).
+                Link an invoice or booking with a guest email address.
+            </div>
+        </div>
+
         <div class="col-12">
             <label class="form-label">Notes</label>
             <textarea name="notes" class="form-control" rows="2"><?php echo set_value('notes'); ?></textarea>
         </div>
         <div class="col-12">
-            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save Payment</button>
+            <button type="submit" class="btn btn-primary" id="submit-payment-btn">
+                <i class="bi bi-save"></i> <span id="submit-payment-label">Save Payment</span>
+            </button>
         </div>
     </form>
 </div>
@@ -118,6 +179,12 @@ document.addEventListener('DOMContentLoaded', function() {
     var bookingSelect = document.getElementById('booking_id');
     var amountInput = document.getElementById('amount');
     var balanceHint = document.getElementById('balance-hint');
+    var methodSelect = document.getElementById('payment_method');
+    var labelRef = document.getElementById('label-reference');
+    var labelTxn = document.getElementById('label-transaction');
+    var refInput = document.getElementById('reference_number');
+    var submitLabel = document.getElementById('submit-payment-label');
+    var statusSelect = document.getElementById('payment_status');
 
     function updateBalanceHint(balance) {
         if (balance === '' || balance === null || isNaN(balance)) {
@@ -127,6 +194,87 @@ document.addEventListener('DOMContentLoaded', function() {
         balanceHint.textContent = 'Remaining balance: ₱' + Number(balance).toFixed(2);
         if (!amountInput.value || Number(amountInput.value) <= 0) {
             amountInput.value = Number(balance).toFixed(2);
+        }
+    }
+
+    function setVisible(el, show) {
+        if (!el) return;
+        el.classList.toggle('d-none', !show);
+        var inputs = el.querySelectorAll('input, select, textarea');
+        inputs.forEach(function(inp) {
+            if (inp.name === 'payment_status') {
+                inp.disabled = !show;
+                return;
+            }
+            if (!show) {
+                inp.removeAttribute('required');
+            }
+        });
+    }
+
+    function syncMethodPanels() {
+        var method = methodSelect.value;
+        var isQrph = method === 'qrph';
+        var isCard = method === 'card';
+        var isGcash = method === 'gcash';
+        var isBank = method === 'bank_transfer';
+
+        document.querySelectorAll('.method-standard-field').forEach(function(el) {
+            setVisible(el, !isQrph);
+        });
+        document.querySelectorAll('.method-ref-field').forEach(function(el) {
+            setVisible(el, !isQrph && !isCard && !isBank);
+        });
+
+        setVisible(document.getElementById('panel-card'), isCard);
+        setVisible(document.getElementById('panel-bank'), isBank);
+        setVisible(document.getElementById('panel-qrph'), isQrph);
+
+        if (isGcash) {
+            labelRef.textContent = 'GCash Ref # *';
+            labelTxn.textContent = 'Transaction ID *';
+            refInput.placeholder = 'GCash reference number';
+            refInput.required = true;
+            document.getElementById('transaction_id').required = true;
+        } else {
+            labelRef.textContent = 'Reference Number';
+            labelTxn.textContent = 'Transaction ID';
+            refInput.placeholder = 'GCash ref, check #, etc.';
+            refInput.required = false;
+            document.getElementById('transaction_id').required = false;
+        }
+
+        if (isCard) {
+            document.getElementById('card_last4').required = true;
+            document.getElementById('card_exp').required = true;
+        } else {
+            document.getElementById('card_last4').required = false;
+            document.getElementById('card_exp').required = false;
+        }
+
+        if (isBank) {
+            ['bank_name', 'bank_account_name', 'bank_account_number', 'bank_transfer_date', 'bank_reference'].forEach(function(id) {
+                document.getElementById(id).required = true;
+            });
+        } else {
+            ['bank_name', 'bank_account_name', 'bank_account_number', 'bank_transfer_date', 'bank_reference'].forEach(function(id) {
+                document.getElementById(id).required = false;
+            });
+        }
+
+        if (isQrph) {
+            submitLabel.textContent = 'Generate QRPH & Email Guest';
+            if (statusSelect) {
+                statusSelect.value = 'pending';
+                statusSelect.disabled = true;
+                statusSelect.required = false;
+            }
+        } else {
+            submitLabel.textContent = 'Save Payment';
+            if (statusSelect) {
+                statusSelect.disabled = false;
+                statusSelect.required = true;
+            }
         }
     }
 
@@ -163,6 +311,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    methodSelect.addEventListener('change', syncMethodPanels);
+    syncMethodPanels();
 
     if (invoiceSelect.value) {
         invoiceSelect.dispatchEvent(new Event('change'));

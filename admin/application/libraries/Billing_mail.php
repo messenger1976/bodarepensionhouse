@@ -129,10 +129,122 @@ class Billing_mail {
         return $html;
     }
 
+    /**
+     * Email guest a PayMongo QRPH code / payment link for a booking.
+     *
+     * @param object $booking
+     * @param array  $qrph_payload from Paymongo_service::start_qrph_for_booking
+     * @param object|null $invoice
+     * @param string|null $to_email
+     */
+    public function send_qrph($booking, $qrph_payload, $invoice = null, $to_email = null) {
+        if (!$booking || empty($qrph_payload)) {
+            return false;
+        }
+
+        $recipient = $to_email ? trim($to_email) : (isset($booking->guest_email) ? trim($booking->guest_email) : '');
+        if ($recipient === '' || !filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        $booking_label = !empty($booking->booking_number) ? $booking->booking_number : ('BK' . $booking->id);
+        $subject = 'Pay via QR Ph — ' . $booking_label . ' - BODARE Pension House';
+        $message = $this->build_qrph_html($booking, $qrph_payload, $invoice);
+
+        $this->CI->coop_mail->set_profile('account');
+        return $this->CI->coop_mail->send($recipient, $subject, $message);
+    }
+
+    public function build_qrph_html($booking, $qrph_payload, $invoice = null) {
+        $guest_name = isset($booking->guest_name) ? $booking->guest_name : 'Guest';
+        $booking_label = !empty($booking->booking_number) ? $booking->booking_number : ('BK' . $booking->id);
+        $amount = isset($qrph_payload['amount']) ? (float) $qrph_payload['amount'] : (float) $booking->total_amount;
+        $expires = !empty($qrph_payload['expires_at']) ? date('F d, Y h:i A', strtotime($qrph_payload['expires_at'])) : null;
+        $qr_url = !empty($qrph_payload['qr_image_url']) ? $qrph_payload['qr_image_url'] : null;
+        $invoice_number = null;
+        if ($invoice && !empty($invoice->invoice_number)) {
+            $invoice_number = $invoice->invoice_number;
+        } elseif (!empty($qrph_payload['invoice_number'])) {
+            $invoice_number = $qrph_payload['invoice_number'];
+        }
+
+        $portal_url = null;
+        $invoice_id = null;
+        if ($invoice && !empty($invoice->id)) {
+            $invoice_id = (int) $invoice->id;
+        } elseif (!empty($qrph_payload['invoice_id'])) {
+            $invoice_id = (int) $qrph_payload['invoice_id'];
+        }
+        if ($invoice_id) {
+            $portal_url = $this->build_customer_portal_url($invoice_id);
+        }
+
+        $confirm_url = $this->build_booking_confirmation_url($booking_label);
+
+        $html = '
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:640px;margin:0 auto;">
+            <div style="border-bottom:3px solid #6576ff;padding-bottom:16px;margin-bottom:24px;">
+                <h1 style="margin:0;color:#6576ff;font-size:22px;">BODARE Pension House</h1>
+                <p style="margin:4px 0 0;color:#666;">QR Ph Payment</p>
+            </div>
+            <p>Dear <strong>' . htmlspecialchars($guest_name, ENT_QUOTES, 'UTF-8') . '</strong>,</p>
+            <p>Please scan the QR Ph code below with your banking or e-wallet app to complete your payment.</p>
+            <table style="width:100%;margin:16px 0;border-collapse:collapse;">
+                <tr>
+                    <td style="padding:4px 0;"><strong>Booking #:</strong> ' . htmlspecialchars($booking_label, ENT_QUOTES, 'UTF-8') . '</td>
+                    <td style="padding:4px 0;text-align:right;"><strong>Amount:</strong> ₱' . number_format($amount, 2) . '</td>
+                </tr>';
+
+        if ($invoice_number) {
+            $html .= '
+                <tr>
+                    <td style="padding:4px 0;" colspan="2"><strong>Invoice #:</strong> ' . htmlspecialchars($invoice_number, ENT_QUOTES, 'UTF-8') . '</td>
+                </tr>';
+        }
+        if ($expires) {
+            $html .= '
+                <tr>
+                    <td style="padding:4px 0;" colspan="2"><strong>QR expires:</strong> ' . htmlspecialchars($expires, ENT_QUOTES, 'UTF-8') . '</td>
+                </tr>';
+        }
+
+        $html .= '
+            </table>';
+
+        if ($qr_url) {
+            $html .= '
+            <div style="text-align:center;margin:24px 0;">
+                <img src="' . htmlspecialchars($qr_url, ENT_QUOTES, 'UTF-8') . '" alt="QR Ph code" style="max-width:280px;width:100%;height:auto;border:1px solid #eee;border-radius:8px;">
+            </div>';
+        } else {
+            $html .= '<p style="color:#856404;">QR image is not available in this email. Please use the link below to view and pay online.</p>';
+        }
+
+        if ($confirm_url) {
+            $html .= '<p style="margin:16px 0;"><a href="' . htmlspecialchars($confirm_url, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;background:#6576ff;color:#fff;padding:10px 18px;text-decoration:none;border-radius:6px;font-weight:bold;">Open payment page</a></p>';
+        }
+        if ($portal_url) {
+            $html .= '<p style="margin:8px 0;"><a href="' . htmlspecialchars($portal_url, ENT_QUOTES, 'UTF-8') . '" style="color:#6576ff;">View invoice online</a></p>';
+        }
+
+        $html .= '
+            <p style="margin-top:24px;font-size:13px;color:#888;">If the QR code expires, open the payment page to generate a new one. Thank you for choosing BODARE Pension House.</p>
+        </div>';
+
+        return $html;
+    }
+
     protected function build_customer_portal_url($invoice_id) {
         $this->CI->load->helper('url');
         $admin_base = rtrim(base_url(), '/');
         $site_root = preg_replace('#/admin/?$#', '', $admin_base);
         return $site_root . '/customer-invoices.php?id=' . (int) $invoice_id;
+    }
+
+    protected function build_booking_confirmation_url($booking_number) {
+        $this->CI->load->helper('url');
+        $admin_base = rtrim(base_url(), '/');
+        $site_root = preg_replace('#/admin/?$#', '', $admin_base);
+        return $site_root . '/booking-confirmation.php?booking=' . rawurlencode($booking_number) . '&payment=qrph';
     }
 }
