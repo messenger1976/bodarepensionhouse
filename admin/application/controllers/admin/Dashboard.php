@@ -32,10 +32,10 @@ class Dashboard extends Admin_Controller {
         $data['total_rooms'] = $this->Room_model->get_rooms_count();
         $data['recent_bookings'] = $this->Booking_model->get_all_bookings();
         
-        // Get bookings for calendar widget (next 3 months)
-        $start_date = date('Y-m-d');
+        // Get bookings for calendar widget (current month through +3 months)
+        $start_date = date('Y-m-01');
         $end_date = date('Y-m-d', strtotime('+3 months'));
-        $data['calendar_bookings'] = $this->Booking_model->get_bookings_for_calendar($start_date, $end_date);
+        $data['calendar_bookings'] = $this->Booking_model->get_calendar_feed($start_date, $end_date);
         
         // Get room availability summary for today (for quick reference)
         $data['room_availability_today'] = $this->Booking_model->get_room_availability_for_date(date('Y-m-d'));

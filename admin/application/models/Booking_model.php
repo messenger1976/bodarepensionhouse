@@ -955,7 +955,7 @@ class Booking_model extends CI_Model {
     /**
      * FullCalendar feed entries for room bookings (hotel engine stays).
      * Prefers booking_items for multi-room stays when that table exists.
-     * Bars use check-in/out times so month view can show partial days.
+     * Bars cover check-in through checkout day; UI shades start/end halves by time.
      */
     public function get_calendar_feed($start_date, $end_date, $room_id = null, $status = null, $include_cancelled = false) {
         $this->load->helper('url');
@@ -1131,8 +1131,8 @@ class Booking_model extends CI_Model {
 
     /**
      * Build a FullCalendar room stay event.
-     * Uses allDay bars (stable month layout) with exclusive end = day after checkout
-     * so checkout day is visible; start/end day segments are clipped by time in the UI.
+     * allDay span includes checkout day (exclusive end = day after checkout) so
+     * month view can shade check-in (right half) and checkout (left half) by time.
      */
     private function build_calendar_room_entry($data) {
         $check_in_time = $this->normalize_calendar_time(
@@ -1144,11 +1144,8 @@ class Booking_model extends CI_Model {
             '12:00:00'
         );
 
-        // Combine date + time for display / week-day positioning metadata
         $start_datetime = $data['check_in'] . 'T' . $check_in_time;
         $end_datetime = $data['check_out'] . 'T' . $check_out_time;
-
-        // allDay exclusive end must be the day AFTER checkout so checkout day is drawn
         $all_day_end = date('Y-m-d', strtotime($data['check_out'] . ' +1 day'));
 
         $extended = array(

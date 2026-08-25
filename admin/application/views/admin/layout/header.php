@@ -3072,13 +3072,10 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             color: #fff;
         }
 
-        /* Partial-day stay bars (check-in / check-out times via harness left/right) */
+        /* Half-day stay shading (check-in right / checkout left) */
         .fc-daygrid-event.cal-timed-stay {
             border-radius: 4px;
             overflow: hidden;
-        }
-        .fc-daygrid-event-harness:has(.cal-timed-stay) {
-            overflow: visible;
         }
 
         .fc-event.cal-event {

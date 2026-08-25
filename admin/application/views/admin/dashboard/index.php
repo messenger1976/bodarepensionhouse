@@ -257,7 +257,7 @@ $inventory_summary_today = isset($inventory_summary_today) && is_array($inventor
                     <div id="booking-calendar"></div>
                     <div class="mt-3">
                         <small class="text-muted">
-                            <i class="bi bi-info-circle"></i> Hover over calendar days to see room availability. Click on bookings to view details.
+                            <i class="bi bi-info-circle"></i> Check-in day shades from the right; checkout day shades to the left. Click a booking for details.
                         </small>
                     </div>
                 </div>
@@ -882,32 +882,66 @@ $inventory_summary_today = isset($inventory_summary_today) && is_array($inventor
             renderCharts(latestPayload);
 
             var calendarEl = document.getElementById('booking-calendar');
-            if (calendarEl) {
-                // Prepare booking events for calendar
-                var calendarEvents = [
-                    <?php if (!empty($calendar_bookings)): ?>
-                        <?php foreach ($calendar_bookings as $booking): ?>
-                        {
-                            id: '<?php echo $booking->id; ?>',
-                            title: '<?php echo htmlspecialchars($booking->guest_name, ENT_QUOTES); ?> - <?php echo htmlspecialchars($booking->room_name, ENT_QUOTES); ?>',
-                            start: '<?php echo date('Y-m-d', strtotime($booking->check_in)); ?>',
-                            end: '<?php echo date('Y-m-d', strtotime($booking->check_out . ' +1 day')); ?>',
-                            className: '<?php echo $booking->status; ?>',
-                            extendedProps: {
-                                bookingId: '<?php echo $booking->id; ?>',
-                                bookingNumber: '<?php echo isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT); ?>',
-                                guestName: '<?php echo htmlspecialchars($booking->guest_name, ENT_QUOTES); ?>',
-                                roomName: '<?php echo htmlspecialchars($booking->room_name, ENT_QUOTES); ?>',
-                                roomCode: '<?php echo htmlspecialchars(isset($booking->room_code) ? $booking->room_code : '-', ENT_QUOTES); ?>',
-                                status: '<?php echo $booking->status; ?>',
-                                amount: '<?php echo number_format($booking->total_amount, 2); ?>',
-                                rooms: '<?php echo isset($booking->rooms) ? $booking->rooms : 1; ?>'
-                            }
-                        },
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                ];
-                
+            if (calendarEl && typeof FullCalendar !== 'undefined') {
+                var calendarEvents = <?php
+                    $json_flags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+                    if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
+                        $json_flags |= JSON_INVALID_UTF8_SUBSTITUTE;
+                    }
+                    echo json_encode(isset($calendar_bookings) ? array_values($calendar_bookings) : array(), $json_flags);
+                ?>;
+
+                function timeToDayPercent(timeStr) {
+                    if (!timeStr) return 0;
+                    var parts = String(timeStr).split(':');
+                    var hours = parseInt(parts[0], 10);
+                    var minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+                    if (isNaN(hours)) return 0;
+                    if (isNaN(minutes)) minutes = 0;
+                    return Math.max(0, Math.min(100, ((hours * 60 + minutes) / (24 * 60)) * 100));
+                }
+
+                function countHarnessDays(harness) {
+                    if (!harness || !calendarEl) return 1;
+                    var dayCell = calendarEl.querySelector('.fc-daygrid-day');
+                    if (!dayCell) return 1;
+                    var dayWidth = dayCell.getBoundingClientRect().width;
+                    var harnessWidth = harness.getBoundingClientRect().width;
+                    if (dayWidth < 1) return 1;
+                    return Math.max(1, Math.round(harnessWidth / dayWidth));
+                }
+
+                function applyPartialDayBar(info) {
+                    var p = info.event.extendedProps || {};
+                    if (p.source !== 'room') return;
+                    if (!info.view || String(info.view.type).indexOf('dayGrid') !== 0) return;
+
+                    var el = info.el;
+                    if (!el) return;
+
+                    var startPct = timeToDayPercent(p.checkInTime || '14:00');
+                    var endPct = timeToDayPercent(p.checkOutTime || '12:00');
+                    var isStart = el.classList.contains('fc-event-start');
+                    var isEnd = el.classList.contains('fc-event-end');
+                    if (!isStart && !isEnd) {
+                        el.style.marginLeft = '';
+                        el.style.width = '';
+                        el.style.maxWidth = '';
+                        return;
+                    }
+
+                    var harness = el.closest ? el.closest('.fc-daygrid-event-harness') : el.parentElement;
+                    var days = countHarnessDays(harness);
+                    var leftInset = isStart ? (startPct / days) : 0;
+                    var rightInset = isEnd ? ((100 - endPct) / days) : 0;
+                    var width = Math.max(100 - leftInset - rightInset, 6);
+
+                    el.style.boxSizing = 'border-box';
+                    el.style.marginLeft = leftInset + '%';
+                    el.style.width = width + '%';
+                    el.style.maxWidth = width + '%';
+                }
+
                 var calendar = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'dayGridMonth',
                     headerToolbar: {
@@ -915,23 +949,43 @@ $inventory_summary_today = isset($inventory_summary_today) && is_array($inventor
                         center: 'title',
                         right: 'dayGridMonth,timeGridWeek,timeGridDay'
                     },
+                    height: 'auto',
+                    contentHeight: 'auto',
+                    editable: false,
+                    dayMaxEvents: true,
+                    eventDisplay: 'block',
+                    displayEventTime: false,
+                    nextDayThreshold: '00:00:00',
                     events: calendarEvents,
+                    eventDidMount: function(info) {
+                        requestAnimationFrame(function() {
+                            applyPartialDayBar(info);
+                        });
+                    },
                     eventClick: function(info) {
-                        // Open booking details when event is clicked
+                        info.jsEvent.preventDefault();
                         var bookingId = info.event.extendedProps.bookingId;
                         if (bookingId) {
                             window.location.href = '<?php echo base_url("bookings/"); ?>' + bookingId;
                         }
                     },
                     eventMouseEnter: function(info) {
-                        // Show tooltip on hover
+                        var p = info.event.extendedProps || {};
                         var tooltip = document.createElement('div');
                         tooltip.className = 'booking-tooltip';
-                        var roomsText = info.event.extendedProps.rooms ? ' (' + info.event.extendedProps.rooms + ' room' + (info.event.extendedProps.rooms > 1 ? 's' : '') + ')' : '';
-                        tooltip.innerHTML = '<strong>' + info.event.extendedProps.guestName + '</strong><br>' +
-                                          'Room: ' + info.event.extendedProps.roomName + roomsText + '<br>' +
-                                          'Status: ' + info.event.extendedProps.status.charAt(0).toUpperCase() + info.event.extendedProps.status.slice(1) + '<br>' +
-                                          'Amount: ₱' + info.event.extendedProps.amount;
+                        var roomsText = p.rooms ? ' (' + p.rooms + ' room' + (p.rooms > 1 ? 's' : '') + ')' : '';
+                        var stayTimes = '';
+                        if (p.checkInTime || p.checkOutTime) {
+                            stayTimes = '<br>Stay: ' + (p.checkIn || '') +
+                                (p.checkInTime ? (' ' + p.checkInTime) : '') +
+                                ' → ' + (p.checkOut || '') +
+                                (p.checkOutTime ? (' ' + p.checkOutTime) : '');
+                        }
+                        tooltip.innerHTML = '<strong>' + (p.guestName || info.event.title) + '</strong><br>' +
+                                          'Room: ' + (p.roomName || '-') + roomsText +
+                                          stayTimes + '<br>' +
+                                          'Status: ' + (p.status ? (p.status.charAt(0).toUpperCase() + p.status.slice(1).replace(/_/g, ' ')) : '-') + '<br>' +
+                                          'Amount: ₱' + (p.amount || '0.00');
                         tooltip.style.position = 'absolute';
                         tooltip.style.background = '#333';
                         tooltip.style.color = '#fff';
@@ -942,67 +996,22 @@ $inventory_summary_today = isset($inventory_summary_today) && is_array($inventor
                         tooltip.style.pointerEvents = 'none';
                         tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
                         document.body.appendChild(tooltip);
-                        
+
                         var updateTooltipPosition = function(e) {
                             tooltip.style.left = (e.pageX + 10) + 'px';
                             tooltip.style.top = (e.pageY + 10) + 'px';
                         };
-                        
+
                         document.addEventListener('mousemove', updateTooltipPosition);
                         info.el.addEventListener('mouseleave', function() {
-                            document.body.removeChild(tooltip);
+                            if (tooltip.parentNode) {
+                                document.body.removeChild(tooltip);
+                            }
                             document.removeEventListener('mousemove', updateTooltipPosition);
                         });
-                    },
-                    dayCellDidMount: function(info) {
-                        // Add room availability info to each day cell
-                        var dateStr = info.date.toISOString().split('T')[0];
-                        
-                        // Fetch room availability for this date via AJAX
-                        fetch('<?php echo base_url("api/booking/get_availability"); ?>?date=' + dateStr)
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success && data.availability) {
-                                    var availabilityHtml = '<div class="room-availability-info" style="font-size: 0.7rem; margin-top: 2px; color: #666;">';
-                                    var hasAvailability = false;
-                                    
-                                    for (var roomId in data.availability) {
-                                        var room = data.availability[roomId];
-                                        if (room.remaining > 0) {
-                                            hasAvailability = true;
-                                            availabilityHtml += '<span style="display: block; margin: 1px 0;">' + 
-                                                room.room_name + ': ' + 
-                                                '<strong style="color: ' + (room.remaining > 0 ? '#28a745' : '#dc3545') + ';">' + 
-                                                room.remaining + '/' + room.available + 
-                                                '</strong></span>';
-                                        }
-                                    }
-                                    
-                                    if (!hasAvailability) {
-                                        availabilityHtml += '<span style="color: #dc3545;">Fully Booked</span>';
-                                    }
-                                    
-                                    availabilityHtml += '</div>';
-                                    
-                                    // Add to day cell
-                                    var dayNumber = info.dayNumberEl;
-                                    if (dayNumber && dayNumber.parentElement) {
-                                        var existingInfo = dayNumber.parentElement.querySelector('.room-availability-info');
-                                        if (existingInfo) {
-                                            existingInfo.remove();
-                                        }
-                                        dayNumber.parentElement.insertAdjacentHTML('beforeend', availabilityHtml);
-                                    }
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error fetching availability:', error);
-                            });
-                    },
-                    height: 'auto',
-                    contentHeight: 'auto'
+                    }
                 });
-                
+
                 calendar.render();
             }
         });

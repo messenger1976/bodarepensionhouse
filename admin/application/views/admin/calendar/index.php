@@ -176,7 +176,7 @@ $summary = isset($today_summary) ? $today_summary : array(
                     </div>
                 </div>
                 <div class="col-12 mt-1">
-                    <small class="text-soft">Room stay bars start/end mid-day based on check-in and check-out times (e.g. 2:00 PM → 12:00 PM).</small>
+                    <small class="text-soft">Check-in day shades from the right (from check-in time); checkout day shades to the left (until check-out time).</small>
                 </div>
             </div>
         </div>
@@ -358,16 +358,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
 
-    function timeToDayPercent(timeStr) {
-        if (!timeStr) return 0;
-        var parts = String(timeStr).split(':');
-        var hours = parseInt(parts[0], 10);
-        var minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
-        if (isNaN(hours)) return 0;
-        if (isNaN(minutes)) minutes = 0;
-        return Math.max(0, Math.min(100, ((hours * 60 + minutes) / (24 * 60)) * 100));
-    }
-
     function formatTime12(timeStr) {
         if (!timeStr) return '';
         var parts = String(timeStr).split(':');
@@ -381,6 +371,31 @@ document.addEventListener('DOMContentLoaded', function() {
         return h12 + ':' + (minutes < 10 ? '0' : '') + minutes + ' ' + suffix;
     }
 
+    function timeToDayPercent(timeStr) {
+        if (!timeStr) return 0;
+        var parts = String(timeStr).split(':');
+        var hours = parseInt(parts[0], 10);
+        var minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+        if (isNaN(hours)) return 0;
+        if (isNaN(minutes)) minutes = 0;
+        return Math.max(0, Math.min(100, ((hours * 60 + minutes) / (24 * 60)) * 100));
+    }
+
+    function countHarnessDays(harness) {
+        if (!harness || !calendarEl) return 1;
+        var dayCell = calendarEl.querySelector('.fc-daygrid-day');
+        if (!dayCell) return 1;
+        var dayWidth = dayCell.getBoundingClientRect().width;
+        var harnessWidth = harness.getBoundingClientRect().width;
+        if (dayWidth < 1) return 1;
+        return Math.max(1, Math.round(harnessWidth / dayWidth));
+    }
+
+    /**
+     * Check-in day: shade right half (from check-in time).
+     * Checkout day: shade left half (until check-out time).
+     * Insets are scaled by segment day count so multi-day bars stay aligned.
+     */
     function applyPartialDayBar(info) {
         var p = info.event.extendedProps || {};
         if (p.source !== 'room') return;
@@ -389,43 +404,27 @@ document.addEventListener('DOMContentLoaded', function() {
         var el = info.el;
         if (!el) return;
 
-        // Combine date+time into a fraction of the day for clipping
         var startPct = timeToDayPercent(p.checkInTime || '14:00');
         var endPct = timeToDayPercent(p.checkOutTime || '12:00');
         var isStart = el.classList.contains('fc-event-start');
         var isEnd = el.classList.contains('fc-event-end');
-
-        // FullCalendar positions day segments via the harness left/right insets
-        var harness = el.closest ? el.closest('.fc-daygrid-event-harness') : null;
-        if (!harness) {
-            harness = el.parentElement;
-        }
-        if (!harness) return;
-
-        function setInset(leftPct, rightPct) {
-            harness.style.marginLeft = '0';
-            harness.style.width = '';
-            harness.style.maxWidth = '';
-            harness.style.inset = '';
-            harness.style.removeProperty('inset');
-            harness.style.setProperty('left', leftPct + '%', 'important');
-            harness.style.setProperty('right', rightPct + '%', 'important');
+        if (!isStart && !isEnd) {
             el.style.marginLeft = '';
-            el.style.width = '100%';
-            el.style.maxWidth = '100%';
+            el.style.width = '';
+            el.style.maxWidth = '';
+            return;
         }
 
-        if (isStart && isEnd) {
-            var left = Math.min(startPct, Math.max(endPct - 8, 0));
-            var right = Math.max(0, 100 - Math.max(endPct, left + 8));
-            setInset(left, right);
-        } else if (isStart) {
-            setInset(startPct, 0);
-        } else if (isEnd) {
-            setInset(0, Math.max(0, 100 - endPct));
-        } else {
-            setInset(0, 0);
-        }
+        var harness = el.closest ? el.closest('.fc-daygrid-event-harness') : el.parentElement;
+        var days = countHarnessDays(harness);
+        var leftInset = isStart ? (startPct / days) : 0;
+        var rightInset = isEnd ? ((100 - endPct) / days) : 0;
+        var width = Math.max(100 - leftInset - rightInset, 6);
+
+        el.style.boxSizing = 'border-box';
+        el.style.marginLeft = leftInset + '%';
+        el.style.width = width + '%';
+        el.style.maxWidth = width + '%';
     }
 
     function refreshSummary(dateStr) {
@@ -457,7 +456,6 @@ document.addEventListener('DOMContentLoaded', function() {
         nowIndicator: true,
         eventDisplay: 'block',
         displayEventTime: false,
-        // Keep all-day room bars continuous across nights
         nextDayThreshold: '00:00:00',
         events: function(info, successCallback, failureCallback) {
             var errorEl = document.getElementById('calendar-feed-error');
@@ -503,7 +501,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         },
         eventDidMount: function(info) {
-            applyPartialDayBar(info);
+            // Layout width is needed to scale half-day insets across multi-day spans
+            requestAnimationFrame(function() {
+                applyPartialDayBar(info);
+            });
         },
         eventClick: function(info) {
             info.jsEvent.preventDefault();
