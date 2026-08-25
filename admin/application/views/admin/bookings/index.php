@@ -64,8 +64,6 @@
                     <th>Email</th>
                     <th>Check-In</th>
                     <th>Check-Out</th>
-                    <th>Check-In Time</th>
-                    <th>Check-Out Time</th>
                     <th>Guests</th>
                     <th>Rooms</th>
                     <th>Status</th>
@@ -81,25 +79,17 @@
                             <td>#<?php echo isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT); ?></td>
                             <td><?php echo htmlspecialchars($booking->guest_name); ?></td>
                             <td><?php echo htmlspecialchars($booking->guest_email); ?></td>
-                            <td><?php echo date('M d, Y', strtotime($booking->check_in)); ?></td>
-                            <td><?php echo date('M d, Y', strtotime($booking->check_out)); ?></td>
                             <td>
-                                <?php
-                                if (!empty($booking->check_in_time)) {
-                                    echo date('g:i A', strtotime($booking->check_in_time));
-                                } else {
-                                    echo '<span class="text-muted">—</span>';
-                                }
-                                ?>
+                                <?php echo date('M d, Y', strtotime($booking->check_in)); ?>
+                                <?php if (!empty($booking->check_in_time)): ?>
+                                    <span class="text-muted"><?php echo date('g:i A', strtotime($booking->check_in_time)); ?></span>
+                                <?php endif; ?>
                             </td>
                             <td>
-                                <?php
-                                if (!empty($booking->check_out_time)) {
-                                    echo date('g:i A', strtotime($booking->check_out_time));
-                                } else {
-                                    echo '<span class="text-muted">—</span>';
-                                }
-                                ?>
+                                <?php echo date('M d, Y', strtotime($booking->check_out)); ?>
+                                <?php if (!empty($booking->check_out_time)): ?>
+                                    <span class="text-muted"><?php echo date('g:i A', strtotime($booking->check_out_time)); ?></span>
+                                <?php endif; ?>
                             </td>
                             <td><?php echo $booking->guests; ?></td>
                             <td>
@@ -150,7 +140,7 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="13" class="text-center text-muted">No bookings found</td>
+                        <td colspan="11" class="text-center text-muted">No bookings found</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
