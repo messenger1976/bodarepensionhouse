@@ -329,6 +329,13 @@ const API = {
             });
         },
 
+        async createCardCheckout(payload) {
+            return API.request('payment/card-checkout', {
+                method: 'POST',
+                body: JSON.stringify(payload || {})
+            });
+        },
+
         async verify(payload) {
             const params = new URLSearchParams();
             if (payload && payload.booking_number) params.set('booking', payload.booking_number);

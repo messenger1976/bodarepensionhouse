@@ -905,7 +905,7 @@ class Paymongo_service {
         $cancel_url = $site . '/';
         if ($booking && !empty($booking->booking_number)) {
             $success_url = $site . '/booking-confirmation.php?booking=' . rawurlencode($booking->booking_number) . '&payment=card&status=success';
-            $cancel_url = $site . '/booking-confirmation.php?booking=' . rawurlencode($booking->booking_number) . '&payment=card&status=cancelled';
+            $cancel_url = $site . '/checkout.php?booking=' . rawurlencode($booking->booking_number) . '&payment=cancelled&method=card';
         } elseif ($invoice_id) {
             $success_url = $site . '/customer-invoices.php?id=' . (int) $invoice_id . '&payment=card&status=success';
             $cancel_url = $site . '/customer-invoices.php?id=' . (int) $invoice_id . '&payment=card&status=cancelled';

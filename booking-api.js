@@ -411,12 +411,16 @@ async function createBooking(bookingData) {
             // Booking exists; PayMongo checkout failed — allow retry without a new booking
             try {
                 sessionStorage.setItem('paymongo_retry_booking', error.response.booking_number);
+                sessionStorage.setItem(
+                    'paymongo_retry_method',
+                    (error.response.payment_method === 'card') ? 'card' : 'gcash'
+                );
                 localStorage.setItem('booking_number', error.response.booking_number);
             } catch (storageError) {
                 console.warn('Unable to store PayMongo retry booking number', storageError);
             }
             errorMessage = error.response.message
-                || `Your booking ${error.response.booking_number} was saved, but GCash checkout could not start. Click Continue to GCash Payment again to retry.`;
+                || `Your booking ${error.response.booking_number} was saved, but online payment could not start. Select the same payment method and continue to retry.`;
         } else if (error.response && error.response.message) {
             // Check response message
             const responseMessage = error.response.message.toLowerCase();
@@ -799,7 +803,7 @@ async function handleCheckoutSubmit(e) {
     });
     
     // Build comprehensive notes with payment method, all rooms, and services
-    let notes = `Payment Method: ${paymentMethod === 'pay_at_hotel' ? 'Pay at Hotel' : paymentMethod === 'card' ? 'Credit/Debit Card' : 'GCash'}`;
+    let notes = `Payment Method: ${paymentMethod === 'pay_at_hotel' ? 'Pay at Hotel' : paymentMethod === 'card' ? 'Credit/Debit Card (PayMongo)' : 'GCash / QR Ph'}`;
     notes += ` | Total Rooms: ${totalRooms}`;
     notes += ` | Room Details: ${roomDetails.join(', ')}`;
     notes += ` | Guests: ${totalAdults} Adult(s), ${totalChildren} Child(ren)`;
@@ -836,15 +840,6 @@ async function handleCheckoutSubmit(e) {
                 : s.name;
         }).join(', ');
         notes += ` | Services: ${serviceNames}`;
-    }
-    
-    // Add card details to notes if card payment
-    if (paymentMethod === 'card') {
-        const cardNumber = document.getElementById('card-number')?.value;
-        if (cardNumber) {
-            const last4 = cardNumber.replace(/\s/g, '').slice(-4);
-            notes += ` (Card ending in ${last4})`;
-        }
     }
     
     // Prepare booking data with room_selections array (same format as admin panel)
@@ -941,10 +936,31 @@ async function handleCheckoutSubmit(e) {
                     sessionStorage.setItem('paymongo_qrph_payment', JSON.stringify(response.payment));
                 } catch (e) {}
                 sessionStorage.removeItem('paymongo_retry_booking');
+                sessionStorage.removeItem('paymongo_retry_method');
                 showMessage('Reservation created. Opening QR Ph payment…', 'success');
                 submitBtn.textContent = 'Opening QR payment…';
                 const invQs = response.payment.invoice_id ? `&invoice=${encodeURIComponent(response.payment.invoice_id)}` : '';
                 window.location.href = `booking-confirmation.php?booking=${encodeURIComponent(response.booking_number)}&payment=qrph${invQs}`;
+                return;
+            }
+
+            // Card via PayMongo Hosted Checkout — redirect to PayMongo
+            const cardCheckoutUrl = response.payment && response.payment.checkout_url;
+            if (paymentMethod === 'card' && cardCheckoutUrl) {
+                clearCartLocal();
+                localStorage.removeItem('cartServices');
+                sessionStorage.setItem('paymongo_booking_number', response.booking_number);
+                if (response.payment.checkout_session_id) {
+                    sessionStorage.setItem('paymongo_session_id', response.payment.checkout_session_id);
+                }
+                if (response.payment.payment_intent_id) {
+                    sessionStorage.setItem('paymongo_payment_intent_id', response.payment.payment_intent_id);
+                }
+                sessionStorage.removeItem('paymongo_retry_booking');
+                sessionStorage.removeItem('paymongo_retry_method');
+                showMessage('Reservation created. Redirecting to secure card payment…', 'success');
+                submitBtn.textContent = 'Redirecting to PayMongo…';
+                window.location.href = cardCheckoutUrl;
                 return;
             }
 
@@ -957,7 +973,7 @@ async function handleCheckoutSubmit(e) {
                 return;
             }
             
-            // Clear cart immediately after successful booking (pay at hotel / card)
+            // Clear cart immediately after successful booking (pay at hotel)
             clearCartLocal();
             
             // Verify cart is cleared

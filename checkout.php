@@ -166,22 +166,20 @@ include __DIR__ . '/includes/site-head.php';
                                 </select>
                             </div>
                             
-                            <!-- Card Payment Fields (shown when card is selected) -->
+                            <!-- Card / PayMongo Hosted Checkout Message -->
                             <div id="card-payment-fields" style="display: none; margin-top: 1.5rem;">
-                                <p style="color: #666; margin-bottom: 1rem;">Please enter your card details below.</p>
-                                <div class="form-group-contact">
-                                    <label for="card-number">Card Number</label>
-                                    <input type="text" id="card-number" placeholder="Card Number (XXXX XXXX XXXX XXXX)" maxlength="19">
-                                </div>
-                                <div class="form-grid-2">
-                                    <div class="form-group-contact">
-                                        <label for="card-expiry">Expiry Date</label>
-                                        <input type="text" id="card-expiry" placeholder="Expiry Date (MM / YY)" maxlength="5">
-                                    </div>
-                                    <div class="form-group-contact">
-                                        <label for="card-cvc">CVC</label>
-                                        <input type="text" id="card-cvc" placeholder="CVC (XXX)" maxlength="3">
-                                    </div>
+                                <div style="
+                                    background: #eef2ff;
+                                    border: 1px solid #c7d2fe;
+                                    color: #312e81;
+                                    padding: 1rem;
+                                    border-radius: 4px;
+                                ">
+                                    <strong>Pay by Credit/Debit Card (PayMongo):</strong>
+                                    <span id="card-payment-message-text">
+                                        After you confirm, your reservation will be created and you will be redirected to PayMongo&rsquo;s secure checkout to enter your card details.
+                                        We never store your full card number. Your booking stays pending until payment is completed.
+                                    </span>
                                 </div>
                             </div>
                             
@@ -529,30 +527,40 @@ include __DIR__ . '/includes/site-head.php';
                 if (payAtHotelMessage) payAtHotelMessage.style.display = method === 'pay_at_hotel' ? 'block' : 'none';
                 if (gcashMessage) gcashMessage.style.display = method === 'gcash' ? 'block' : 'none';
                 const gcashText = document.getElementById('gcash-payment-message-text');
+                const cardText = document.getElementById('card-payment-message-text');
                 const retryBooking = sessionStorage.getItem('paymongo_retry_booking');
+                const retryMethod = sessionStorage.getItem('paymongo_retry_method') || 'gcash';
                 if (confirmBtn) {
                     if (method === 'gcash') {
-                        confirmBtn.textContent = retryBooking
+                        confirmBtn.textContent = (retryBooking && retryMethod === 'gcash')
                             ? ('Retry QR Payment (' + retryBooking + ')')
                             : 'Continue to QR Payment';
                     } else if (method === 'card') {
-                        confirmBtn.textContent = 'Confirm & Pay by Card';
+                        confirmBtn.textContent = (retryBooking && retryMethod === 'card')
+                            ? ('Retry Card Payment (' + retryBooking + ')')
+                            : 'Continue to Secure Card Payment';
                     } else {
                         confirmBtn.textContent = 'Confirm Reservation';
                     }
                 }
                 if (gcashText) {
-                    gcashText.textContent = retryBooking
+                    gcashText.textContent = (retryBooking && retryMethod === 'gcash')
                         ? (' Booking ' + retryBooking + ' is saved. Click the button below to open the QR Ph code again and finish payment with GCash.')
                         : ' After you confirm, your reservation and invoice will be created. You will see a QR Ph code on the next page to scan with GCash (or any QR Ph app). Your booking stays pending until payment is completed.';
+                }
+                if (cardText) {
+                    cardText.textContent = (retryBooking && retryMethod === 'card')
+                        ? (' Booking ' + retryBooking + ' is saved. Click the button below to open PayMongo again and finish paying by card.')
+                        : ' After you confirm, your reservation will be created and you will be redirected to PayMongo’s secure checkout to enter your card details. We never store your full card number. Your booking stays pending until payment is completed.';
                 }
             };
             
             if (paymentMethod) {
                 paymentMethod.addEventListener('change', (e) => {
                     syncPaymentMethodUI(e.target.value);
-                    if (e.target.value !== 'gcash') {
+                    if (e.target.value !== 'gcash' && e.target.value !== 'card') {
                         sessionStorage.removeItem('paymongo_retry_booking');
+                        sessionStorage.removeItem('paymongo_retry_method');
                     }
                 });
                 syncPaymentMethodUI(paymentMethod.value);
@@ -562,9 +570,12 @@ include __DIR__ . '/includes/site-head.php';
             const params = new URLSearchParams(window.location.search);
             if (params.get('payment') === 'cancelled') {
                 const bookingRef = params.get('booking') || '';
+                const cancelledMethod = (params.get('method') || 'gcash').toLowerCase();
                 const msg = bookingRef
-                    ? `QR payment was not completed. Your booking ${bookingRef} is still reserved as pending. Select GCash / QR Ph and click Continue to retry, or choose Pay at the Hotel.`
-                    : 'QR payment was not completed. You can try again or choose another payment method.';
+                    ? (cancelledMethod === 'card'
+                        ? `Card payment was not completed. Your booking ${bookingRef} is still reserved as pending. Select Credit/Debit Card and click Continue to retry, or choose Pay at the Hotel.`
+                        : `QR payment was not completed. Your booking ${bookingRef} is still reserved as pending. Select GCash / QR Ph and click Continue to retry, or choose Pay at the Hotel.`)
+                    : 'Payment was not completed. You can try again or choose another payment method.';
                 if (typeof showMessage === 'function') {
                     showMessage(msg, 'error');
                 } else {
@@ -572,95 +583,111 @@ include __DIR__ . '/includes/site-head.php';
                 }
                 if (bookingRef) {
                     sessionStorage.setItem('paymongo_retry_booking', bookingRef);
+                    sessionStorage.setItem('paymongo_retry_method', cancelledMethod === 'card' ? 'card' : 'gcash');
                     if (paymentMethod) {
-                        paymentMethod.value = 'gcash';
-                        syncPaymentMethodUI('gcash');
+                        paymentMethod.value = cancelledMethod === 'card' ? 'card' : 'gcash';
+                        syncPaymentMethodUI(paymentMethod.value);
                     }
                 }
             }
 
-            // Retry QRPH for an existing pending booking
+            // Retry PayMongo for an existing pending booking (QRPH or card)
             const checkoutForm = document.getElementById('checkout-login-form');
             if (checkoutForm) {
                 checkoutForm.addEventListener('submit', async (e) => {
                     const retryBooking = sessionStorage.getItem('paymongo_retry_booking');
+                    const retryMethod = sessionStorage.getItem('paymongo_retry_method') || 'gcash';
                     const method = paymentMethod ? paymentMethod.value : '';
-                    if (!retryBooking || method !== 'gcash' || typeof API === 'undefined' || !API.payment) {
+                    if (!retryBooking || typeof API === 'undefined' || !API.payment) {
                         return;
                     }
-                    e.preventDefault();
-                    e.stopImmediatePropagation();
-                    if (confirmBtn) {
-                        confirmBtn.disabled = true;
-                        confirmBtn.textContent = 'Opening QR payment…';
-                    }
-                    try {
-                        const result = await API.payment.createQrph({
-                            booking_number: retryBooking,
-                            regenerate: true
-                        });
-                        if (result.already_paid) {
-                            sessionStorage.removeItem('paymongo_retry_booking');
-                            window.location.href = `booking-confirmation.php?booking=${encodeURIComponent(retryBooking)}&payment=success`;
-                            return;
-                        }
-                        if (result.success && (result.qr_image_url || (result.payment && result.payment.qr_image_url))) {
-                            sessionStorage.removeItem('paymongo_retry_booking');
-                            const payment = result.payment || result;
-                            try {
-                                sessionStorage.setItem('paymongo_qrph_payment', JSON.stringify(payment));
-                            } catch (err) {}
-                            if (payment.payment_intent_id) {
-                                sessionStorage.setItem('paymongo_payment_intent_id', payment.payment_intent_id);
-                            }
-                            const invQs = payment.invoice_id ? `&invoice=${encodeURIComponent(payment.invoice_id)}` : '';
-                            window.location.href = `booking-confirmation.php?booking=${encodeURIComponent(retryBooking)}&payment=qrph${invQs}`;
-                            return;
-                        }
-                        throw new Error(result.message || 'Unable to restart QR Ph payment.');
-                    } catch (err) {
-                        if (typeof showMessage === 'function') {
-                            showMessage(err.message || 'Unable to restart QR Ph payment.', 'error');
-                        } else {
-                            alert(err.message || 'Unable to restart QR Ph payment.');
-                        }
+
+                    if (method === 'gcash' && retryMethod === 'gcash') {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
                         if (confirmBtn) {
-                            confirmBtn.disabled = false;
-                            syncPaymentMethodUI('gcash');
+                            confirmBtn.disabled = true;
+                            confirmBtn.textContent = 'Opening QR payment…';
+                        }
+                        try {
+                            const result = await API.payment.createQrph({
+                                booking_number: retryBooking,
+                                regenerate: true
+                            });
+                            if (result.already_paid) {
+                                sessionStorage.removeItem('paymongo_retry_booking');
+                                sessionStorage.removeItem('paymongo_retry_method');
+                                window.location.href = `booking-confirmation.php?booking=${encodeURIComponent(retryBooking)}&payment=success`;
+                                return;
+                            }
+                            if (result.success && (result.qr_image_url || (result.payment && result.payment.qr_image_url))) {
+                                sessionStorage.removeItem('paymongo_retry_booking');
+                                sessionStorage.removeItem('paymongo_retry_method');
+                                const payment = result.payment || result;
+                                try {
+                                    sessionStorage.setItem('paymongo_qrph_payment', JSON.stringify(payment));
+                                } catch (err) {}
+                                if (payment.payment_intent_id) {
+                                    sessionStorage.setItem('paymongo_payment_intent_id', payment.payment_intent_id);
+                                }
+                                const invQs = payment.invoice_id ? `&invoice=${encodeURIComponent(payment.invoice_id)}` : '';
+                                window.location.href = `booking-confirmation.php?booking=${encodeURIComponent(retryBooking)}&payment=qrph${invQs}`;
+                                return;
+                            }
+                            throw new Error(result.message || 'Unable to restart QR Ph payment.');
+                        } catch (err) {
+                            if (typeof showMessage === 'function') {
+                                showMessage(err.message || 'Unable to restart QR Ph payment.', 'error');
+                            } else {
+                                alert(err.message || 'Unable to restart QR Ph payment.');
+                            }
+                            if (confirmBtn) {
+                                confirmBtn.disabled = false;
+                                syncPaymentMethodUI('gcash');
+                            }
+                        }
+                        return;
+                    }
+
+                    if (method === 'card' && retryMethod === 'card') {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        if (confirmBtn) {
+                            confirmBtn.disabled = true;
+                            confirmBtn.textContent = 'Opening card checkout…';
+                        }
+                        try {
+                            const result = await API.payment.createCardCheckout({
+                                booking_number: retryBooking,
+                                regenerate: true
+                            });
+                            if (result.already_paid) {
+                                sessionStorage.removeItem('paymongo_retry_booking');
+                                sessionStorage.removeItem('paymongo_retry_method');
+                                window.location.href = `booking-confirmation.php?booking=${encodeURIComponent(retryBooking)}&payment=success`;
+                                return;
+                            }
+                            const checkoutUrl = result.checkout_url || (result.payment && result.payment.checkout_url);
+                            if (result.success && checkoutUrl) {
+                                sessionStorage.removeItem('paymongo_retry_booking');
+                                sessionStorage.removeItem('paymongo_retry_method');
+                                window.location.href = checkoutUrl;
+                                return;
+                            }
+                            throw new Error(result.message || 'Unable to restart card checkout.');
+                        } catch (err) {
+                            if (typeof showMessage === 'function') {
+                                showMessage(err.message || 'Unable to restart card checkout.', 'error');
+                            } else {
+                                alert(err.message || 'Unable to restart card checkout.');
+                            }
+                            if (confirmBtn) {
+                                confirmBtn.disabled = false;
+                                syncPaymentMethodUI('card');
+                            }
                         }
                     }
                 }, true);
-            }
-            
-            // Format card number input
-            const cardNumber = document.getElementById('card-number');
-            if (cardNumber) {
-                cardNumber.addEventListener('input', (e) => {
-                    let value = e.target.value.replace(/\s/g, '');
-                    let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-                    if (formattedValue.length > 19) formattedValue = formattedValue.slice(0, 19);
-                    e.target.value = formattedValue;
-                });
-            }
-            
-            // Format expiry date input
-            const cardExpiry = document.getElementById('card-expiry');
-            if (cardExpiry) {
-                cardExpiry.addEventListener('input', (e) => {
-                    let value = e.target.value.replace(/\D/g, '');
-                    if (value.length >= 2) {
-                        value = value.slice(0, 2) + ' / ' + value.slice(2, 4);
-                    }
-                    e.target.value = value;
-                });
-            }
-            
-            // Format CVC input (numbers only)
-            const cardCvc = document.getElementById('card-cvc');
-            if (cardCvc) {
-                cardCvc.addEventListener('input', (e) => {
-                    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 3);
-                });
             }
         });
     </script>

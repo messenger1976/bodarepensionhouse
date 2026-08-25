@@ -6,8 +6,12 @@ $confirmation = $bookingNumber !== '' ? bodare_get_booking_confirmation($booking
 $paymentFlag = isset($_GET['payment']) ? strtolower(trim((string) $_GET['payment'])) : '';
 $sessionId = isset($_GET['session_id']) ? trim((string) $_GET['session_id']) : '';
 $invoiceIdParam = isset($_GET['invoice']) ? trim((string) $_GET['invoice']) : '';
+$paymentStatusParam = isset($_GET['status']) ? strtolower(trim((string) $_GET['status'])) : '';
 $showQrph = ($paymentFlag === 'qrph' && $bookingNumber !== '');
-$awaitingPaymentVerify = ($paymentFlag === 'success' && $bookingNumber !== '');
+$awaitingPaymentVerify = (
+    ($paymentFlag === 'success' && $bookingNumber !== '')
+    || ($paymentFlag === 'card' && $paymentStatusParam === 'success' && $bookingNumber !== '')
+);
 $isPendingBooking = $confirmation && strtolower((string) ($confirmation['booking']['status'] ?? '')) === 'pending';
 
 $pageSeo = [

@@ -169,6 +169,111 @@ class Payment extends CI_Controller {
     }
 
     /**
+     * Start or regenerate PayMongo Hosted Checkout (card) for a booking / invoice.
+     * POST { booking_number } | { booking_id } | { invoice_id }
+     */
+    public function create_card_checkout() {
+        $this->cors('POST, OPTIONS');
+
+        if ($this->input->method() !== 'post') {
+            $this->output->set_status_header(405);
+            echo json_encode(array('success' => false, 'message' => 'Method not allowed'));
+            return;
+        }
+
+        if (!$this->paymongo_service->is_ready()) {
+            $this->output->set_status_header(503);
+            echo json_encode(array(
+                'success' => false,
+                'message' => 'Online card payment is not configured yet. Please choose Pay at the Hotel or contact us.'
+            ));
+            return;
+        }
+
+        $data = $this->json_input();
+        $booking = $this->resolve_booking($data);
+        $invoice = null;
+
+        if (!$booking && !empty($data['invoice_id']) && $this->db->table_exists('invoices')) {
+            $invoice = $this->Invoice_model->get((int) $data['invoice_id']);
+            if ($invoice && !empty($invoice->booking_id)) {
+                $booking = $this->Booking_model->get_booking((int) $invoice->booking_id);
+            }
+        }
+
+        $force = !empty($data['regenerate']) || !empty($data['force_new']);
+
+        if (!$booking && $invoice) {
+            $result = $this->paymongo_service->start_card_checkout_for_invoice($invoice, null, $force);
+            if (!$result || empty($result['checkout_url'])) {
+                $this->output->set_status_header(502);
+                echo json_encode(array(
+                    'success' => false,
+                    'invoice_id' => (int) $invoice->id,
+                    'can_retry_payment' => true,
+                    'message' => $this->paymongo_service->get_last_error() ?: 'Unable to start card checkout. Please try again.'
+                ));
+                return;
+            }
+            echo json_encode(array(
+                'success' => true,
+                'payment' => $result,
+                'checkout_url' => $result['checkout_url'],
+                'invoice_id' => $result['invoice_id'],
+                'invoice_number' => $result['invoice_number'],
+                'amount' => $result['amount']
+            ));
+            return;
+        }
+
+        if (!$booking) {
+            $this->output->set_status_header(404);
+            echo json_encode(array('success' => false, 'message' => 'Booking not found.'));
+            return;
+        }
+
+        if (strtolower((string) $booking->status) === 'cancelled') {
+            $this->output->set_status_header(400);
+            echo json_encode(array('success' => false, 'message' => 'This booking was cancelled and cannot be paid.'));
+            return;
+        }
+
+        if ($this->paymongo_service->find_paid_payment((int) $booking->id)) {
+            echo json_encode(array(
+                'success' => true,
+                'already_paid' => true,
+                'paid' => true,
+                'booking_number' => $booking->booking_number,
+                'message' => 'This booking is already paid.'
+            ));
+            return;
+        }
+
+        $result = $this->paymongo_service->start_card_checkout_for_booking($booking, null, true);
+        if (!$result || empty($result['checkout_url'])) {
+            $this->output->set_status_header(502);
+            echo json_encode(array(
+                'success' => false,
+                'booking_number' => $booking->booking_number,
+                'can_retry_payment' => true,
+                'message' => $this->paymongo_service->get_last_error() ?: 'Unable to start card checkout. Please try again.'
+            ));
+            return;
+        }
+
+        echo json_encode(array(
+            'success' => true,
+            'payment' => $result,
+            'booking_number' => $booking->booking_number,
+            'checkout_url' => $result['checkout_url'],
+            'checkout_session_id' => isset($result['checkout_session_id']) ? $result['checkout_session_id'] : null,
+            'invoice_id' => $result['invoice_id'],
+            'invoice_number' => $result['invoice_number'],
+            'amount' => $result['amount']
+        ));
+    }
+
+    /**
      * Verify Payment Intent status (polling from confirmation / invoices).
      */
     public function verify() {

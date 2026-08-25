@@ -208,6 +208,7 @@ $route['api/invoice/number/(:any)'] = 'api/invoice/by_number/$1';
 
 $route['api/payment/gcash-checkout'] = 'api/payment/create_gcash_checkout';
 $route['api/payment/qrph'] = 'api/payment/create_qrph';
+$route['api/payment/card-checkout'] = 'api/payment/create_card_checkout';
 $route['api/payment/verify'] = 'api/payment/verify';
 $route['api/payment/webhook'] = 'api/payment/webhook';
 

@@ -208,14 +208,15 @@ class Booking extends CI_Controller {
             $payment_method = 'pay_at_hotel';
         }
 
-        // Fail fast for GCash before room holds / availability work
-        if ($payment_method === 'gcash') {
+        // Fail fast for online PayMongo methods before room holds / availability work
+        if ($payment_method === 'gcash' || $payment_method === 'card') {
             $this->load->library('paymongo_service');
             if (!$this->paymongo_service->is_ready()) {
+                $label = ($payment_method === 'card') ? 'Card (PayMongo)' : 'GCash / QR Ph (PayMongo)';
                 $this->output->set_status_header(503);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Online GCash / QR Ph (PayMongo) is not configured yet. Please choose Pay at the Hotel, or ask the administrator to enable PayMongo in Booking Settings.'
+                    'message' => 'Online ' . $label . ' is not configured yet. Please choose Pay at the Hotel, or ask the administrator to enable PayMongo in Booking Settings.'
                 ]);
                 return;
             }
@@ -537,13 +538,13 @@ class Booking extends CI_Controller {
         $this->load->library('billing_service');
         $booking_status = $this->billing_service->resolve_initial_booking_status();
 
-        // Online GCash must stay pending until PayMongo confirms payment
-        if ($payment_method === 'gcash') {
+        // Online PayMongo methods must stay pending until payment is confirmed
+        if ($payment_method === 'gcash' || $payment_method === 'card') {
             if ($total_amount < 20) {
                 $this->output->set_status_header(400);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'GCash online payment requires a minimum total of ₱20.00.'
+                    'message' => ($payment_method === 'card' ? 'Card' : 'GCash') . ' online payment requires a minimum total of ₱20.00.'
                 ]);
                 return;
             }
@@ -711,6 +712,35 @@ class Booking extends CI_Controller {
                         'can_retry_payment' => true,
                         'booking_number' => $booking->booking_number,
                         'message' => 'Your booking was saved (' . $booking->booking_number . '), but we could not start QR Ph payment: '
+                            . ($this->paymongo_service->get_last_error() ?: 'Please contact us to complete payment.')
+                            . ' You can retry payment without creating a new booking.'
+                    ]);
+                    return;
+                }
+            }
+        } elseif ($payment_method === 'card') {
+            $this->load->library('paymongo_service');
+            if ($this->paymongo_service->is_ready()) {
+                $card = $this->paymongo_service->start_card_checkout_for_booking($booking, $total_amount, true);
+                if ($card && !empty($card['checkout_url'])) {
+                    $payment_payload = $card;
+                    $response_message = 'Reservation created. Redirecting to secure card payment…';
+                    if (!empty($card['invoice_id'])) {
+                        $auto_invoice = array(
+                            'created' => true,
+                            'invoice_id' => $card['invoice_id'],
+                            'invoice_number' => isset($card['invoice_number']) ? $card['invoice_number'] : null
+                        );
+                    }
+                } else {
+                    $this->output->set_status_header(502);
+                    echo json_encode([
+                        'success' => false,
+                        'booking_created' => true,
+                        'can_retry_payment' => true,
+                        'payment_method' => 'card',
+                        'booking_number' => $booking->booking_number,
+                        'message' => 'Your booking was saved (' . $booking->booking_number . '), but we could not start card checkout: '
                             . ($this->paymongo_service->get_last_error() ?: 'Please contact us to complete payment.')
                             . ' You can retry payment without creating a new booking.'
                     ]);
