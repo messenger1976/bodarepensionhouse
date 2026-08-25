@@ -182,6 +182,7 @@ $summary = isset($today_summary) ? $today_summary : array(
     <!-- Calendar -->
     <div class="card card-bordered">
         <div class="card-inner">
+            <div id="calendar-feed-error" class="alert alert-warning" style="display:none;"></div>
             <div id="hotel-calendar"></div>
         </div>
     </div>
@@ -341,10 +342,36 @@ document.addEventListener('DOMContentLoaded', function() {
         nowIndicator: true,
         eventDisplay: 'block',
         events: function(info, successCallback, failureCallback) {
-            fetch(buildFeedUrl(info))
-                .then(function(response) { return response.json(); })
-                .then(function(data) { successCallback(Array.isArray(data) ? data : []); })
-                .catch(function(err) { failureCallback(err); });
+            var errorEl = document.getElementById('calendar-feed-error');
+            fetch(buildFeedUrl(info), { credentials: 'same-origin' })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('Calendar feed failed (HTTP ' + response.status + ')');
+                    }
+                    return response.text();
+                })
+                .then(function(text) {
+                    var data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (parseError) {
+                        throw new Error('Calendar feed returned invalid JSON. Check /calendar/feed in the browser.');
+                    }
+                    if (errorEl) {
+                        errorEl.style.display = 'none';
+                        errorEl.textContent = '';
+                    }
+                    successCallback(Array.isArray(data) ? data : []);
+                })
+                .catch(function(err) {
+                    if (errorEl) {
+                        errorEl.style.display = 'block';
+                        errorEl.textContent = (err && err.message)
+                            ? err.message
+                            : 'Unable to load calendar bookings. Click Refresh or check your admin session.';
+                    }
+                    failureCallback(err);
+                });
         },
         eventClick: function(info) {
             info.jsEvent.preventDefault();

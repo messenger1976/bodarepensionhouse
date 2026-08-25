@@ -448,15 +448,15 @@ class Booking_model extends CI_Model {
         $this->db->join('rooms', 'rooms.id = bookings.room_id', 'left');
         $this->db->where('bookings.status !=', 'cancelled');
         
-        // Get bookings that overlap with the date range
-        // A booking overlaps if: check_in <= end_date AND check_out >= start_date
+        // Get bookings that overlap with the date range (FullCalendar end is exclusive)
+        // Overlap: check_in < end_date AND check_out > start_date
         if ($start_date && $end_date) {
-            $this->db->where("DATE(bookings.check_in) <= '{$end_date}'", NULL, FALSE);
-            $this->db->where("DATE(bookings.check_out) >= '{$start_date}'", NULL, FALSE);
+            $this->db->where('DATE(bookings.check_in) <', $end_date);
+            $this->db->where('DATE(bookings.check_out) >', $start_date);
         } elseif ($start_date) {
-            $this->db->where("DATE(bookings.check_out) >= '{$start_date}'", NULL, FALSE);
+            $this->db->where('DATE(bookings.check_out) >', $start_date);
         } elseif ($end_date) {
-            $this->db->where("DATE(bookings.check_in) <= '{$end_date}'", NULL, FALSE);
+            $this->db->where('DATE(bookings.check_in) <', $end_date);
         }
         
         $this->db->order_by('bookings.check_in', 'ASC');
@@ -942,6 +942,7 @@ class Booking_model extends CI_Model {
         $entries = array();
         $start_date = date('Y-m-d', strtotime($start_date));
         $end_date = date('Y-m-d', strtotime($end_date));
+        $seen_booking_ids = array();
 
         if ($this->db->table_exists('booking_items')) {
             $this->db->select('
@@ -970,8 +971,9 @@ class Booking_model extends CI_Model {
             $this->db->from('booking_items');
             $this->db->join('bookings', 'bookings.id = booking_items.booking_id', 'inner');
             $this->db->join('rooms', 'rooms.id = booking_items.room_id', 'left');
-            $this->db->where("DATE(booking_items.check_in) <= '{$end_date}'", NULL, FALSE);
-            $this->db->where("DATE(booking_items.check_out) >= '{$start_date}'", NULL, FALSE);
+            // FullCalendar range is half-open [start, end)
+            $this->db->where('DATE(booking_items.check_in) <', $end_date);
+            $this->db->where('DATE(booking_items.check_out) >', $start_date);
 
             if (!$include_cancelled) {
                 $this->db->where('bookings.status !=', 'cancelled');
@@ -990,27 +992,32 @@ class Booking_model extends CI_Model {
             foreach ($rows as $row) {
                 $check_in = date('Y-m-d', strtotime($row->item_check_in));
                 $check_out = date('Y-m-d', strtotime($row->item_check_out));
+                if ($check_out <= $check_in) {
+                    $check_out = date('Y-m-d', strtotime($check_in . ' +1 day'));
+                }
                 $display_status = $row->booking_status ? $row->booking_status : 'pending';
                 $room_name = $row->room_name ? $row->room_name : ($row->item_room_name ? $row->item_room_name : 'Room');
                 $booking_number = !empty($row->booking_number)
                     ? $row->booking_number
                     : str_pad($row->booking_id, 6, '0', STR_PAD_LEFT);
+                $seen_booking_ids[(int) $row->booking_id] = true;
 
                 $entries[] = array(
                     'id' => 'booking-' . $row->booking_id . '-item-' . $row->item_id,
-                    'title' => $row->guest_name . ' · ' . $room_name,
+                    'title' => $this->calendar_safe_text($row->guest_name) . ' · ' . $this->calendar_safe_text($room_name),
                     'start' => $check_in,
-                    'end' => date('Y-m-d', strtotime($check_out . ' +1 day')),
+                    // Exclusive end = checkout date (shows nights stayed)
+                    'end' => $check_out,
                     'allDay' => true,
                     'classNames' => array('cal-room', 'cal-status-' . $display_status),
                     'extendedProps' => array(
                         'source' => 'room',
                         'bookingId' => (int) $row->booking_id,
                         'bookingNumber' => $booking_number,
-                        'guestName' => $row->guest_name,
-                        'guestEmail' => $row->guest_email,
-                        'guestPhone' => $row->guest_phone,
-                        'roomName' => $room_name,
+                        'guestName' => $this->calendar_safe_text($row->guest_name),
+                        'guestEmail' => $this->calendar_safe_text($row->guest_email),
+                        'guestPhone' => $this->calendar_safe_text($row->guest_phone),
+                        'roomName' => $this->calendar_safe_text($room_name),
                         'roomCode' => $row->room_code ? $row->room_code : '-',
                         'roomType' => $row->room_type ? $row->room_type : '-',
                         'status' => $display_status,
@@ -1022,13 +1029,14 @@ class Booking_model extends CI_Model {
                     )
                 );
             }
-
-            return $entries;
         }
 
-        // Fallback: single-room bookings table
+        // Include bookings missing booking_items (legacy/incomplete) and when items table is absent
         $bookings = $this->get_bookings_for_calendar($start_date, $end_date);
         foreach ($bookings as $booking) {
+            if (isset($seen_booking_ids[(int) $booking->id])) {
+                continue;
+            }
             if ($status && $booking->status !== $status) {
                 continue;
             }
@@ -1041,29 +1049,33 @@ class Booking_model extends CI_Model {
 
             $check_in = date('Y-m-d', strtotime($booking->check_in));
             $check_out = date('Y-m-d', strtotime($booking->check_out));
+            if ($check_out <= $check_in) {
+                $check_out = date('Y-m-d', strtotime($check_in . ' +1 day'));
+            }
             $room_name = isset($booking->room_name) ? $booking->room_name : 'Room';
             $booking_number = !empty($booking->booking_number)
                 ? $booking->booking_number
                 : str_pad($booking->id, 6, '0', STR_PAD_LEFT);
+            $display_status = $booking->status ? $booking->status : 'pending';
 
             $entries[] = array(
                 'id' => 'booking-' . $booking->id,
-                'title' => $booking->guest_name . ' · ' . $room_name,
+                'title' => $this->calendar_safe_text($booking->guest_name) . ' · ' . $this->calendar_safe_text($room_name),
                 'start' => $check_in,
-                'end' => date('Y-m-d', strtotime($check_out . ' +1 day')),
+                'end' => $check_out,
                 'allDay' => true,
-                'classNames' => array('cal-room', 'cal-status-' . $booking->status),
+                'classNames' => array('cal-room', 'cal-status-' . $display_status),
                 'extendedProps' => array(
                     'source' => 'room',
                     'bookingId' => (int) $booking->id,
                     'bookingNumber' => $booking_number,
-                    'guestName' => $booking->guest_name,
-                    'guestEmail' => isset($booking->guest_email) ? $booking->guest_email : '',
-                    'guestPhone' => isset($booking->guest_phone) ? $booking->guest_phone : '',
-                    'roomName' => $room_name,
+                    'guestName' => $this->calendar_safe_text($booking->guest_name),
+                    'guestEmail' => $this->calendar_safe_text(isset($booking->guest_email) ? $booking->guest_email : ''),
+                    'guestPhone' => $this->calendar_safe_text(isset($booking->guest_phone) ? $booking->guest_phone : ''),
+                    'roomName' => $this->calendar_safe_text($room_name),
                     'roomCode' => isset($booking->room_code) ? $booking->room_code : '-',
                     'roomType' => isset($booking->room_type) ? $booking->room_type : '-',
-                    'status' => $booking->status,
+                    'status' => $display_status,
                     'amount' => number_format((float) $booking->total_amount, 2),
                     'checkIn' => $check_in,
                     'checkOut' => $check_out,
@@ -1075,6 +1087,17 @@ class Booking_model extends CI_Model {
         }
 
         return $entries;
+    }
+
+    private function calendar_safe_text($value) {
+        $text = trim((string) $value);
+        if ($text === '') {
+            return '';
+        }
+        if (function_exists('mb_check_encoding') && !mb_check_encoding($text, 'UTF-8')) {
+            $text = @mb_convert_encoding($text, 'UTF-8', 'UTF-8, ISO-8859-1, Windows-1252');
+        }
+        return $text;
     }
 }
 

@@ -3087,6 +3087,16 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             color: #fff;
         }
 
+        .fc-event.cal-status-checked_in {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: #fff;
+        }
+
+        .fc-event.cal-status-checked_out {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            color: #fff;
+        }
+
         .fc-event.cal-status-cancelled {
             background: linear-gradient(135deg, var(--bs-danger) 0%, #dc2626 100%);
             color: #fff;

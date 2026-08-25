@@ -38,10 +38,11 @@ class Calendar extends Admin_Controller {
      */
     public function feed() {
         $this->require_calendar_access();
-        header('Content-Type: application/json');
 
-        $start = $this->input->get('start') ? date('Y-m-d', strtotime($this->input->get('start'))) : date('Y-m-01');
-        $end = $this->input->get('end') ? date('Y-m-d', strtotime($this->input->get('end'))) : date('Y-m-t');
+        $start_raw = $this->input->get('start');
+        $end_raw = $this->input->get('end');
+        $start = $start_raw ? date('Y-m-d', strtotime($start_raw)) : date('Y-m-01');
+        $end = $end_raw ? date('Y-m-d', strtotime($end_raw)) : date('Y-m-t', strtotime($start));
         $type = $this->input->get('type') ? strtolower(trim($this->input->get('type'))) : 'all';
         $status = $this->input->get('status') ? strtolower(trim($this->input->get('status'))) : '';
         $room_id = $this->input->get('room_id') ? (int) $this->input->get('room_id') : null;
@@ -71,7 +72,15 @@ class Calendar extends Admin_Controller {
             }
         }
 
-        echo json_encode($events);
+        $json_flags = JSON_UNESCAPED_UNICODE;
+        if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
+            $json_flags |= JSON_INVALID_UTF8_SUBSTITUTE;
+        }
+
+        $this->output
+            ->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode(array_values($events), $json_flags));
     }
 
     /**
