@@ -17,14 +17,14 @@ include __DIR__ . '/includes/site-head.php';
 ?>
 
 
-    <section class="page-header">
-        <div class="page-header-content">
+    <section class="app-page-hero">
+        <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1>Booking Summary</h1>
             <p>Please review your details and confirm your reservation.</p>
         </div>
     </section>
 
-    <main class="content-section">
+    <main class="content-section app-section">
         <div class="container">
             <div class="checkout-layout">
                 

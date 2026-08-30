@@ -14,16 +14,16 @@ include __DIR__ . '/includes/site-head.php';
 ?>
 
 
-    <section class="page-header" style="background-image: url('img/ambassador.jpg');">
-        <div class="page-header-content">
+    <section class="app-page-hero">
+        <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1>Our Amenities</h1>
             <p>Services and facilities designed for your comfort and convenience.</p>
         </div>
     </section>
 
-    <main class="content-section">
-        <div class="container">
-            <h2 class="section-title" style="text-align:center;margin-bottom:2rem;">What Guests Enjoy</h2>
+    <main class="content-section app-section">
+        <div class="container" style="max-width:80rem;padding:0;">
+            <h2 class="section-title text-xl font-black text-emerald-950" style="text-align:center;margin-bottom:1rem;">What Guests Enjoy</h2>
             <div class="amenities-grid">
                 
                 <div class="amenity-card">

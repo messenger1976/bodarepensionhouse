@@ -17,14 +17,14 @@ include __DIR__ . '/includes/site-head.php';
 ?>
 
 
-    <section class="page-header">
-        <div class="page-header-content">
+    <section class="app-page-hero">
+        <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1 id="page-title">Create an Account</h1>
             <p id="page-subtitle">Sign up to make your future bookings even faster.</p>
         </div>
     </section>
 
-    <main class="content-section">
+    <main class="content-section app-section">
         <div class="container">
             
             <!-- Registration Form Section -->

@@ -11,8 +11,14 @@ if (!function_exists('adsense_render_unit')) {
     require_once __DIR__ . '/adsense.php';
 }
 adsense_render_unit('footer', 'adsense-footer container my-4');
+
+$scriptName = basename(parse_url($_SERVER['SCRIPT_NAME'] ?? '', PHP_URL_PATH) ?: '');
+$tabActive = static function ($files) use ($scriptName) {
+    $files = (array) $files;
+    return in_array($scriptName, $files, true) ? ' is-active' : '';
+};
 ?>
-<footer id="contact" class="site-footer">
+<footer id="contact" class="site-footer hidden md:block">
     <div class="container">
         <?php if ($footerConfig['variant'] === 'minimal'): ?>
             <div class="footer-bottom">
@@ -85,6 +91,27 @@ adsense_render_unit('footer', 'adsense-footer container my-4');
         <?php endif; ?>
     </div>
 </footer>
+
+<nav class="app-tabbar pb-safe md:hidden" aria-label="Primary">
+    <div class="app-tabbar-inner">
+        <a href="index.php" class="app-tab<?php echo $tabActive(['index.php', '']); ?>" data-tab="explore">
+            <i class="bi bi-compass"></i>
+            <span>Explore</span>
+        </a>
+        <a href="rooms.php" id="nav-tab-bookings" class="app-tab<?php echo $tabActive(['rooms.php', 'room-detail.php', 'cart.php', 'checkout.php', 'booking-confirmation.php', 'customer-dashboard.php']); ?>" data-tab="bookings">
+            <i class="bi bi-calendar3"></i>
+            <span>Bookings</span>
+        </a>
+        <a href="contact.php#location" class="app-tab<?php echo $tabActive(['contact.php']); ?>" data-tab="location">
+            <i class="bi bi-geo-alt"></i>
+            <span>Location</span>
+        </a>
+        <a href="login.php" id="nav-tab-profile" class="app-tab<?php echo $tabActive(['login.php', 'registration.php', 'customer-dashboard.php', 'forgot-password.php']); ?>" data-tab="profile">
+            <i class="bi bi-person"></i>
+            <span>Profile</span>
+        </a>
+    </div>
+</nav>
 <?php
 if (!function_exists('bodare_site_config')) {
     require_once __DIR__ . '/site-config.php';

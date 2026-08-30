@@ -13,20 +13,23 @@ include __DIR__ . '/includes/site-head.php';
     <?php
     $headerConfig = [
         'logo_href' => 'index.php',
-        'show_user_menu' => true
+        'show_user_menu' => false,
+        'show_logout' => true,
+        'login_button_style' => 'display: none !important;',
+        'account_button_style' => 'display: inline-flex;',
     ];
     include __DIR__ . '/includes/site-header.php';
 ?>
 
 
-    <section class="page-header">
-        <div class="page-header-content">
+    <section class="app-page-hero">
+        <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1>My Dashboard</h1>
             <p>Manage your account, bookings, and inquiries</p>
         </div>
     </section>
 
-    <main class="content-section">
+    <main class="content-section app-section">
         <div class="container">
             
             <!-- No JavaScript Warning -->
@@ -1852,11 +1855,17 @@ include __DIR__ . '/includes/site-head.php';
         .user-menu {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.5rem;
         }
-        #user-name-display {
-            color: #ff8c00;
-            font-weight: 600;
+        #user-name-display,
+        .app-user-name {
+            color: #022c22;
+            font-weight: 700;
+            font-size: 0.75rem;
+            max-width: 8rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .tab-content {
             animation: fadeIn 0.3s;

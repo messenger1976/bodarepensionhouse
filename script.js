@@ -387,26 +387,38 @@ function updateCartBadge() {
 }
 
 // Update header auth buttons globally for pages using shared header include.
+function updateAppTabAuth(loggedIn) {
+    const profileTab = document.getElementById('nav-tab-profile');
+    const bookingsTab = document.getElementById('nav-tab-bookings');
+    if (profileTab) {
+        profileTab.setAttribute('href', loggedIn ? 'customer-dashboard.php' : 'login.php');
+    }
+    if (bookingsTab && loggedIn) {
+        bookingsTab.setAttribute('href', 'customer-dashboard.php');
+    } else if (bookingsTab) {
+        bookingsTab.setAttribute('href', 'rooms.php');
+    }
+}
+
 async function updateHeaderAuthButtons() {
     const loginBtn = document.getElementById('login-account-btn');
     const accountBtn = document.getElementById('my-account-btn');
+    const onLoginPage = window.location.pathname.includes('login.php');
 
-    if (!loginBtn || !accountBtn) return;
-
-    // Keep login CTA hidden on login page itself.
-    if (window.location.pathname.includes('login.php')) {
+    if (loginBtn && onLoginPage) {
         loginBtn.style.display = 'none';
-        return;
     }
 
     const showLoggedOut = () => {
-        loginBtn.style.display = 'inline-block';
-        accountBtn.style.display = 'none';
+        if (loginBtn && !onLoginPage) loginBtn.style.display = 'inline-flex';
+        if (accountBtn) accountBtn.style.display = 'none';
+        updateAppTabAuth(false);
     };
 
     const showLoggedIn = () => {
-        loginBtn.style.display = 'none';
-        accountBtn.style.display = 'inline-block';
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (accountBtn) accountBtn.style.display = 'inline-flex';
+        updateAppTabAuth(true);
     };
 
     try {
@@ -473,6 +485,10 @@ function setupServiceWorkerAutoUpdate() {
     });
 
     window.addEventListener('load', async () => {
+        if (window.Capacitor) {
+            document.documentElement.classList.add('is-capacitor');
+            return;
+        }
         try {
             const registration = await navigator.serviceWorker.register('/sw.js');
 

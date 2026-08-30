@@ -16,14 +16,14 @@ include __DIR__ . '/includes/site-head.php';
 ?>
 
 
-    <section class="page-header">
-        <div class="page-header-content">
+    <section class="app-page-hero">
+        <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1>Shopping Cart</h1>
             <p>Review your selected rooms and services</p>
         </div>
     </section>
 
-    <main class="content-section">
+    <main class="content-section app-section">
         <div class="container">
             <div id="cart-container">
                 <!-- Cart items will be loaded here -->
@@ -40,8 +40,8 @@ include __DIR__ . '/includes/site-head.php';
                     </div>
                     
                     <!-- Global Extra Services Section -->
-                    <div class="cart-services-section" style="background: #fff; padding: 2rem; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 2rem;">
-                        <h3 style="font-family: var(--font-primary); font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--dark-blue);">Extra Services</h3>
+                    <div class="cart-services-section app-card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+                        <h3 style="font-size: 1.15rem; margin-bottom: 1rem; color: #022c22;">Extra Services</h3>
                         <div class="services-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
                             <div class="service-item-cart">
                                 <input type="checkbox" id="service-pet" data-name="Pet-Friendly Amenities" data-cost="500" onchange="updateCartServices()">

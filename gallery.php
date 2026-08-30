@@ -14,15 +14,15 @@ include __DIR__ . '/includes/site-head.php';
 ?>
 
 
-    <section class="page-header" style="background-image: url('img/ambassador.jpg');">
-        <div class="page-header-content">
+    <section class="app-page-hero">
+        <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1>Our Gallery</h1>
             <p>A glimpse into the comfort and style that awaits you.</p>
         </div>
     </section>
 
-    <main class="content-section">
-        <div class="container">
+    <main class="content-section app-section">
+        <div class="container" style="max-width:80rem;padding:0;">
             <div class="gallery-grid">
                 <img src="img/dormitory.jpg" alt="Dormitory lodging at BODARE Pension House in Tagbilaran City" class="gallery-image">
                 <img src="img/standard.jpg" alt="Standard guest room at BODARE Pension House" class="gallery-image">

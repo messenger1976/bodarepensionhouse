@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>BODARE MPC Pension House | Tagbilaran City, Bohol</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Ionicons -->
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+  <style>
+    .pt-safe { padding-top: env(safe-area-inset-top); }
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="min-h-screen font-sans antialiased text-gray-900 bg-gray-50 selection:bg-yellow-400 selection:text-emerald-950">
+
+  <!-- ========================================================================= -->
+  <!-- 1. MOBILE APP VIEW (Active on screens under 768px)                       -->
+  <!-- ========================================================================= -->
+  <div class="block md:hidden pb-20">
+    <!-- Mobile Header -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md pt-safe border-b border-gray-100 shadow-sm">
+      <div class="flex items-center justify-between px-4 py-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-800 text-yellow-300 font-black flex items-center justify-center shadow-md text-xl">B</div>
+          <div>
+            <h1 class="text-xs font-black tracking-wide uppercase text-emerald-950 leading-tight">BODARE MPC</h1>
+            <p class="text-[10px] text-emerald-700 font-semibold flex items-center gap-0.5">
+              <ion-icon name="location" class="text-xs text-yellow-500"></ion-icon> J.A. Clarin St., Tagbilaran
+            </p>
+          </div>
+        </div>
+        
+        <button class="relative p-2 rounded-full bg-emerald-50 text-emerald-800">
+          <ion-icon name="notifications-outline" class="text-xl block"></ion-icon>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-yellow-400 rounded-full ring-2 ring-white"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Mobile Hero & Search Card -->
+    <section class="p-4">
+      <div class="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 text-white rounded-3xl p-4 shadow-xl border border-emerald-700/30">
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-400/20 border border-yellow-300/30 text-[10px] font-bold text-yellow-300 uppercase mb-2">
+          📍 Heart of Tagbilaran • Near ICM & Terminal
+        </span>
+        <h2 class="text-lg font-black leading-tight text-white mb-1">Clean, Safe & Budget Lodging</h2>
+        <p class="text-xs text-emerald-100/80 mb-3">Your home in Tagbilaran City with aircon rooms & parking.</p>
+
+        <!-- Search Inputs -->
+        <div class="bg-white text-gray-900 rounded-2xl p-3 shadow-lg space-y-2">
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-emerald-50/50 border border-emerald-100 rounded-xl p-2">
+              <label class="block text-[9px] font-bold text-emerald-800 uppercase">Check-In</label>
+              <input type="date" class="w-full bg-transparent text-xs font-bold text-gray-800 outline-none checkin-input">
+            </div>
+            <div class="bg-emerald-50/50 border border-emerald-100 rounded-xl p-2">
+              <label class="block text-[9px] font-bold text-emerald-800 uppercase">Check-Out</label>
+              <input type="date" class="w-full bg-transparent text-xs font-bold text-gray-800 outline-none checkout-input">
+            </div>
+          </div>
+          <button onclick="handleSearch()" class="w-full py-2.5 bg-yellow-400 active:bg-yellow-500 text-emerald-950 text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition">
+            Check Availability
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Category Filter Chips -->
+    <section class="px-4 mb-2">
+      <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
+        <button class="px-4 py-1.5 rounded-full bg-emerald-800 text-yellow-300 text-xs font-bold whitespace-nowrap shadow-sm">All Rooms</button>
+        <button class="px-4 py-1.5 rounded-full bg-white text-gray-600 border border-gray-200 text-xs font-medium whitespace-nowrap">Standard Double</button>
+        <button class="px-4 py-1.5 rounded-full bg-white text-gray-600 border border-gray-200 text-xs font-medium whitespace-nowrap">Family Room</button>
+        <button class="px-4 py-1.5 rounded-full bg-white text-gray-600 border border-gray-200 text-xs font-medium whitespace-nowrap">Dormitory Bed</button>
+      </div>
+    </section>
+
+    <!-- Mobile Room List -->
+    <section class="p-4 space-y-4">
+      <h3 class="text-xs font-bold text-emerald-950 uppercase tracking-wider">Available Accommodations</h3>
+
+      <!-- Room Card 1 -->
+      <div class="bg-white rounded-2xl border border-emerald-100 shadow-sm overflow-hidden">
+        <div class="relative h-44 bg-gray-200">
+          <img src="https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=24906370822280011" alt="BODARE Family Room Interior" class="w-full h-full object-cover">
+          <span class="absolute top-2.5 left-2.5 bg-emerald-950/80 backdrop-blur-md text-yellow-300 text-[10px] font-bold px-2.5 py-1 rounded-full">Up to 4 Persons</span>
+          <span class="absolute bottom-2.5 right-2.5 bg-yellow-400 text-emerald-950 font-black text-xs px-3 py-1 rounded-full shadow">₱1,800 / night</span>
+        </div>
+        <div class="p-3.5">
+          <h4 class="font-bold text-gray-900 text-base">Deluxe Family Room</h4>
+          <p class="text-xs text-gray-500 mt-1">Air-conditioned room with private toilet & hot shower, TV, and lounge seating.</p>
+          <div class="flex items-center gap-3 my-2.5 text-[11px] text-gray-600">
+            <span>📶 Free WiFi</span>
+            <span>❄️ Aircon</span>
+            <span>🚿 Hot Shower</span>
+          </div>
+          <button onclick="toggleModal(true)" class="w-full py-2 bg-emerald-800 text-white font-bold text-xs rounded-xl active:bg-emerald-900 transition">Reserve Room</button>
+        </div>
+      </div>
+
+      <!-- Room Card 2 -->
+      <div class="bg-white rounded-2xl border border-emerald-100 shadow-sm overflow-hidden">
+        <div class="relative h-44 bg-gray-200">
+          <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80" alt="Standard Room" class="w-full h-full object-cover">
+          <span class="absolute top-2.5 left-2.5 bg-emerald-950/80 backdrop-blur-md text-yellow-300 text-[10px] font-bold px-2.5 py-1 rounded-full">2 Persons</span>
+          <span class="absolute bottom-2.5 right-2.5 bg-yellow-400 text-emerald-950 font-black text-xs px-3 py-1 rounded-full shadow">₱950 / night</span>
+        </div>
+        <div class="p-3.5">
+          <h4 class="font-bold text-gray-900 text-base">Standard Aircon Room</h4>
+          <p class="text-xs text-gray-500 mt-1">Clean and affordable room featuring a double bed, private bath, and cable TV.</p>
+          <button onclick="toggleModal(true)" class="w-full mt-3 py-2 bg-emerald-800 text-white font-bold text-xs rounded-xl active:bg-emerald-900 transition">Reserve Room</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mobile Bottom App Nav -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 pb-safe">
+      <div class="grid grid-cols-4 py-2 text-center text-[10px] font-medium text-gray-500">
+        <button class="flex flex-col items-center gap-0.5 text-emerald-800 font-bold">
+          <ion-icon name="compass" class="text-xl text-yellow-500"></ion-icon>
+          <span>Explore</span>
+        </button>
+        <button class="flex flex-col items-center gap-0.5">
+          <ion-icon name="calendar-outline" class="text-xl"></ion-icon>
+          <span>Bookings</span>
+        </button>
+        <button class="flex flex-col items-center gap-0.5">
+          <ion-icon name="navigate-outline" class="text-xl"></ion-icon>
+          <span>Location</span>
+        </button>
+        <button class="flex flex-col items-center gap-0.5">
+          <ion-icon name="person-outline" class="text-xl"></ion-icon>
+          <span>Profile</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- 2. DESKTOP WEBSITE VIEW (Active on screens 768px and wider)              -->
+  <!-- ========================================================================= -->
+  <div class="hidden md:flex flex-col min-h-screen w-full bg-gray-50">
+    
+    <!-- Desktop Header / Nav -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm w-full">
+      <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-800 text-yellow-300 font-black text-2xl flex items-center justify-center shadow-lg">B</div>
+          <div>
+            <h1 class="text-xl font-black tracking-wider uppercase text-emerald-950">BODARE MPC</h1>
+            <p class="text-xs text-emerald-700 font-bold uppercase tracking-widest">Pension House • Tagbilaran City</p>
+          </div>
+        </div>
+
+        <nav class="flex items-center gap-8 text-sm font-semibold text-gray-600">
+          <a href="#home" class="text-emerald-800 border-b-2 border-yellow-400 py-1">Home</a>
+          <a href="#rooms" class="hover:text-emerald-800 transition">Rooms & Rates</a>
+          <a href="#location" class="hover:text-emerald-800 transition">Location</a>
+          <a href="#contact" class="hover:text-emerald-800 transition">Contact Us</a>
+        </nav>
+
+        <a href="#rooms" class="px-5 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-emerald-950 font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md">
+          Book Now
+        </a>
+      </div>
+    </header>
+
+    <!-- Desktop Hero Section -->
+    <section class="relative bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-900 text-white py-20 px-6 w-full">
+      <div class="max-w-7xl mx-auto grid grid-cols-12 gap-8 items-center">
+        <div class="col-span-7 space-y-6">
+          <span class="px-3.5 py-1.5 bg-yellow-400/20 border border-yellow-300/30 text-yellow-300 rounded-full text-xs font-bold tracking-wider uppercase">
+            📍 J.A. Clarin St., Dao District, Tagbilaran City, Bohol
+          </span>
+          <h2 class="text-4xl lg:text-5xl font-black leading-tight">Comfortable & Accessible Lodging in Tagbilaran</h2>
+          <p class="text-emerald-100/80 text-base max-w-xl">Conveniently situated along J.A. Clarin St., minutes away from Island City Mall (ICM), Tagbilaran City Hall, and Dao Bus Terminal.</p>
+        </div>
+
+        <!-- Desktop Floating Search Panel -->
+        <div class="col-span-5 bg-white text-gray-900 p-6 rounded-3xl shadow-2xl space-y-4 border border-emerald-100">
+          <h3 class="text-lg font-bold border-b border-gray-100 pb-2 text-emerald-950">Check Room Availability</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-emerald-800 uppercase mb-1">Check-In Date</label>
+              <input type="date" class="w-full p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-800 outline-none checkin-input">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-emerald-800 uppercase mb-1">Check-Out Date</label>
+              <input type="date" class="w-full p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-emerald-800 outline-none checkout-input">
+            </div>
+            <button onclick="handleSearch()" class="w-full py-3.5 bg-yellow-400 hover:bg-yellow-500 text-emerald-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition">
+              Find Available Rooms
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Desktop Grid Rooms Section -->
+    <section id="rooms" class="py-16 px-6 max-w-7xl mx-auto flex-grow w-full">
+      <div class="mb-10 text-center max-w-xl mx-auto">
+        <h3 class="text-2xl font-black text-emerald-950">BODARE Accommodations</h3>
+        <p class="text-sm text-gray-500 mt-2">Clean, peaceful, and budget-friendly room options for travelers and visitors in Bohol.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Room 1 -->
+        <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition">
+          <img src="https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=24906370822280011" alt="Deluxe Family Room" class="w-full h-56 object-cover">
+          <div class="p-6">
+            <div class="flex justify-between items-center mb-2">
+              <h4 class="text-lg font-bold text-gray-900">Deluxe Family Room</h4>
+              <span class="text-emerald-800 font-black text-lg">₱1,800<span class="text-xs text-gray-400 font-normal">/night</span></span>
+            </div>
+            <p class="text-xs text-gray-500 mb-4 leading-relaxed">Spacious room for groups or families. Air-conditioned with private toilet & shower, TV, and dining area.</p>
+            <button onclick="toggleModal(true)" class="w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs uppercase rounded-xl transition">Reserve Room</button>
+          </div>
+        </div>
+
+        <!-- Room 2 -->
+        <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition">
+          <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80" alt="Standard Double Room" class="w-full h-56 object-cover">
+          <div class="p-6">
+            <div class="flex justify-between items-center mb-2">
+              <h4 class="text-lg font-bold text-gray-900">Standard Double</h4>
+              <span class="text-emerald-800 font-black text-lg">₱950<span class="text-xs text-gray-400 font-normal">/night</span></span>
+            </div>
+            <p class="text-xs text-gray-500 mb-4 leading-relaxed">Comfortable double bed room with air-conditioning, private bathroom, and desk space.</p>
+            <button onclick="toggleModal(true)" class="w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs uppercase rounded-xl transition">Reserve Room</button>
+          </div>
+        </div>
+
+        <!-- Room 3 -->
+        <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition">
+          <img src="https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80" alt="Dormitory Bed" class="w-full h-56 object-cover">
+          <div class="p-6">
+            <div class="flex justify-between items-center mb-2">
+              <h4 class="text-lg font-bold text-gray-900">Dormitory Room</h4>
+              <span class="text-emerald-800 font-black text-lg">₱350<span class="text-xs text-gray-400 font-normal">/bed</span></span>
+            </div>
+            <p class="text-xs text-gray-500 mb-4 leading-relaxed">Budget shared room with bunk beds, aircon, individual lockers, and access to common areas.</p>
+            <button onclick="toggleModal(true)" class="w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs uppercase rounded-xl transition">Reserve Bed</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Desktop Footer -->
+    <footer class="bg-emerald-950 text-emerald-200 py-12 px-6 border-t border-emerald-900 mt-auto w-full">
+      <div class="max-w-7xl mx-auto flex justify-between items-center text-xs">
+        <p>© 2026 BODARE MPC Pension House. All rights reserved.</p>
+        <p>J.A. Clarin St., Dao District, Tagbilaran City, Bohol, Philippines</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Shared Reservation Modal -->
+  <div id="bookingModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-start">
+        <h3 class="text-lg font-bold text-emerald-950">Complete Reservation</h3>
+        <button onclick="toggleModal(false)" class="p-1 text-gray-500 hover:text-gray-900">
+          <ion-icon name="close-outline" class="text-2xl block"></ion-icon>
+        </button>
+      </div>
+      <div class="space-y-3">
+        <input type="text" placeholder="Full Name" class="w-full p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 text-xs outline-none focus:border-emerald-800">
+        <input type="tel" placeholder="Mobile Number (GCash notification)" class="w-full p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 text-xs outline-none focus:border-emerald-800">
+      </div>
+      <button onclick="submitBooking()" class="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-emerald-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg">
+        Confirm Reservation
+      </button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date().toISOString().split('T')[0];
+      document.querySelectorAll('.checkin-input').forEach(el => el.value = today);
+    });
+
+    function toggleModal(show) {
+      document.getElementById('bookingModal').classList.toggle('hidden', !show);
+    }
+
+    function handleSearch() {
+      alert('Searching room availability on your local database...');
+    }
+
+    function submitBooking() {
+      alert('Reservation request received! Your local server API can now process this.');
+      toggleModal(false);
+    }
+  </script>
+</body>
+</html>

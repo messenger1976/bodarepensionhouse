@@ -20,17 +20,17 @@ include __DIR__ . '/includes/site-head.php';
 ?>
 
 
-    <section class="page-header">
-        <div class="page-header-content">
+    <section class="app-page-hero">
+        <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1>Login to Your Account</h1>
             <p>Access your bookings and manage your reservations</p>
         </div>
     </section>
 
-    <main class="content-section">
+    <main class="content-section app-section">
         <div class="container">
-            <div class="registration-container" style="max-width: 500px; margin: 0 auto;">
-                <h2>Login to Your Account</h2>
+            <div class="registration-container app-card" style="max-width: 500px; margin: 0 auto; padding: 1.5rem;">
+                <h2 class="text-emerald-950 font-black text-lg">Login to Your Account</h2>
                 <p style="text-align: center; color: #666; margin-bottom: 2rem;">Enter your credentials to access your dashboard</p>
                 <form id="login-form" class="minimal-form">
                     <div class="form-group-contact">
@@ -45,11 +45,11 @@ include __DIR__ . '/includes/site-head.php';
                     <button type="submit" class="cta-button" style="width: 100%;">Login</button>
 
                     <p class="form-subtext" style="text-align: center; margin-top: 1rem;">
-                        <a href="forgot-password.php" style="color: #b2945b; font-weight: 500; font-size: 0.95em;">Forgot your password?</a>
+                        <a href="forgot-password.php" style="color: #065f46; font-weight: 500; font-size: 0.95em;">Forgot your password?</a>
                     </p>
 
                     <p class="form-subtext" style="text-align: center; margin-top: 1.5rem;">
-                        Don't have an account? <a href="registration.php" style="color: #b2945b; font-weight: 500;">Create one here</a>
+                        Don't have an account? <a href="registration.php" style="color: #065f46; font-weight: 500;">Create one here</a>
                     </p>
                 </form>
             </div>

@@ -1,0 +1,32 @@
+{
+  "appId": "com.bodarepensionhouse.app",
+  "appName": "BODARE Pension House",
+  "webDir": "www",
+  "server": {
+    "url": "https://bodarepensionhouse.com",
+    "androidScheme": "https",
+    "allowNavigation": [
+      "https://bodarepensionhouse.com/*",
+      "https://*.bodarepensionhouse.com/*",
+      "https://pensionhouse.bodarempc.com/*",
+      "https://www.google.com/*",
+      "https://maps.google.com/*"
+    ]
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1800,
+      "launchAutoHide": true,
+      "backgroundColor": "#065f46",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#065f46"
+    }
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

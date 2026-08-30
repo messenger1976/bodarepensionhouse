@@ -109,7 +109,7 @@ $extraBedPrice = (float) bodare_room_setting('extra_bed_price', 199);
         <section class="room-hero" style="background-image: url('<?php echo htmlspecialchars($heroImage, ENT_QUOTES, 'UTF-8'); ?>');" role="img" aria-label="<?php echo htmlspecialchars($initialTitle . ' at BODARE Pension House', ENT_QUOTES, 'UTF-8'); ?>">
             </section>
 
-        <section class="room-content-section">
+        <section class="room-content-section app-section">
             <div class="container room-layout">
                 <div class="room-details-main">
                     <h1 id="room-title"><?php echo htmlspecialchars($initialTitle, ENT_QUOTES, 'UTF-8'); ?></h1>

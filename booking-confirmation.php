@@ -44,8 +44,8 @@ function bodare_confirmation_date($dateString)
 ?>
 
 
-    <section class="page-header">
-        <div class="page-header-content">
+    <section class="app-page-hero">
+        <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1 id="confirmation-page-title"><?php
                 if ($showQrph) {
                     echo 'Scan to Pay';

@@ -504,7 +504,9 @@ body {
         width: 100%;
     }
 
-    .cta-button {
+    /* Header Book Now only — do not hide form submit buttons (login, checkout, contact). */
+    .header .cta-button,
+    .app-btn-book {
         display: none;
     }
 
@@ -1995,16 +1997,16 @@ span.flatpickr-weekday {
         gap: 2rem;
     }
 
-    /* Improve user menu on mobile */
-    .user-menu {
-        flex-direction: column;
-        gap: 0.5rem;
-        width: 100%;
-        margin-top: 1rem;
+    /* Keep dashboard/header user actions in a row, matching Home */
+    .user-menu,
+    html.app-html .user-menu {
+        flex-direction: row;
+        width: auto;
+        margin-top: 0;
     }
 
     .user-menu button {
-        width: 100%;
+        width: auto;
     }
 }
 
@@ -2263,23 +2265,11 @@ textarea:focus {
     display: flex;
     align-items: center;
     text-decoration: none;
-    color: white !important;
     margin-right: 1rem;
 }
 
 .user-menu .cart-link {
     margin-right: 0;
-}
-
-.cart-link i,
-.cart-link .bi-cart,
-.cart-link i.bi-cart,
-#cart-link,
-#cart-link i,
-#cart-link .bi-cart,
-.header-actions .cart-link,
-.header-actions .cart-link i {
-    color: white !important;
 }
 
 .cart-badge {

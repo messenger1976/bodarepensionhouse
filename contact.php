@@ -17,7 +17,7 @@ $pageSeo = [
             '@id' => bodare_absolute_url() . '#lodging',
         ],
     ],
-    'extra_head' => '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; base-uri \'self\'; form-action \'self\'; object-src \'none\'; frame-ancestors \'self\'; img-src \'self\' data: https: blob:; font-src \'self\' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com https://cdn.jsdelivr.net; script-src \'self\' \'unsafe-inline\' https://www.google.com https://www.gstatic.com; frame-src https://www.google.com https://maps.google.com; connect-src \'self\' https://www.google.com;">',
+    'extra_head' => '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; base-uri \'self\'; form-action \'self\'; object-src \'none\'; frame-ancestors \'self\'; img-src \'self\' data: https: blob:; font-src \'self\' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdn.tailwindcss.com; script-src \'self\' \'unsafe-inline\' https://www.google.com https://www.gstatic.com https://cdn.tailwindcss.com https://unpkg.com; frame-src https://www.google.com https://maps.google.com; connect-src \'self\' https://www.google.com https://cdn.tailwindcss.com;">',
 ];
 include __DIR__ . '/includes/site-head.php';
 ?>
@@ -28,15 +28,15 @@ include __DIR__ . '/includes/site-head.php';
 ?>
 
 
-    <section class="page-header" style="background-image: url('img/executive.jpg');">
-        <div class="page-header-content">
+    <section class="app-page-hero">
+        <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1>Get In Touch</h1>
             <p>We're here to help. Contact us with any questions or for special requests.</p>
         </div>
     </section>
 
-    <main class="content-section">
-        <div class="container">
+    <main class="content-section app-section">
+        <div class="container" style="max-width:80rem;padding:0;">
             
             <div class="contact-info-grid">
                 <div class="contact-info-card">
@@ -88,7 +88,7 @@ include __DIR__ . '/includes/site-head.php';
                 </form>
             </div>
 
-            <div class="contact-map-section">
+            <div class="contact-map-section" id="location">
                 <h2>Our Location</h2>
                 <iframe 
                     src="https://www.google.com/maps?q=BODARE%20MPC%20%26%20Community%20Bldg%2C%20J.A.%20Clarin%20St.%2C%20Dao%20District%2C%20Tagbilaran%20City%2C%20Bohol%2C%20Philippines%206300&amp;output=embed"

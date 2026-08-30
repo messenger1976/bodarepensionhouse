@@ -10,23 +10,19 @@ include __DIR__ . '/includes/site-head.php';
 <body>
 
     <?php
-    $headerConfig = [
-        'cart_style' => 'display: flex; color: white !important;',
-        'cart_icon_style' => 'font-size: 1.5rem; color: white !important;'
-    ];
     include __DIR__ . '/includes/site-header.php';
 ?>
 
 
-    <section class="page-header">
-        <div class="page-header-content">
+    <section class="app-page-hero">
+        <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1>Our Rooms</h1>
-            <p>Find the perfect space for your stay.</p>
+            <p>Find the perfect space for your stay in Tagbilaran City.</p>
         </div>
     </section>
 
-    <main class="rooms-page-section">
-        <div class="container">
+    <main class="rooms-page-section app-section">
+        <div class="container" style="max-width:80rem;padding:0;">
             <div class="rooms-toolbar">
                 <form class="rooms-filter-form" id="rooms-filter-form">
                     <div class="form-group">
@@ -324,26 +320,26 @@ include __DIR__ . '/includes/site-head.php';
                     const badgeHtml = status.label
                         ? `<span class="room-availability-badge ${badgeClass}">${escapeHtml(status.label)}</span>`
                         : '';
+                    const amenityBits = amenities.slice(0, 3).map((item) => `<span>${escapeHtml(item)}</span>`).join('');
 
                     return `
-                        <article class="room-detail-card${unavailable ? ' is-unavailable' : ''}">
-                            <a class="room-card-media" href="${escapeHtml(href)}" aria-label="${escapeHtml(room.room_name || 'Room')}">
+                        <article class="room-detail-card room-card-app${unavailable ? ' is-unavailable' : ''}">
+                            <a class="room-card-media media" href="${escapeHtml(href)}" aria-label="${escapeHtml(room.room_name || 'Room')}">
                                 <img src="${escapeHtml(imagePath)}" alt="${escapeHtml(room.room_name || 'Room')}" onerror="this.onerror=null; this.src='img/og-default.jpg'">
+                                <span class="badge-cap">${escapeHtml(capacityText)}</span>
+                                <span class="badge-price">${escapeHtml(priceLabel)}</span>
                             </a>
-                            <div class="room-info">
+                            <div class="room-info body">
                                 ${badgeHtml}
                                 <h2>${escapeHtml(room.room_name || 'Room')}</h2>
-                                <p class="room-price">${escapeHtml(priceLabel)}</p>
-                                <p class="room-card-desc">${escapeHtml(description)}</p>
-                                <div class="room-card-meta">
-                                    <span><i class="bi bi-people"></i>${escapeHtml(capacityText)}</span>
-                                    <span><i class="bi bi-lamp"></i>${escapeHtml(bedTypeOf(room))}</span>
+                                <p class="room-card-desc desc">${escapeHtml(description)}</p>
+                                <div class="room-card-meta flex flex-wrap gap-3 my-2 text-[11px] text-gray-600">
+                                    <span><i class="bi bi-people"></i> ${escapeHtml(capacityText)}</span>
+                                    <span><i class="bi bi-lamp"></i> ${escapeHtml(bedTypeOf(room))}</span>
+                                    ${amenityBits}
                                 </div>
-                                <ul>
-                                    <li><strong>Services:</strong> ${escapeHtml(amenities.join(', '))}</li>
-                                </ul>
                                 <div class="room-card-cta">
-                                    <a href="${escapeHtml(href)}" class="cta-button">${ctaLabel}</a>
+                                    <a href="${escapeHtml(href)}" class="cta-button app-cta">${ctaLabel}</a>
                                 </div>
                             </div>
                         </article>

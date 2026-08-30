@@ -4,8 +4,8 @@
   "description": "Comfortable and affordable lodging at BODARE Pension House in Tagbilaran City, Bohol. Book rooms online with free WiFi and free parking.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a2238",
-  "theme_color": "#b2945b",
+  "background_color": "#022c22",
+  "theme_color": "#065f46",
   "orientation": "portrait-primary",
   "scope": "/",
   "icons": [
@@ -41,4 +41,3 @@
     }
   ]
 }
-

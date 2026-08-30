@@ -1,0 +1,25 @@
+{
+  "name": "bodare-pension-house-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor wrapper for the live BODARE Pension House PHP site",
+  "scripts": {
+    "sync": "npx cap sync",
+    "android:add": "npx cap add android",
+    "ios:add": "npx cap add ios",
+    "android:open": "npx cap open android",
+    "ios:open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/app": "^7.0.2",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/ios": "^7.4.3",
+    "@capacitor/push-notifications": "^7.0.2",
+    "@capacitor/splash-screen": "^7.0.2",
+    "@capacitor/status-bar": "^7.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3"
+  }
+}
