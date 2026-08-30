@@ -31,6 +31,7 @@ Keep guest login on PHP. Use Firebase only for Cloud Messaging and Analytics.
 
 ## Notes
 
+- Prebuilt debug APK: `dist/bodare-pension-house-debug.apk` (rebuild with `npm run android:build:debug`).
 - PHP sessions use cookies; keep `androidScheme: https` so cookies work against production.
 - AdSense units are hidden when `html.is-capacitor` is set.
 - Do not put API keys or guest PII in this folder.
