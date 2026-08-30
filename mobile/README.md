@@ -1,6 +1,6 @@
 # BODARE Pension House — Capacitor app
 
-Native shell that loads the live PHP website at https://bodarepensionhouse.com. Bookings, login, cart, and PayMongo stay on the server.
+Native shell that loads the live PHP website at https://pensionhouse.bodarempc.com. Bookings, login, cart, and PayMongo stay on the server.
 
 ## First-time setup
 

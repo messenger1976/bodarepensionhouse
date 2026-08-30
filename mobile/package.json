@@ -8,7 +8,10 @@
     "android:add": "npx cap add android",
     "ios:add": "npx cap add ios",
     "android:open": "npx cap open android",
-    "ios:open": "npx cap open ios"
+    "ios:open": "npx cap open ios",
+    "android:sync": "npx cap sync android",
+    "android:build:debug": "npx cap sync android && cd android && gradlew.bat assembleDebug",
+    "android:build:release": "npx cap sync android && cd android && gradlew.bat assembleRelease"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",

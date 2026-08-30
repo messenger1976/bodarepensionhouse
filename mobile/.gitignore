@@ -7,3 +7,5 @@ google-services.json
 GoogleService-Info.plist
 google-services.json.example
 .env
+.tools/
+dist/

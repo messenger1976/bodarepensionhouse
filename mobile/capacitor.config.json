@@ -3,12 +3,11 @@
   "appName": "BODARE Pension House",
   "webDir": "www",
   "server": {
-    "url": "https://bodarepensionhouse.com",
+    "url": "https://pensionhouse.bodarempc.com",
     "androidScheme": "https",
     "allowNavigation": [
-      "https://bodarepensionhouse.com/*",
-      "https://*.bodarepensionhouse.com/*",
       "https://pensionhouse.bodarempc.com/*",
+      "https://*.bodarempc.com/*",
       "https://www.google.com/*",
       "https://maps.google.com/*"
     ]
