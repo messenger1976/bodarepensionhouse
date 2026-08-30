@@ -986,16 +986,167 @@ article.room-detail-card .cta-button {
     border-radius: 0 0 1.5rem 1.5rem;
 }
 
+html.app-html .room-content-section {
+    padding-top: 0.75rem;
+    padding-bottom: 1.5rem;
+}
+
+html.app-html .room-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+html.app-html .room-layout > * {
+    min-width: 0;
+}
+
+@media (min-width: 901px) {
+    html.app-html .room-layout {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+        gap: 2rem;
+    }
+}
+
+html.app-html .room-details-main h1 {
+    font-size: clamp(1.65rem, 5vw, 2.75rem);
+    line-height: 1.15;
+    word-break: break-word;
+}
+
+html.app-html .room-details-main h3 {
+    font-size: 1.35rem;
+    margin-top: 1.5rem;
+}
+
+html.app-html .room-specs {
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+
+html.app-html .room-image-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+@media (min-width: 600px) {
+    html.app-html .room-image-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 901px) {
+    html.app-html .room-image-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+html.app-html .room-image-grid .gallery-image {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+}
+
 .booking-widget {
     background: #fff;
     border: 1px solid #d1fae5;
     border-radius: 1.25rem;
     padding: 1.25rem;
     box-shadow: 0 8px 24px rgba(6, 95, 70, 0.08);
+    position: static;
+    width: 100%;
+    max-width: 100%;
+}
+
+@media (min-width: 901px) {
+    html.app-html .booking-widget {
+        position: sticky;
+        top: calc(var(--app-header-h) + 0.75rem);
+    }
+}
+
+.booking-widget .widget-header {
+    flex-wrap: wrap;
+    gap: 0.35rem;
 }
 
 .booking-widget .widget-header h2 {
     color: var(--app-ink);
+    font-size: 1.35rem;
+}
+
+html.app-html .booking-widget .widget-form label {
+    color: #4b5563;
+}
+
+html.app-html .booking-widget .date-inputs {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+@media (min-width: 480px) {
+    html.app-html .booking-widget .date-inputs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+html.app-html .booking-widget .date-inputs input,
+html.app-html .booking-widget .date-inputs .flatpickr-input,
+html.app-html .booking-widget .date-inputs .form-control {
+    width: 100% !important;
+    max-width: 100%;
+    background: #ecfdf5;
+    border: 1px solid #d1fae5;
+    color: #111827;
+    font-size: 16px;
+}
+
+html.app-html .booking-widget .counters-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+@media (min-width: 480px) {
+    html.app-html .booking-widget .counters-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+html.app-html .booking-widget .guest-inputs {
+    background: #ecfdf5;
+    border: 1px solid #d1fae5;
+    margin-bottom: 0;
+}
+
+html.app-html .booking-widget .guest-inputs label {
+    color: #374151;
+    line-height: 1.3;
+}
+
+html.app-html .booking-widget .counter button {
+    border-color: #6ee7b7;
+    color: var(--app-ink);
+}
+
+html.app-html .booking-widget .counter input {
+    color: var(--app-ink);
+}
+
+html.app-html .booking-widget .total-cost {
+    border-top-color: #d1fae5;
+}
+
+html.app-html .booking-widget .total-cost h3 {
+    color: var(--app-ink);
+    font-size: 1.2rem;
+}
+
+html.app-html .booking-widget #total-cost-display {
+    color: var(--app-emerald);
+    font-size: clamp(1.35rem, 5vw, 2rem);
 }
 
 .booking-widget .cta-button {
@@ -1004,6 +1155,34 @@ article.room-detail-card .cta-button {
     width: 100%;
     border-radius: 0.75rem;
     font-weight: 800;
+}
+
+@media (max-width: 900px) {
+    html.app-html .room-hero {
+        height: 42vw;
+        min-height: 180px;
+        max-height: 240px;
+    }
+
+    /* Reserve widget first on phones — less scrolling to book */
+    html.app-html .room-layout {
+        display: flex;
+        flex-direction: column;
+    }
+
+    html.app-html .room-details-main {
+        order: 2;
+    }
+
+    html.app-html .booking-widget {
+        order: 1;
+    }
+}
+
+@media (max-width: 767px) {
+    html.app-html .flatpickr-calendar {
+        max-width: calc(100vw - 1.5rem);
+    }
 }
 
 html.app-html .site-footer {
@@ -1049,6 +1228,7 @@ html.app-html .form-group-contact textarea {
 
 html.app-html .minimal-form .cta-button,
 html.app-html #login-form .cta-button,
+html.app-html #checkout-login-form #login-button,
 html.app-html #contact-submit-btn {
     display: flex !important;
     align-items: center;
@@ -1057,6 +1237,192 @@ html.app-html #contact-submit-btn {
     color: var(--app-ink);
     border-radius: 0.75rem;
     font-weight: 800;
+}
+
+/* Checkout guest login — match login.php card layout */
+html.app-html.checkout-is-guest .checkout-layout {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    margin-top: 0;
+}
+
+html.app-html.checkout-is-guest .checkout-form {
+    min-width: 0;
+}
+
+html.app-html.checkout-is-guest .checkout-login-card {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+html.app-html.checkout-is-guest .checkout-login-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 800;
+    color: var(--app-ink);
+    text-align: center;
+}
+
+html.app-html.checkout-is-guest .checkout-login-lead {
+    margin: 0 0 1.5rem;
+    text-align: center;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+html.app-html.checkout-is-guest .checkout-login-subtext {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.95rem;
+}
+
+html.app-html.checkout-is-guest .checkout-login-subtext a {
+    color: var(--app-emerald);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+html.app-html.checkout-is-guest .checkout-login-subtext a:hover {
+    text-decoration: underline;
+}
+
+html.app-html.checkout-is-guest #login-button {
+    width: 100%;
+    margin-top: 0.25rem;
+}
+
+html.app-html.checkout-is-guest .checkout-summary {
+    position: static;
+    margin-top: 0;
+    background: #fff;
+    border: 1px solid #d1fae5;
+    border-radius: 1rem;
+}
+
+@media (min-width: 901px) {
+    html.app-html.checkout-is-guest .checkout-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+        align-items: start;
+        max-width: 80rem;
+        margin: 0 auto;
+    }
+
+    html.app-html.checkout-is-guest .checkout-login-card {
+        margin: 0;
+    }
+}
+
+/* Toast notifications */
+.bodare-toast-container {
+    position: fixed;
+    top: calc(var(--app-header-h) + env(safe-area-inset-top, 0px) + 0.5rem);
+    left: 0;
+    right: 0;
+    z-index: 1300;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 1rem;
+    pointer-events: none;
+}
+
+.bodare-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    width: min(100%, 24rem);
+    padding: 0.85rem 1rem;
+    border-radius: 0.85rem;
+    box-shadow: 0 12px 32px rgba(2, 44, 34, 0.16);
+    transform: translateY(-10px);
+    opacity: 0;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.bodare-toast.is-visible {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.bodare-toast-icon {
+    flex: 0 0 auto;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-top: 0.1rem;
+}
+
+.bodare-toast-message {
+    flex: 1 1 auto;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    font-weight: 600;
+}
+
+.bodare-toast-close {
+    flex: 0 0 auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    opacity: 0.65;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
+
+.bodare-toast-close:hover {
+    opacity: 1;
+}
+
+.bodare-toast--error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+.bodare-toast--error .bodare-toast-icon {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.bodare-toast--success {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+}
+
+.bodare-toast--success .bodare-toast-icon {
+    background: #d1fae5;
+    color: #047857;
+}
+
+.bodare-toast--info {
+    background: #fff;
+    border: 1px solid #d1fae5;
+    color: #111827;
+}
+
+.bodare-toast--info .bodare-toast-icon {
+    background: #ecfdf5;
+    color: #065f46;
+}
+
+html.app-html #checkout-login-form .form-group-contact input.input-error,
+html.app-html #checkout-login-form .form-group-contact select.input-error,
+html.app-html #checkout-login-form .form-group-contact textarea.input-error {
+    border-color: #f87171 !important;
+    background: #fff5f5 !important;
+    box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.15);
 }
 
 html.app-html .page-header {
@@ -1148,6 +1514,60 @@ html.app-html .cart-services-section {
     padding: 1.25rem;
 }
 
+html.app-html .cart-summary-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+}
+
+html.app-html .cart-summary-actions .cta-button,
+html.app-html .cart-summary-actions .cta-button-secondary {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    margin: 0;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0.65rem 0.45rem;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    white-space: normal;
+    border-radius: 0.75rem;
+    min-height: 44px;
+}
+
+html.app-html .cart-summary-actions .cta-button {
+    background: var(--app-gold);
+    color: var(--app-ink);
+    border-color: var(--app-gold);
+    font-weight: 800;
+}
+
+html.app-html .cart-summary-actions .cta-button-secondary {
+    background: #fff;
+    color: var(--app-emerald);
+    border: 1px solid #d1fae5;
+    font-weight: 700;
+}
+
+@media (min-width: 768px) {
+    html.app-html .cart-summary-actions {
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    html.app-html .cart-summary-actions .cta-button,
+    html.app-html .cart-summary-actions .cta-button-secondary {
+        width: 100%;
+        font-size: 1rem;
+        padding: 0.75rem 1.25rem;
+    }
+}
+
 @media (display-mode: standalone) {
     html.app-html .app-tabbar { display: grid; }
 }
@@ -1180,4 +1600,103 @@ html.app-html .cart-services-section {
     max-height: 420px;
     object-fit: cover;
     border-radius: 1rem;
+}
+
+/* Booking confirmation */
+html.app-html .confirmation-container {
+    max-width: 50rem;
+    margin: 0 auto;
+}
+
+.confirmation-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-top: 0.25rem;
+}
+
+@media (min-width: 520px) {
+    .confirmation-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: stretch;
+    }
+}
+
+.confirmation-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+    font-weight: 800;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    text-align: center;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+@media (min-width: 520px) {
+    .confirmation-action-btn {
+        flex: 1 1 0;
+        min-width: 11.5rem;
+        max-width: 16rem;
+    }
+}
+
+.confirmation-action-btn--primary {
+    background: var(--app-gold);
+    color: var(--app-ink);
+    border: 1px solid var(--app-gold);
+}
+
+.confirmation-action-btn--primary:hover {
+    background: var(--app-gold-hover);
+    border-color: var(--app-gold-hover);
+    color: var(--app-ink);
+}
+
+.confirmation-action-btn--secondary {
+    background: #fff;
+    color: var(--app-emerald);
+    border: 1px solid #d1fae5;
+}
+
+.confirmation-action-btn--secondary:hover {
+    background: #ecfdf5;
+    border-color: #6ee7b7;
+    color: var(--app-emerald-dark);
+}
+
+/* Minimal footer (checkout, login, confirmation, etc.) */
+html.app-html .site-footer.site-footer--minimal {
+    padding: 1.25rem 0 1.75rem;
+    margin-top: 0;
+    text-align: center;
+}
+
+html.app-html .site-footer.site-footer--minimal .container {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+html.app-html .site-footer.site-footer--minimal .footer-bottom {
+    border-top: 1px solid rgba(167, 243, 208, 0.28);
+    padding-top: 1rem;
+    margin: 0;
+    display: block;
+    text-align: center;
+    color: #a7f3d0;
+    font-size: 0.85rem;
+    line-height: 1.55;
+}
+
+html.app-html .site-footer.site-footer--minimal .footer-bottom p {
+    margin: 0;
 }

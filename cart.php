@@ -89,8 +89,10 @@ include __DIR__ . '/includes/site-head.php';
                                 <span>Total</span>
                                 <strong id="cart-total">₱0.00</strong>
                             </div>
-                            <a href="checkout.php" class="cta-button" style="width: 100%; margin-top: 1.5rem; text-align: center;">Proceed to Checkout</a>
-                            <a href="rooms.php" class="cta-button-secondary" style="width: 100%; margin-top: 0.5rem; text-align: center;">Continue Shopping</a>
+                            <div class="cart-summary-actions">
+                                <a href="checkout.php" class="cta-button">Proceed to Checkout</a>
+                                <a href="rooms.php" class="cta-button-secondary">Continue Shopping</a>
+                            </div>
                         </div>
                     </div>
                 </div>

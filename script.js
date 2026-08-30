@@ -1525,3 +1525,59 @@ function setupGalleryLightbox() {
         }
     });
 }
+
+// --- Toast notifications (checkout and shared UI feedback) ---
+function showToast(message, type = 'info', options = {}) {
+    if (!message) return;
+
+    const duration = options.duration || (type === 'error' ? 6500 : 4500);
+    let container = document.getElementById('bodare-toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'bodare-toast-container';
+        container.className = 'bodare-toast-container';
+        container.setAttribute('aria-live', 'polite');
+        container.setAttribute('aria-atomic', 'true');
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `bodare-toast bodare-toast--${type}`;
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+    const icon = document.createElement('span');
+    icon.className = 'bodare-toast-icon';
+    icon.textContent = type === 'success' ? '✓' : type === 'error' ? '!' : 'i';
+
+    const text = document.createElement('span');
+    text.className = 'bodare-toast-message';
+    text.textContent = message;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'bodare-toast-close';
+    closeBtn.setAttribute('aria-label', 'Dismiss notification');
+    closeBtn.textContent = '×';
+
+    toast.appendChild(icon);
+    toast.appendChild(text);
+    toast.appendChild(closeBtn);
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('is-visible'));
+
+    let hideTimer = setTimeout(dismissToast, duration);
+
+    function dismissToast() {
+        clearTimeout(hideTimer);
+        toast.classList.remove('is-visible');
+        setTimeout(() => {
+            toast.remove();
+            if (container.childElementCount === 0) {
+                container.remove();
+            }
+        }, 260);
+    }
+
+    closeBtn.addEventListener('click', dismissToast);
+}

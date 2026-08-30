@@ -10,6 +10,7 @@ $enableAds = false;
 include __DIR__ . '/includes/site-head.php';
 ?>
 <body>
+<script>document.documentElement.classList.add('checkout-is-guest');</script>
 
     <?php
     $headerConfig = ['show_book_button' => false];
@@ -17,44 +18,51 @@ include __DIR__ . '/includes/site-head.php';
 ?>
 
 
-    <section class="app-page-hero">
+    <section class="app-page-hero" id="checkout-hero-guest">
+        <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
+            <h1>Login to Your Account</h1>
+            <p>Access your bookings and manage your reservations</p>
+        </div>
+    </section>
+
+    <section class="app-page-hero" id="checkout-hero-authed" style="display: none;">
         <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1>Booking Summary</h1>
             <p>Please review your details and confirm your reservation.</p>
         </div>
     </section>
 
-    <main class="content-section app-section">
+    <main class="content-section app-section" id="checkout-main">
         <div class="container">
-            <div class="checkout-layout">
+            <div class="checkout-layout" id="checkout-layout">
                 
                 <div class="checkout-form">
-                    
-                    <div class="checkout-auth-header">
-                        <h2 id="auth-header-title">Login to Continue</h2>
-                        <div id="auth-buttons" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <a href="login.php" id="login-link" class="cta-button-secondary">Login</a>
-                            <a href="registration.php" id="register-link" class="cta-button-secondary">Register</a>
-                        </div>
-                        <div id="logged-in-info" style="display: none;">
-                            <p style="color: #666; margin-bottom: 0.5rem;">Logged in as: <strong id="logged-in-name"></strong></p>
-                            <button type="button" id="logout-button" class="cta-button-secondary">Logout</button>
-                        </div>
-                    </div>
-
                     <form action="#" id="checkout-login-form" class="minimal-form" novalidate>
-                        
-                        <div id="login-fields">
-                            <div class="form-group-contact">
-                                <label for="login-email">Email Address</label>
-                                <input type="email" id="login-email" placeholder="Email Address" required>
+                        <div id="checkout-guest-login" class="checkout-guest-login">
+                            <div class="registration-container app-card checkout-login-card">
+                                <h2 class="checkout-login-title">Login to Your Account</h2>
+                                <p class="checkout-login-lead">Enter your credentials to access your dashboard</p>
+                                <div id="login-fields">
+                                    <div class="form-group-contact">
+                                        <label for="login-email">Email Address</label>
+                                        <input type="email" id="login-email" placeholder="Enter your email address" required autocomplete="email">
+                                    </div>
+                                    <div class="form-group-contact">
+                                        <label for="login-password">Password</label>
+                                        <input type="password" id="login-password" placeholder="Enter your password" required autocomplete="current-password">
+                                    </div>
+
+                                    <button type="button" id="login-button" class="cta-button">Login</button>
+
+                                    <p class="form-subtext checkout-login-subtext">
+                                        <a href="forgot-password.php">Forgot your password?</a>
+                                    </p>
+
+                                    <p class="form-subtext checkout-login-subtext">
+                                        Don't have an account? <a href="registration.php?redirect=checkout.php">Create one here</a>
+                                    </p>
+                                </div>
                             </div>
-                            <div class="form-group-contact">
-                                <label for="login-password">Password</label>
-                                <input type="password" id="login-password" placeholder="Password" required>
-                            </div>
-                            
-                            <button type="button" id="login-button" class="cta-button">Login</button>
                         </div>
                         <!-- Account Information Section (shown when logged in) -->
                         <div id="account-info-section" style="display: none;">
@@ -236,6 +244,24 @@ include __DIR__ . '/includes/site-head.php';
     <script src="booking-api.js?v=<?php echo @filemtime(__DIR__ . '/booking-api.js') ?: time(); ?>"></script>
     <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
     <script>
+        function setCheckoutGuestMode(isGuest) {
+            document.documentElement.classList.toggle('checkout-is-guest', isGuest);
+
+            const guestHero = document.getElementById('checkout-hero-guest');
+            const authedHero = document.getElementById('checkout-hero-authed');
+            const guestLogin = document.getElementById('checkout-guest-login');
+            const loginFields = document.getElementById('login-fields');
+            const accountInfoSection = document.getElementById('account-info-section');
+            const paymentSection = document.getElementById('payment-section');
+
+            if (guestHero) guestHero.style.display = isGuest ? '' : 'none';
+            if (authedHero) authedHero.style.display = isGuest ? 'none' : '';
+            if (guestLogin) guestLogin.style.display = isGuest ? '' : 'none';
+            if (loginFields) loginFields.style.display = isGuest ? '' : 'none';
+            if (accountInfoSection) accountInfoSection.style.display = isGuest ? 'none' : 'block';
+            if (paymentSection) paymentSection.style.display = isGuest ? 'none' : 'block';
+        }
+
         // Check if user is logged in and update UI
         document.addEventListener('DOMContentLoaded', async () => {
             // Check if API is loaded
@@ -276,37 +302,11 @@ include __DIR__ . '/includes/site-head.php';
             }
             
             // Update UI based on login status
-            const authHeaderTitle = document.getElementById('auth-header-title');
-            const authButtons = document.getElementById('auth-buttons');
-            const loginLink = document.getElementById('login-link');
-            const registerLink = document.getElementById('register-link');
-            const loggedInInfo = document.getElementById('logged-in-info');
-            const loggedInName = document.getElementById('logged-in-name');
-            const logoutButton = document.getElementById('logout-button');
             const loginFields = document.getElementById('login-fields');
             
             if (isLoggedIn && currentUser) {
-                // User is logged in - update UI
-                if (authHeaderTitle) {
-                    authHeaderTitle.textContent = 'Continue with Your Booking';
-                }
+                setCheckoutGuestMode(false);
                 
-                // Hide login/register buttons
-                if (authButtons) {
-                    authButtons.style.display = 'none';
-                }
-                
-                // Show logged in info
-                if (loggedInInfo) {
-                    loggedInInfo.style.display = 'block';
-                }
-                
-                // Set user name
-                if (loggedInName && currentUser.name) {
-                    loggedInName.textContent = currentUser.name;
-                }
-                
-                // Hide login form fields
                 if (loginFields) {
                     loginFields.style.display = 'none';
                 }
@@ -345,48 +345,11 @@ include __DIR__ . '/includes/site-head.php';
                     const paymentMethod = document.getElementById('payment-method');
                     if (paymentMethod) paymentMethod.setAttribute('required', 'required');
                 }
-                
-                // Setup logout button
-                if (logoutButton && !logoutButton.dataset.checkoutLogoutBound) {
-                    logoutButton.dataset.checkoutLogoutBound = 'true';
-                    logoutButton.addEventListener('click', async () => {
-                        try {
-                            await API.auth.logout();
-                        } catch (error) {
-                            console.error('Logout error:', error);
-                        } finally {
-                            localStorage.removeItem('user');
-                            if (typeof clearBookingCartData === 'function') {
-                                clearBookingCartData();
-                            } else {
-                                localStorage.removeItem('bookingCart');
-                                localStorage.removeItem('cartServices');
-                                localStorage.removeItem('bookingDetails');
-                            }
-                            // Reload page to show login form
-                            window.location.reload();
-                        }
-                    });
-                }
             } else {
-                // User is not logged in - show login form
-                if (authHeaderTitle) {
-                    authHeaderTitle.textContent = 'Login to Continue';
-                }
+                setCheckoutGuestMode(true);
                 
-                // Show login/register buttons
-                if (authButtons) {
-                    authButtons.style.display = 'flex';
-                }
-                
-                // Hide logged in info
-                if (loggedInInfo) {
-                    loggedInInfo.style.display = 'none';
-                }
-                
-                // Show login form fields
                 if (loginFields) {
-                    loginFields.style.display = 'block';
+                    loginFields.style.display = '';
                 }
                 
                 // Remove required attributes from hidden account info fields

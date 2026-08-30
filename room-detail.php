@@ -110,7 +110,7 @@ $extraBedPrice = (float) bodare_room_setting('extra_bed_price', 199);
             </section>
 
         <section class="room-content-section app-section">
-            <div class="container room-layout">
+            <div class="room-layout">
                 <div class="room-details-main">
                     <h1 id="room-title"><?php echo htmlspecialchars($initialTitle, ENT_QUOTES, 'UTF-8'); ?></h1>
                     <div class="room-specs">

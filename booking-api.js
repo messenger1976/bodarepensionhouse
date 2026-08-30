@@ -199,40 +199,19 @@ async function showAuthenticatedCheckout(user) {
 
     localStorage.setItem('user', JSON.stringify(user));
 
-    const authHeaderTitle = document.getElementById('auth-header-title');
-    const authButtons = document.getElementById('auth-buttons');
-    const loggedInInfo = document.getElementById('logged-in-info');
-    const loggedInName = document.getElementById('logged-in-name');
-    const logoutButton = document.getElementById('logout-button');
+    if (typeof setCheckoutGuestMode === 'function') {
+        setCheckoutGuestMode(false);
+    }
+
     const loginFields = document.getElementById('login-fields');
     const accountInfoSection = document.getElementById('account-info-section');
     const paymentSection = document.getElementById('payment-section');
 
-    if (authHeaderTitle) authHeaderTitle.textContent = 'Continue with Your Booking';
-    if (authButtons) authButtons.style.display = 'none';
-    if (loggedInInfo) loggedInInfo.style.display = 'block';
-    if (loggedInName) {
-        loggedInName.textContent = user.name
-            || [user.first_name, user.last_name].filter(Boolean).join(' ')
-            || user.email;
-    }
+    const guestLogin = document.getElementById('checkout-guest-login');
+    if (guestLogin) guestLogin.style.display = 'none';
     if (loginFields) loginFields.style.display = 'none';
     if (accountInfoSection) accountInfoSection.style.display = 'block';
     if (paymentSection) paymentSection.style.display = 'block';
-
-    if (logoutButton && !logoutButton.dataset.checkoutLogoutBound) {
-        logoutButton.dataset.checkoutLogoutBound = 'true';
-        logoutButton.addEventListener('click', async () => {
-            try {
-                await API.auth.logout();
-            } catch (error) {
-                console.error('Logout error:', error);
-            } finally {
-                localStorage.removeItem('user');
-                window.location.reload();
-            }
-        });
-    }
 
     const requiredFields = [
         'account-first-name', 'account-last-name', 'account-email',
@@ -256,7 +235,6 @@ async function showAuthenticatedCheckout(user) {
                 name: fullName || user.name || profile.email
             };
             localStorage.setItem('user', JSON.stringify(storedUser));
-            if (loggedInName) loggedInName.textContent = storedUser.name;
             if (typeof displayAccountInfo === 'function') {
                 displayAccountInfo(profile);
             }
@@ -282,11 +260,15 @@ async function handleCheckoutLogin() {
         showMessage('Login form fields not found.', 'error');
         return false;
     }
+
+    clearCheckoutInputErrors();
     
     const email = emailInput.value.trim().toLowerCase();
     const password = passwordInput.value;
     
     if (!email || !password) {
+        if (!email) emailInput.classList.add('input-error');
+        if (!password) passwordInput.classList.add('input-error');
         showMessage('Please enter both your email address and password to continue.', 'error');
         return false;
     }
@@ -464,6 +446,7 @@ async function handleCheckoutSubmit(e) {
     const originalText = submitBtn.textContent;
     submitBtn.disabled = true;
     submitBtn.textContent = 'Processing...';
+    clearCheckoutInputErrors();
     
     // Get cart items instead of single bookingDetails
     // getCart is defined in script.js, but we'll define it here if not available
@@ -561,9 +544,7 @@ async function handleCheckoutSubmit(e) {
         const lastName = accountLastName.value.trim();
         
         if (!firstName || !lastName) {
-            showMessage('Please enter your first name and last name.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            failCheckoutValidation('Please enter your first name and last name.', !firstName ? 'account-first-name' : 'account-last-name', submitBtn, originalText);
             return;
         }
         
@@ -577,51 +558,37 @@ async function handleCheckoutSubmit(e) {
         guestZipcode = accountPostalCode?.value.trim() || '';
         
         if (!guestEmail) {
-            showMessage('Please enter your email address.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            failCheckoutValidation('Please enter your email address.', 'account-email', submitBtn, originalText);
             return;
         }
         
         if (!guestPhone) {
-            showMessage('Please enter your contact number.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            failCheckoutValidation('Please enter your contact number.', 'account-phone', submitBtn, originalText);
             return;
         }
         
         if (!guestAddress) {
-            showMessage('Please enter your street address.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            failCheckoutValidation('Please enter your street address.', 'account-address', submitBtn, originalText);
             return;
         }
         
         if (!guestCity) {
-            showMessage('Please enter your city.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            failCheckoutValidation('Please enter your city.', 'account-city', submitBtn, originalText);
             return;
         }
         
         if (!guestProvince) {
-            showMessage('Please enter your province.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            failCheckoutValidation('Please enter your province.', 'account-province', submitBtn, originalText);
             return;
         }
         
         if (!guestCountry) {
-            showMessage('Please enter your country.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            failCheckoutValidation('Please enter your country.', 'account-country', submitBtn, originalText);
             return;
         }
         
         if (!guestZipcode) {
-            showMessage('Please enter your zip/postal code.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            failCheckoutValidation('Please enter your zip/postal code.', 'account-postal-code', submitBtn, originalText);
             return;
         }
     } else {
@@ -1000,14 +967,41 @@ async function handleCheckoutSubmit(e) {
         // Error message is already displayed by createBooking function
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
-        
-        // Scroll to top to show error message
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function clearCheckoutInputErrors() {
+    const form = document.getElementById('checkout-login-form');
+    if (!form) return;
+    form.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+}
+
+function failCheckoutValidation(message, fieldId, submitBtn, originalText) {
+    showMessage(message, 'error');
+    clearCheckoutInputErrors();
+    if (fieldId) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.classList.add('input-error');
+            field.focus();
+            field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
     }
 }
 
 // Message display helper
 function showMessage(message, type = 'info') {
+    const isCheckoutPage = !!document.getElementById('checkout-login-form');
+
+    if (isCheckoutPage && typeof showToast === 'function') {
+        showToast(message, type);
+        return;
+    }
+
     // Remove existing messages
     const existing = document.querySelector('.api-message');
     if (existing) existing.remove();

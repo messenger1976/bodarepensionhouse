@@ -18,7 +18,7 @@ $tabActive = static function ($files) use ($scriptName) {
     return in_array($scriptName, $files, true) ? ' is-active' : '';
 };
 ?>
-<footer id="contact" class="site-footer hidden md:block">
+<footer id="contact" class="site-footer hidden md:block<?php echo ($footerConfig['variant'] === 'minimal') ? ' site-footer--minimal' : ''; ?>">
     <div class="container">
         <?php if ($footerConfig['variant'] === 'minimal'): ?>
             <div class="footer-bottom">

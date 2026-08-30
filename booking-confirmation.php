@@ -66,14 +66,14 @@ function bodare_confirmation_date($dateString)
         </div>
     </section>
 
-    <main class="content-section">
+    <main class="content-section app-section">
         <div class="container">
-            <div id="confirmation-container" style="max-width: 800px; margin: 0 auto;">
+            <div id="confirmation-container" class="confirmation-container">
                 <?php if (!$confirmation): ?>
                     <div style="text-align: center; padding: 3rem; color: #d32f2f;">
                         <h3>Booking not found</h3>
                         <p>Invalid or missing booking number.</p>
-                        <a href="rooms.php" class="cta-button" style="margin-top: 1rem; display: inline-block;">Browse Rooms</a>
+                        <a href="rooms.php" class="confirmation-action-btn confirmation-action-btn--primary" style="margin-top: 1rem;">Browse Rooms</a>
                     </div>
                 <?php else:
                     $booking = $confirmation['booking'];
@@ -202,22 +202,21 @@ function bodare_confirmation_date($dateString)
                         </ul>
                     </div>
 
-                    <div style="text-align: center;">
-                        <a href="customer-dashboard.php" class="cta-button" style="margin-right: 1rem;">View All Bookings</a>
-                        <a href="index.php" class="cta-button-secondary">Back to Home</a>
+                    <div class="confirmation-actions">
+                        <a href="customer-dashboard.php" class="confirmation-action-btn confirmation-action-btn--primary">View All Bookings</a>
+                        <a href="index.php" class="confirmation-action-btn confirmation-action-btn--secondary">Back to Home</a>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
     </main>
 
-    <?php
-    $footerConfig = ['variant' => 'minimal'];
-    include __DIR__ . '/includes/site-footer.php';
-?>
+    <?php include __DIR__ . '/includes/site-footer.php'; ?>
+
+    <script src="api-config.js?v=<?php echo filemtime(__DIR__ . '/api-config.js'); ?>"></script>
+    <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
 
     <?php if ($confirmation): ?>
-    <script src="api-config.js"></script>
     <script>
         (function () {
             const bookingNumber = <?php echo json_encode($bookingNumber); ?>;
