@@ -1,5 +1,5 @@
 // Service Worker for BODARE Pension House PWA
-const CACHE_NAME = 'bodare-pwa-v4';
+const CACHE_NAME = 'bodare-pwa-v5';
 const urlsToCache = [
   '/',
   '/index.php',
@@ -59,6 +59,12 @@ self.addEventListener('fetch', (event) => {
 
   const requestUrl = new URL(event.request.url);
 
+  // Third-party assets (fonts, ads, CDNs) must bypass the SW — intercepting them
+  // causes rejected respondWith() promises when fetch is blocked or offline.
+  if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
   // Skip API requests
   if (event.request.url.includes('/api/')) {
     return;
@@ -100,7 +106,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static assets, cache-first with network fallback.
+  // For same-origin static assets, cache-first with network fallback.
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -121,6 +127,7 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         });
       })
+      .catch(() => fetch(event.request))
   );
 });
 

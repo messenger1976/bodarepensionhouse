@@ -14,7 +14,6 @@ include __DIR__ . '/includes/site-head.php';
     $headerConfig = [
         'logo_href' => 'index.php',
         'show_cart' => true,
-        'login_button_style' => 'display: none !important;'
     ];
     include __DIR__ . '/includes/site-header.php';
 ?>

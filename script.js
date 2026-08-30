@@ -387,6 +387,22 @@ function updateCartBadge() {
 }
 
 // Update header auth buttons globally for pages using shared header include.
+function setHeaderAuthState(loggedIn) {
+    const onLoginPage = window.location.pathname.includes('login.php');
+
+    document.querySelectorAll('.app-auth-login').forEach((el) => {
+        el.style.display = loggedIn || onLoginPage ? 'none' : 'inline-flex';
+    });
+
+    document.querySelectorAll('.app-auth-account').forEach((el) => {
+        el.style.display = loggedIn ? 'inline-flex' : 'none';
+    });
+
+    document.querySelectorAll('.app-auth-logout').forEach((el) => {
+        el.style.display = loggedIn ? 'inline-flex' : 'none';
+    });
+}
+
 function updateAppTabAuth(loggedIn) {
     const profileTab = document.getElementById('nav-tab-profile');
     const bookingsTab = document.getElementById('nav-tab-bookings');
@@ -401,23 +417,13 @@ function updateAppTabAuth(loggedIn) {
 }
 
 async function updateHeaderAuthButtons() {
-    const loginBtn = document.getElementById('login-account-btn');
-    const accountBtn = document.getElementById('my-account-btn');
-    const onLoginPage = window.location.pathname.includes('login.php');
-
-    if (loginBtn && onLoginPage) {
-        loginBtn.style.display = 'none';
-    }
-
     const showLoggedOut = () => {
-        if (loginBtn && !onLoginPage) loginBtn.style.display = 'inline-flex';
-        if (accountBtn) accountBtn.style.display = 'none';
+        setHeaderAuthState(false);
         updateAppTabAuth(false);
     };
 
     const showLoggedIn = () => {
-        if (loginBtn) loginBtn.style.display = 'none';
-        if (accountBtn) accountBtn.style.display = 'inline-flex';
+        setHeaderAuthState(true);
         updateAppTabAuth(true);
     };
 
@@ -429,7 +435,6 @@ async function updateHeaderAuthButtons() {
                 return;
             }
 
-            // Server session missing/expired — logout the local account too.
             if (localStorage.getItem('user')) {
                 if (typeof API.auth.clearLocalSession === 'function') {
                     API.auth.clearLocalSession();
@@ -450,6 +455,91 @@ async function updateHeaderAuthButtons() {
     } else {
         showLoggedOut();
     }
+}
+
+function closeMobileNav() {
+    const mobileNav = document.getElementById('app-mobile-nav');
+    const mobileMenuToggle = document.querySelector('.app-mobile-menu-btn');
+    if (!mobileNav || !mobileMenuToggle) {
+        return;
+    }
+    mobileNav.classList.remove('is-open');
+    mobileNav.setAttribute('aria-hidden', 'true');
+    mobileMenuToggle.classList.remove('active');
+    mobileMenuToggle.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('menu-open');
+}
+
+function openMobileNav() {
+    const mobileNav = document.getElementById('app-mobile-nav');
+    const mobileMenuToggle = document.querySelector('.app-mobile-menu-btn');
+    if (!mobileNav || !mobileMenuToggle) {
+        return;
+    }
+    mobileNav.classList.add('is-open');
+    mobileNav.setAttribute('aria-hidden', 'false');
+    mobileMenuToggle.classList.add('active');
+    mobileMenuToggle.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('menu-open');
+}
+
+function setupMobileNav() {
+    const mobileNav = document.getElementById('app-mobile-nav');
+    const mobileMenuToggle = document.querySelector('.app-mobile-menu-btn');
+    if (!mobileNav || !mobileMenuToggle) {
+        return;
+    }
+
+    mobileMenuToggle.addEventListener('click', () => {
+        const isOpen = mobileNav.classList.contains('is-open');
+        if (isOpen) {
+            closeMobileNav();
+        } else {
+            openMobileNav();
+        }
+    });
+
+    mobileNav.querySelectorAll('.app-mobile-nav-backdrop, .app-mobile-nav-close').forEach((el) => {
+        el.addEventListener('click', closeMobileNav);
+    });
+
+    mobileNav.querySelectorAll('.app-mobile-nav-link, .app-mobile-nav-btn').forEach((el) => {
+        el.addEventListener('click', () => {
+            if (el.classList.contains('app-auth-logout')) {
+                return;
+            }
+            closeMobileNav();
+        });
+    });
+}
+
+async function handleHeaderLogout() {
+    try {
+        if (typeof API !== 'undefined' && API.auth && typeof API.auth.logout === 'function') {
+            await API.auth.logout();
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+    } finally {
+        localStorage.removeItem('user');
+        if (typeof clearBookingCartData === 'function') {
+            clearBookingCartData();
+        }
+        window.location.href = 'index.php';
+    }
+}
+
+function setupHeaderLogoutButtons() {
+    document.querySelectorAll('.app-auth-logout').forEach((btn) => {
+        if (btn.dataset.logoutBound === '1') {
+            return;
+        }
+        btn.dataset.logoutBound = '1';
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            handleHeaderLogout();
+        });
+    });
 }
 
 // Clear booking cart data (used after successful booking or explicit logout).
@@ -534,39 +624,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Mobile menu toggle
-    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
-    const navMenu = document.querySelector('.nav-menu');
-    if (mobileMenuToggle && navMenu) {
-        mobileMenuToggle.addEventListener('click', () => {
-            const isExpanded = mobileMenuToggle.getAttribute('aria-expanded') === 'true';
-            mobileMenuToggle.setAttribute('aria-expanded', !isExpanded);
-            mobileMenuToggle.classList.toggle('active');
-            navMenu.classList.toggle('active');
-            document.body.classList.toggle('menu-open');
-        });
-
-        // Close menu when clicking on a link
-        const navLinks = navMenu.querySelectorAll('.nav-link');
-        navLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                mobileMenuToggle.setAttribute('aria-expanded', 'false');
-                mobileMenuToggle.classList.remove('active');
-                navMenu.classList.remove('active');
-                document.body.classList.remove('menu-open');
-            });
-        });
-
-        // Close menu when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!navMenu.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
-                mobileMenuToggle.setAttribute('aria-expanded', 'false');
-                mobileMenuToggle.classList.remove('active');
-                navMenu.classList.remove('active');
-                document.body.classList.remove('menu-open');
-            }
-        });
-    }
+    // Mobile nav drawer
+    setupMobileNav();
+    setupHeaderLogoutButtons();
 
     if (document.body.querySelector('.room-content-section')) {
         populateRoomDetails();

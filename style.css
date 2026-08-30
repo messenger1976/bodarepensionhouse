@@ -465,43 +465,24 @@ body {
 
 /* --- Responsive Design --- */
 @media (max-width: 768px) {
-    .mobile-menu-toggle {
+    html.app-html .nav-menu.app-nav-desktop {
+        display: none !important;
+        position: static;
+        right: auto;
+        width: auto;
+        height: auto;
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
+        overflow: visible;
+    }
+
+    html.app-html .mobile-menu-toggle:not(.app-mobile-menu-btn) {
+        display: none !important;
+    }
+
+    .mobile-menu-toggle:not(.app-mobile-menu-btn) {
         display: flex;
-    }
-
-    .nav-menu {
-        position: fixed;
-        top: 0;
-        right: -100%;
-        width: 80%;
-        max-width: 300px;
-        height: 100vh;
-        background: linear-gradient(180deg, var(--dark-blue) 0%, #2a3a5a 100%);
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: flex-start;
-        padding: 80px 2rem 2rem;
-        transition: right 0.3s ease;
-        z-index: 1000;
-        box-shadow: -2px 0 10px rgba(0,0,0,0.3);
-        overflow-y: auto;
-    }
-
-    .nav-menu.active {
-        right: 0;
-    }
-
-    .nav-menu .nav-item {
-        width: 100%;
-        margin: 0.5rem 0;
-    }
-
-    .nav-menu .nav-link {
-        display: block;
-        padding: 1rem;
-        font-size: 1.1rem;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-        width: 100%;
     }
 
     /* Header Book Now only — do not hide form submit buttons (login, checkout, contact). */
@@ -514,7 +495,7 @@ body {
         overflow: hidden;
     }
 
-    body.menu-open::before {
+    html:not(.app-html) body.menu-open::before {
         content: '';
         position: fixed;
         top: 0;

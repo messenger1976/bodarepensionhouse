@@ -4,7 +4,6 @@ $pageSeo = [
     'description' => 'Create a guest account to book rooms and manage reservations at BODARE Pension House.',
     'canonical_path' => 'registration.php',
     'robots' => 'noindex,nofollow',
-    'include_bootstrap_icons' => false,
 ];
 $enableAds = false;
 include __DIR__ . '/includes/site-head.php';

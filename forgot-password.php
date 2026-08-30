@@ -4,7 +4,6 @@ $pageSeo = [
     'description' => 'Request a password reset link for your BODARE Pension House guest account.',
     'canonical_path' => 'forgot-password.php',
     'robots' => 'noindex,nofollow',
-    'include_bootstrap_icons' => false,
 ];
 $enableAds = false;
 include __DIR__ . '/includes/site-head.php';
@@ -20,14 +19,14 @@ include __DIR__ . '/includes/site-head.php';
 ?>
 
 
-    <section class="page-header">
-        <div class="page-header-content">
+    <section class="app-page-hero">
+        <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1>Forgot Your Password?</h1>
             <p>Enter your email address and we'll send you a link to reset your password</p>
         </div>
     </section>
 
-    <main class="content-section">
+    <main class="content-section app-section">
         <div class="container">
             <div class="registration-container" style="max-width: 500px; margin: 0 auto;">
                 <h2>Reset Password</h2>

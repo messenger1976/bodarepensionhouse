@@ -226,21 +226,14 @@ html.app-html #my-account-btn i {
 
 html.app-html header.app-header .app-user-name,
 html.app-html header.app-header #user-name-display {
-    color: var(--app-emerald-dark);
-    font-family: 'Jost', system-ui, sans-serif;
-    font-size: 0.7rem;
-    font-weight: 700;
-    max-width: 7.5rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: none !important;
 }
 
-@media (max-width: 480px) {
-    html.app-html header.app-header .app-user-name,
-    html.app-html header.app-header #user-name-display {
-        display: none;
-    }
+html.app-html a.cta-button-secondary#login-account-btn:hover,
+html.app-html a.cta-button-secondary#my-account-btn:hover,
+html.app-html #logout-btn.app-auth-logout:hover {
+    background: var(--app-emerald-dark) !important;
+    color: var(--app-gold) !important;
 }
 
 .app-btn-book,
@@ -259,6 +252,232 @@ a.cta-button.app-btn-book {
 }
 
 .mobile-menu-toggle {
+    display: none;
+}
+
+/* Mobile burger + drawer (app shell) */
+@media (max-width: 767px) {
+    html.app-html .app-mobile-menu-btn {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        width: 2.5rem;
+        height: 2.5rem;
+        padding: 0;
+        border: 1px solid #065f46;
+        border-radius: 0.75rem;
+        background: var(--app-emerald-dark);
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    html.app-html .app-mobile-menu-btn span {
+        display: block;
+        width: 1rem;
+        height: 2px;
+        background: var(--app-gold);
+        border-radius: 2px;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    html.app-html .app-mobile-menu-btn.active span:nth-child(1) {
+        transform: translateY(7px) rotate(45deg);
+    }
+
+    html.app-html .app-mobile-menu-btn.active span:nth-child(2) {
+        opacity: 0;
+    }
+
+    html.app-html .app-mobile-menu-btn.active span:nth-child(3) {
+        transform: translateY(-7px) rotate(-45deg);
+    }
+
+    html.app-html .app-header-auth-desktop {
+        display: none !important;
+    }
+
+    html.app-html .app-mobile-nav {
+        position: fixed;
+        inset: 0;
+        z-index: 1200;
+        pointer-events: none;
+        visibility: hidden;
+    }
+
+    html.app-html .app-mobile-nav.is-open {
+        pointer-events: auto;
+        visibility: visible;
+    }
+
+    /* Old style.css body::before overlay (z-index 999) blocked taps on the drawer inside header (z-index 40). */
+    html.app-html body.menu-open::before {
+        content: none !important;
+        display: none !important;
+    }
+
+    html.app-html body.menu-open .app-header {
+        z-index: 1190;
+    }
+
+    html.app-html .app-mobile-nav-links li {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    html.app-html .app-mobile-nav-link,
+    html.app-html .app-mobile-nav-link:visited {
+        color: #022c22 !important;
+    }
+
+    html.app-html .app-mobile-nav-backdrop {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        border: 0;
+        background: rgba(2, 44, 34, 0.45);
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+
+    html.app-html .app-mobile-nav.is-open .app-mobile-nav-backdrop {
+        opacity: 1;
+    }
+
+    html.app-html .app-mobile-nav-panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 1;
+        width: min(88vw, 320px);
+        height: 100%;
+        background: #fff;
+        box-shadow: -8px 0 30px rgba(2, 44, 34, 0.18);
+        transform: translateX(100%);
+        transition: transform 0.25s ease;
+        display: flex;
+        flex-direction: column;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        pointer-events: auto;
+    }
+
+    html.app-html .app-mobile-nav.is-open .app-mobile-nav-panel {
+        transform: translateX(0);
+    }
+
+    html.app-html .app-mobile-nav-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1rem 0.75rem;
+        border-bottom: 1px solid #ecfdf5;
+        background: linear-gradient(135deg, #022c22, #065f46);
+        color: #fff;
+    }
+
+    html.app-html .app-mobile-nav-title {
+        margin: 0;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #fde047;
+    }
+
+    html.app-html .app-mobile-nav-close {
+        border: 0;
+        background: transparent;
+        color: #fff;
+        font-size: 1.75rem;
+        line-height: 1;
+        padding: 0 0.25rem;
+        cursor: pointer;
+    }
+
+    html.app-html .app-mobile-nav-links {
+        list-style: none;
+        margin: 0;
+        padding: 0.5rem 0;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    html.app-html .app-mobile-nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.85rem 1.25rem;
+        color: #022c22;
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 600;
+        border-bottom: 1px solid #f3f4f6;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    html.app-html .app-mobile-nav-link i {
+        color: #065f46;
+        font-size: 1.1rem;
+        width: 1.25rem;
+    }
+
+    html.app-html .app-mobile-nav-link.is-active {
+        background: #ecfdf5;
+        color: #065f46;
+    }
+
+    html.app-html .app-mobile-nav-auth {
+        padding: 1rem;
+        border-top: 1px solid #ecfdf5;
+        display: grid;
+        gap: 0.5rem;
+        background: #f9fafb;
+    }
+
+    html.app-html .app-mobile-nav-btn {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        min-height: 44px;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        font-family: 'Jost', system-ui, sans-serif;
+        font-size: 0.8rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        text-decoration: none;
+        border: 1px solid #065f46;
+        background: var(--app-emerald);
+        color: #fefce8 !important;
+        cursor: pointer;
+        box-sizing: border-box;
+    }
+
+    html.app-html .app-mobile-nav-btn i {
+        color: var(--app-gold) !important;
+    }
+
+    html.app-html body.menu-open {
+        overflow: hidden;
+    }
+}
+
+@media (min-width: 768px) {
+    html.app-html .app-mobile-menu-btn,
+    html.app-html .app-mobile-nav {
+        display: none !important;
+    }
+}
+
+/* Never show guest name in header bar (mobile or desktop) */
+html.app-html #user-name-display,
+html.app-html .app-user-name-sr {
     display: none !important;
 }
 
@@ -633,6 +852,16 @@ button.app-cta-gold,
 }
 
 /* Rooms list (JS-rendered) */
+@media (max-width: 767px) {
+    html.app-html .rooms-view-toggle {
+        display: none !important;
+    }
+
+    html.app-html .rooms-toolbar-bottom {
+        justify-content: flex-start;
+    }
+}
+
 #rooms-container.rooms-list {
     display: grid;
     gap: 1rem;
@@ -883,12 +1112,16 @@ html.app-html .gallery-image {
 
 html.app-html .contact-info-grid {
     display: grid;
+    grid-template-columns: 1fr;
     gap: 0.75rem;
+    margin-bottom: 1.5rem;
 }
 
 @media (min-width: 768px) {
     html.app-html .contact-info-grid {
         grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 2.5rem;
     }
 }
 

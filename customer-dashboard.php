@@ -13,10 +13,6 @@ include __DIR__ . '/includes/site-head.php';
     <?php
     $headerConfig = [
         'logo_href' => 'index.php',
-        'show_user_menu' => false,
-        'show_logout' => true,
-        'login_button_style' => 'display: none !important;',
-        'account_button_style' => 'display: inline-flex;',
     ];
     include __DIR__ . '/includes/site-header.php';
 ?>
@@ -396,28 +392,6 @@ include __DIR__ . '/includes/site-head.php';
                 setupProfileForm();
                 setupSecurityForm();
                 setupInquiryForm();
-                
-                // Setup logout
-                const logoutBtn = document.getElementById('logout-btn');
-                if (logoutBtn) {
-                    logoutBtn.addEventListener('click', async () => {
-                        try {
-                            await API.auth.logout();
-                        } catch (error) {
-                            console.error('Logout error:', error);
-                        } finally {
-                            localStorage.removeItem('user');
-                            if (typeof clearBookingCartData === 'function') {
-                                clearBookingCartData();
-                            } else {
-                                localStorage.removeItem('bookingCart');
-                                localStorage.removeItem('cartServices');
-                                localStorage.removeItem('bookingDetails');
-                            }
-                            window.location.href = 'index.php';
-                        }
-                    });
-                }
             } catch (error) {
                 console.error('Dashboard initialization error:', error);
                 showMessage('An error occurred loading the dashboard. Please refresh the page.', 'error');
@@ -1852,21 +1826,6 @@ include __DIR__ . '/includes/site-head.php';
         .status-confirmed { background: #d4edda; color: #155724; }
         .status-cancelled { background: #f8d7da; color: #721c24; }
         .status-completed { background: #d1ecf1; color: #0c5460; }
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        #user-name-display,
-        .app-user-name {
-            color: #022c22;
-            font-weight: 700;
-            font-size: 0.75rem;
-            max-width: 8rem;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
         .tab-content {
             animation: fadeIn 0.3s;
         }

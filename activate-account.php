@@ -4,7 +4,6 @@ $pageSeo = [
     'description' => 'Confirm your email address to activate your BODARE Pension House guest account.',
     'canonical_path' => 'activate-account.php',
     'robots' => 'noindex,nofollow',
-    'include_bootstrap_icons' => false,
 ];
 $enableAds = false;
 include __DIR__ . '/includes/site-head.php';

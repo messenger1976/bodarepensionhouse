@@ -19,7 +19,6 @@ $pageSeo = [
     'description' => 'Your booking confirmation details for BODARE Pension House.',
     'canonical_path' => 'booking-confirmation.php',
     'robots' => 'noindex,nofollow',
-    'include_bootstrap_icons' => false,
 ];
 $enableAds = false;
 include __DIR__ . '/includes/site-head.php';

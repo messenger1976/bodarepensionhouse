@@ -4,7 +4,6 @@ $pageSeo = [
     'description' => 'Choose a new password for your BODARE Pension House guest account.',
     'canonical_path' => 'reset-password.php',
     'robots' => 'noindex,nofollow',
-    'include_bootstrap_icons' => false,
 ];
 $enableAds = false;
 include __DIR__ . '/includes/site-head.php';

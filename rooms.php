@@ -174,14 +174,24 @@ include __DIR__ . '/includes/site-head.php';
                 return `room-detail.php?${params.toString()}`;
             }
 
+            function isMobileRoomsView() {
+                return window.matchMedia('(max-width: 767px)').matches;
+            }
+
             function currentView() {
+                if (isMobileRoomsView()) {
+                    return 'thumbnail';
+                }
                 const stored = localStorage.getItem(DISPLAY_KEY);
                 return stored === 'thumbnail' ? 'thumbnail' : 'row';
             }
 
-            function setView(view) {
+            function setView(view, options) {
+                const persist = !options || options.persist !== false;
                 const next = view === 'thumbnail' ? 'thumbnail' : 'row';
-                localStorage.setItem(DISPLAY_KEY, next);
+                if (persist && !isMobileRoomsView()) {
+                    localStorage.setItem(DISPLAY_KEY, next);
+                }
                 roomsContainer.classList.toggle('is-thumbnail', next === 'thumbnail');
                 roomsContainer.dataset.view = next;
                 document.querySelectorAll('.rooms-view-btn').forEach(btn => {
@@ -416,6 +426,16 @@ include __DIR__ . '/includes/site-head.php';
                 btn.addEventListener('click', () => setView(btn.dataset.view));
             });
 
+            const roomsViewMedia = window.matchMedia('(max-width: 767px)');
+            function syncRoomsViewForBreakpoint() {
+                setView(currentView(), { persist: false });
+            }
+            if (typeof roomsViewMedia.addEventListener === 'function') {
+                roomsViewMedia.addEventListener('change', syncRoomsViewForBreakpoint);
+            } else if (typeof roomsViewMedia.addListener === 'function') {
+                roomsViewMedia.addListener(syncRoomsViewForBreakpoint);
+            }
+
             startInput.addEventListener('change', syncCheckoutMin);
             filterForm.addEventListener('submit', (event) => {
                 event.preventDefault();
@@ -424,7 +444,7 @@ include __DIR__ . '/includes/site-head.php';
             clearBtn.addEventListener('click', clearFilter);
 
             setDateBounds();
-            setView(currentView());
+            setView(currentView(), { persist: false });
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', loadRooms);
             } else {
