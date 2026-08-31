@@ -35,10 +35,33 @@ if (!function_exists('adsense_page_allows_ads')) {
     }
 }
 
+if (!function_exists('adsense_is_capacitor_client')) {
+    /**
+     * Best-effort: Capacitor Android WebView usually includes "; wv)".
+     * Avoid loading AdSense scripts in the native shell (store policy + speed).
+     */
+    function adsense_is_capacitor_client()
+    {
+        $ua = isset($_SERVER['HTTP_USER_AGENT']) ? (string) $_SERVER['HTTP_USER_AGENT'] : '';
+        if ($ua === '') {
+            return false;
+        }
+        if (stripos($ua, 'Capacitor') !== false) {
+            return true;
+        }
+        // Android WebView marker (Capacitor uses system WebView).
+        return (bool) preg_match('/Android.*\bwv\b/i', $ua);
+    }
+}
+
 if (!function_exists('adsense_is_enabled')) {
     function adsense_is_enabled()
     {
         if (!adsense_page_allows_ads()) {
+            return false;
+        }
+
+        if (adsense_is_capacitor_client()) {
             return false;
         }
 

@@ -122,23 +122,39 @@ if (!headers_sent()) {
 
     <link rel="stylesheet" href="style.css?v=<?php echo is_file(dirname(__DIR__) . '/style.css') ? filemtime(dirname(__DIR__) . '/style.css') : time(); ?>">
     <link rel="stylesheet" href="app-shell.css?v=<?php echo is_file(dirname(__DIR__) . '/app-shell.css') ? filemtime(dirname(__DIR__) . '/app-shell.css') : time(); ?>">
-    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        if (window.tailwind) {
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        colors: {
-                            bodare: { emerald: '#065f46', gold: '#facc15', ink: '#022c22' }
+        (function () {
+            var isCapacitor = !!(window.Capacitor);
+            window.__BODARE_IS_CAPACITOR = isCapacitor;
+            if (isCapacitor) {
+                document.documentElement.classList.add('is-capacitor');
+                return;
+            }
+
+            // Browser / PWA only — skip heavy CDNs inside the Capacitor WebView.
+            var s = document.createElement('script');
+            s.src = 'https://cdn.tailwindcss.com';
+            s.onload = function () {
+                if (window.tailwind) {
+                    window.tailwind.config = {
+                        theme: {
+                            extend: {
+                                colors: {
+                                    bodare: { emerald: '#065f46', gold: '#facc15', ink: '#022c22' }
+                                }
+                            }
                         }
-                    }
+                    };
                 }
             };
-        }
+            document.head.appendChild(s);
+
+            var font = document.createElement('link');
+            font.rel = 'stylesheet';
+            font.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Jost:wght@200;300;400;600;700;800&display=swap';
+            document.head.appendChild(font);
+        })();
     </script>
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Jost:wght@200;300;400;600;700;800&display=swap" rel="stylesheet">
 <?php if (!empty($pageSeo['include_bootstrap_icons'])): ?>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <?php endif; ?>
@@ -153,7 +169,7 @@ if (!headers_sent()) {
         window.BODARE_EXTRA_BED_PRICE = <?php echo json_encode((float) bodare_room_setting('extra_bed_price', 199)); ?>;
         window.BODARE_CHECK_IN_TIME = <?php echo json_encode((string) bodare_booking_setting('check_in_time', '14:00')); ?>;
         window.BODARE_CHECK_OUT_TIME = <?php echo json_encode((string) bodare_booking_setting('check_out_time', '12:00')); ?>;
-        if (window.Capacitor) {
+        if (window.Capacitor || window.__BODARE_IS_CAPACITOR) {
             document.documentElement.classList.add('is-capacitor');
         }
         window.BODARE_PUSH_ENABLED = <?php echo json_encode(bodare_push_enabled()); ?>;
