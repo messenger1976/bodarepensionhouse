@@ -1,24 +1,39 @@
 {
   "name": "BODARE Admin",
   "short_name": "BODARE Admin",
-  "description": "BODARE Pension House admin panel",
+  "description": "BODARE Pension House administration panel",
   "start_url": "./dashboard",
+  "scope": "./",
+  "id": "./admin",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#f1f5f9",
   "theme_color": "#6576ff",
-  "orientation": "any",
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "assets/icons/admin-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "assets/icons/admin-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/admin-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icons/admin-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

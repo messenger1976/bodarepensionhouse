@@ -345,7 +345,7 @@
     <script>window.INQUIRY_POLL_URL = <?php echo json_encode(base_url('inquiries/poll')); ?>;</script>
     <script src="<?php echo base_url('assets/js/inquiry-poll.js'); ?>"></script>
     <?php endif; ?>
-    <script src="<?php echo base_url('assets/js/admin-mobile.js'); ?>"></script>
+    <script src="<?php echo base_url('assets/js/admin-mobile.js'); ?>?v=<?php echo time(); ?>"></script>
     <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {

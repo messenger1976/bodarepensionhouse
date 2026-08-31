@@ -1,7 +1,6 @@
 (function () {
     'use strict';
 
-    var DESKTOP_MIN = 992;
     var sidebar = document.getElementById('sidebar');
     var overlay = document.getElementById('sidebarOverlay');
 
@@ -36,18 +35,33 @@
         document.querySelectorAll('.menu-toggle').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
+                e.stopPropagation();
                 toggleSidebar();
             });
         });
 
         if (overlay) {
-            overlay.addEventListener('click', closeSidebar);
+            overlay.addEventListener('click', function (e) {
+                e.preventDefault();
+                closeSidebar();
+            });
         }
 
+        // Clicks inside the drawer must not bubble to the overlay
         if (sidebar) {
+            sidebar.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
+
             sidebar.querySelectorAll('.nk-menu-link, .nk-menu-sub-link').forEach(function (link) {
                 link.addEventListener('click', function () {
-                    if (isMobileViewport()) closeSidebar();
+                    if (!isMobileViewport()) return;
+                    var href = link.getAttribute('href');
+                    // Keep drawer open for submenu expanders (Billing, Reports)
+                    if (!href || href === '#' || href.indexOf('javascript:') === 0) {
+                        return;
+                    }
+                    closeSidebar();
                 });
             });
         }

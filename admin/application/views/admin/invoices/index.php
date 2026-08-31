@@ -16,7 +16,7 @@
     <?php endif; ?>
 
     <div class="mb-3">
-        <div class="btn-group" role="group">
+        <div class="btn-group mob-filter-chips" role="group">
             <a href="<?php echo base_url('invoices'); ?>" class="btn btn-sm <?php echo empty($filter_status) ? 'btn-primary' : 'btn-outline-primary'; ?>">All</a>
             <?php foreach (array('draft','issued','partial','paid','overdue','void') as $st): ?>
             <a href="<?php echo base_url('invoices?status=' . $st); ?>" class="btn btn-sm <?php echo ($filter_status === $st) ? 'btn-primary' : 'btn-outline-primary'; ?>"><?php echo ucfirst($st); ?></a>
@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <div class="table-responsive">
+    <div class="table-responsive mob-desktop-table">
         <table class="table table-hover">
             <thead>
                 <tr>
@@ -81,5 +81,41 @@
                 <?php endif; ?>
             </tbody>
         </table>
+    </div>
+
+    <div class="mob-card-list d-lg-none">
+        <?php if (!empty($invoices)): foreach ($invoices as $inv):
+            $badge = 'secondary';
+            if ($inv->status === 'paid') $badge = 'success';
+            elseif ($inv->status === 'partial') $badge = 'warning';
+            elseif ($inv->status === 'overdue') $badge = 'danger';
+            elseif ($inv->status === 'issued') $badge = 'primary';
+            elseif ($inv->status === 'void') $badge = 'dark';
+        ?>
+        <div class="mob-list-card">
+            <div class="mob-list-card-header">
+                <div class="mob-list-card-title"><?php echo htmlspecialchars($inv->invoice_number); ?></div>
+                <span class="badge bg-<?php echo $badge; ?>"><?php echo ucfirst($inv->status); ?></span>
+            </div>
+            <div class="mob-list-card-meta"><i class="bi bi-person"></i> <?php echo htmlspecialchars($inv->guest_name); ?></div>
+            <?php if ($inv->booking_number || !empty($inv->event_name)): ?>
+            <div class="mob-list-card-meta"><i class="bi bi-tag"></i>
+                <?php echo $inv->booking_number ? htmlspecialchars($inv->booking_number) : ''; ?>
+                <?php echo !empty($inv->event_name) ? htmlspecialchars($inv->event_name) : ''; ?>
+            </div>
+            <?php endif; ?>
+            <div class="mob-list-card-meta"><i class="bi bi-cash"></i> Total ₱<?php echo number_format($inv->total_amount, 2); ?> · Balance <strong>₱<?php echo number_format($inv->balance_due, 2); ?></strong></div>
+            <div class="mob-list-card-meta"><i class="bi bi-calendar3"></i> Due <?php echo $inv->due_date ? date('M d, Y', strtotime($inv->due_date)) : '—'; ?></div>
+            <div class="mob-list-card-actions">
+                <a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-info"><i class="bi bi-eye"></i> View</a>
+                <?php if (!empty($can_edit)): ?>
+                <a href="<?php echo base_url('invoices/edit/' . $inv->id); ?>" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+                <?php endif; ?>
+                <a href="<?php echo base_url('invoices/print/' . $inv->id); ?>" class="btn btn-sm btn-secondary" target="_blank"><i class="bi bi-printer"></i></a>
+            </div>
+        </div>
+        <?php endforeach; else: ?>
+        <div class="mob-list-card text-muted text-center">No invoices found</div>
+        <?php endif; ?>
     </div>
 </div>

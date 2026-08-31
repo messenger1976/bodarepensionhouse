@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#6576ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="<?php echo isset($this) && function_exists('base_url') ? base_url('manifest.json') : 'manifest.json'; ?>">
+    <link rel="apple-touch-icon" href="<?php echo isset($this) && function_exists('base_url') ? base_url('assets/icons/admin-apple-touch-180.png') : 'assets/icons/admin-apple-touch-180.png'; ?>">
     <title>Admin Login - BODARE Pension House</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
@@ -18,6 +23,9 @@
             align-items: center;
             justify-content: center;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 1rem;
+            margin: 0;
+            overflow-x: hidden;
         }
         .login-container {
             background: white;
@@ -122,6 +130,15 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register(<?php echo json_encode(base_url('sw.js')); ?>, {
+                scope: <?php echo json_encode(rtrim(base_url(), '/') . '/'); ?>
+            }).catch(function () {});
+        });
+    }
+    </script>
 </body>
 </html>
 

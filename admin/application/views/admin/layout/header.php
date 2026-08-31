@@ -21,7 +21,7 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
     <meta name="apple-mobile-web-app-title" content="BODARE Admin">
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="manifest" href="<?php echo base_url('manifest.json'); ?>">
-    <link rel="stylesheet" href="<?php echo base_url('assets/css/admin-mobile.css'); ?>">
+    <link rel="apple-touch-icon" href="<?php echo base_url('assets/icons/admin-apple-touch-180.png'); ?>">
     
     <!-- Dashlite CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
@@ -2882,6 +2882,7 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
         @media (max-width: 991px) {
             .nk-sidebar {
                 transform: translateX(-100%);
+                z-index: 1060;
             }
             
             .nk-sidebar.mobile-menu {
@@ -2890,10 +2891,26 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             
             .nk-header {
                 left: 0;
+                z-index: 1045;
             }
             
             .nk-content {
                 margin-left: 0;
+            }
+
+            .sidebar-overlay {
+                z-index: 1050;
+            }
+
+            /* Allow horizontal scroll inside tables on mobile */
+            .table-responsive {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .btn-group {
+                overflow: visible !important;
+                flex-wrap: wrap;
             }
         }
         
@@ -3330,8 +3347,13 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             border: none;
         }
     </style>
+    <!-- Mobile shell CSS last so it overrides Dashlite inline rules -->
+    <link rel="stylesheet" href="<?php echo base_url('assets/css/admin-mobile.css'); ?>?v=<?php echo time(); ?>">
 </head>
 <body>
+    <!-- Overlay first (below sidebar in stacking); sidebar opens above it -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Sidebar -->
     <div class="nk-sidebar" id="sidebar">
         <div class="nk-sidebar-brand">
@@ -3571,8 +3593,6 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             </div>
         </nav>
     </div>
-    
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
     
     <!-- Header -->
     <div class="nk-header">

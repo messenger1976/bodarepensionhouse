@@ -114,8 +114,11 @@ if (!headers_sent()) {
     <meta name="author" content="<?php echo $h($site['legal_name']); ?>">
 
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png">
     <link rel="apple-touch-icon" href="img/logo.png">
-    <link rel="icon" type="image/png" href="img/logo.png">
+    <link rel="shortcut icon" href="/favicon.ico">
 
     <link rel="stylesheet" href="style.css?v=<?php echo is_file(dirname(__DIR__) . '/style.css') ? filemtime(dirname(__DIR__) . '/style.css') : time(); ?>">
     <link rel="stylesheet" href="app-shell.css?v=<?php echo is_file(dirname(__DIR__) . '/app-shell.css') ? filemtime(dirname(__DIR__) . '/app-shell.css') : time(); ?>">

@@ -10,7 +10,7 @@
         <div class="alert alert-success alert-dismissible fade show"><?php echo $this->session->flashdata('success'); ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     <?php endif; ?>
 
-    <div class="table-responsive">
+    <div class="table-responsive mob-desktop-table">
         <table class="table table-hover">
             <thead>
                 <tr>
@@ -49,5 +49,31 @@
                 <?php endif; ?>
             </tbody>
         </table>
+    </div>
+
+    <div class="mob-card-list d-lg-none">
+        <?php if (!empty($payments)): foreach ($payments as $p): ?>
+        <div class="mob-list-card">
+            <div class="mob-list-card-header">
+                <div class="mob-list-card-title">Payment #<?php echo (int) $p->id; ?></div>
+                <span class="badge bg-<?php echo $p->payment_status === 'paid' ? 'success' : ($p->payment_status === 'failed' ? 'danger' : 'warning'); ?>"><?php echo ucfirst($p->payment_status); ?></span>
+            </div>
+            <div class="mob-list-card-meta"><i class="bi bi-person"></i> <?php echo htmlspecialchars($p->guest_name ?: '—'); ?></div>
+            <?php if ($p->booking_number): ?>
+            <div class="mob-list-card-meta"><i class="bi bi-calendar-check"></i> <?php echo htmlspecialchars($p->booking_number); ?></div>
+            <?php endif; ?>
+            <div class="mob-list-card-meta"><i class="bi bi-receipt"></i> <?php echo $p->invoice_number ? htmlspecialchars($p->invoice_number) : 'No invoice'; ?></div>
+            <div class="mob-list-card-meta"><i class="bi bi-wallet2"></i> <?php echo ucfirst($p->payment_method); ?> · <?php echo $p->payment_date ? date('M d, Y', strtotime($p->payment_date)) : '—'; ?></div>
+            <div class="mob-list-card-meta"><i class="bi bi-cash"></i> <strong>₱<?php echo number_format($p->amount, 2); ?></strong></div>
+            <div class="mob-list-card-actions">
+                <a href="<?php echo base_url('payments/view/' . $p->id); ?>" class="btn btn-sm btn-info"><i class="bi bi-eye"></i> View</a>
+                <?php if (!empty($can_edit)): ?>
+                <a href="<?php echo base_url('payments/edit/' . $p->id); ?>" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endforeach; else: ?>
+        <div class="mob-list-card text-muted text-center">No payments recorded yet</div>
+        <?php endif; ?>
     </div>
 </div>
