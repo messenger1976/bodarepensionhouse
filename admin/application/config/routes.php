@@ -215,6 +215,7 @@ $route['api/payment/webhook'] = 'api/payment/webhook';
 
 $route['api/push/register'] = 'api/push/register';
 $route['api/push/unregister'] = 'api/push/unregister';
+$route['api/push/status'] = 'api/push/status';
 
 // Customer Dashboard routes
 $route['customer/dashboard'] = 'customer/dashboard/index';

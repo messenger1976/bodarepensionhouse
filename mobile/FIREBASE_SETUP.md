@@ -229,14 +229,46 @@ $this->fcm_service->send_to_token($fcm_token, 'Title', 'Body', ['url' => '/custo
 |---------|-----|
 | `npm.ps1 cannot be loaded` | Use `npm.cmd`, cmd, or `-ExecutionPolicy Bypass` (Step 4) |
 | App **closes** when notifications are **on** | APK built without `google-services.json` — add file and rebuild |
-| App works but **no token in DB** | Deploy server files; set `push_enabled => true`; run SQL migration |
+| No row in `push_device_tokens` | See **No token in database** below |
 | `registrationError` in device logs | Wrong package name or missing/invalid `google-services.json` |
 | Server returns **503** on register | `firebase-config.php` missing on live site or `push_enabled` is false |
 | Gradle `invalid source release: 21` | Install JDK 21+ (see `mobile/build-android-debug.ps1` / `mobile/.tools/jdk-21/`) |
 
 ---
 
-## Security
+## No token in database — diagnose
+
+Open in a browser (or curl):
+
+```
+https://pensionhouse.bodarempc.com/admin/index.php/api/push/status
+```
+
+Expected:
+
+```json
+{"success":true,"push_enabled":true,"table_exists":true,"project_id":"booking-system-b52f4"}
+```
+
+| `push_enabled` | Fix |
+|----------------|-----|
+| `false` | Upload `includes/firebase-config.php` to the **live server** with `'push_enabled' => true` (local file is not enough) |
+| `table_exists` false | Run `admin/sql/create_push_device_tokens_table.sql` on the **production** database |
+| 404 / HTML error | Deploy `Push.php`, `Push_device_model.php`, and updated `routes.php` |
+
+On the phone (APK, with USB debugging), after opening the app:
+
+- `BODARE_PUSH_ENABLED` must be `true` in page source (View Source on live site or Chrome remote inspect)
+- Console should show `FCM token registered` then `Push token synced true`
+- If `Push token sync failed` — read the error (503 = server push off; 404 = API not deployed)
+
+Also confirm:
+
+- [ ] `google-services.json` is in `mobile/android/app/` and APK was **rebuilt after** adding it
+- [ ] Notifications are **allowed** for the app
+- [ ] You are using the **APK**, not Chrome/PWA
+
+---
 
 - Never commit `google-services.json`, `includes/firebase-config.php`, or `admin/config/firebase-service-account.json`.
 - FCM tokens live in `push_device_tokens`; linked to `user_id` when the guest is logged in.

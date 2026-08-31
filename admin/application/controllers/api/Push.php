@@ -31,8 +31,8 @@ class Push extends CI_Controller {
 
     protected function push_enabled()
     {
-        $firebase_path = dirname(dirname(dirname(dirname(__DIR__)))) . '/includes/firebase.php';
-        if (is_file($firebase_path)) {
+        $firebase_path = realpath(FCPATH . '../includes/firebase.php');
+        if ($firebase_path && is_file($firebase_path)) {
             require_once $firebase_path;
         }
         return function_exists('bodare_push_enabled') && bodare_push_enabled();
@@ -45,6 +45,22 @@ class Push extends CI_Controller {
         }
         $user_id = (int) $this->session->userdata('user_id');
         return $user_id > 0 ? $user_id : null;
+    }
+
+    /**
+     * Lightweight diagnostics for push setup (no secrets).
+     */
+    public function status()
+    {
+        $this->apply_cors_headers();
+        header('Content-Type: application/json');
+
+        echo json_encode([
+            'success' => true,
+            'push_enabled' => $this->push_enabled(),
+            'table_exists' => $this->db->table_exists('push_device_tokens'),
+            'project_id' => function_exists('bodare_firebase_project_id') ? bodare_firebase_project_id() : '',
+        ]);
     }
 
     /**

@@ -32,22 +32,34 @@
         });
     }
 
-    async function syncPushTokenToServer(tokenValue) {
-        if (!tokenValue || typeof API === 'undefined' || !API.push) {
-            return;
+    async function syncPushTokenToServer(tokenValue, attempt = 0) {
+        if (!tokenValue) {
+            return false;
+        }
+
+        if (typeof API === 'undefined' || !API.push) {
+            if (attempt < 10) {
+                await new Promise((resolve) => setTimeout(resolve, 400));
+                return syncPushTokenToServer(tokenValue, attempt + 1);
+            }
+            console.log('Push token sync skipped: API.push not loaded');
+            return false;
         }
 
         try {
             const platform = window.Capacitor.getPlatform
                 ? window.Capacitor.getPlatform()
                 : 'android';
-            await API.push.registerToken({
+            const response = await API.push.registerToken({
                 token: tokenValue,
                 platform,
                 device_label: navigator.userAgent ? navigator.userAgent.substring(0, 255) : '',
             });
+            console.log('Push token synced', response && response.success);
+            return !!(response && response.success);
         } catch (error) {
-            console.log('Push token sync skipped', error);
+            console.log('Push token sync failed', error);
+            return false;
         }
     }
 
@@ -108,5 +120,11 @@
         setupStatusBar();
         setupBackButton();
         setupPush();
+    });
+
+    window.addEventListener('load', () => {
+        if (window.BODARE_PUSH_TOKEN) {
+            syncPushTokenToServer(window.BODARE_PUSH_TOKEN);
+        }
     });
 })();
