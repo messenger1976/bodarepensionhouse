@@ -1,0 +1,194 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#6576ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="BODARE Admin">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Admin Mobile Preview — BODARE Pension House</title>
+    <link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;BODARE Admin Preview&quot;,&quot;display&quot;:&quot;standalone&quot;}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root { --bs-primary:#6576ff; --bs-secondary:#8b5cf6; --bs-success:#10b981; --bs-info:#06b6d4; --bs-warning:#f59e0b; --bs-danger:#ef4444; --sidebar-width:280px; --header-height:56px; --tabbar-height:64px; --ink:#1e293b; --muted:#526484; --border:#e2e8f0; --bg:#f1f5f9; }
+        *,*::before,*::after{box-sizing:border-box}
+        body{font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.6;color:var(--muted);background:var(--bg);margin:0;overflow-x:hidden}
+        .desktop-notice{display:none;min-height:100vh;align-items:center;justify-content:center;padding:2rem;text-align:center;background:var(--bg)}
+        .desktop-notice-inner{max-width:480px;background:#fff;border:1px solid var(--border);border-radius:1rem;padding:2.5rem;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+        .desktop-notice-inner i.main-icon{font-size:3rem;color:var(--bs-primary);margin-bottom:1rem}
+        .desktop-notice-inner h1{font-size:1.25rem;font-weight:700;color:var(--ink);margin-bottom:.75rem}
+        .desktop-notice-inner p{margin-bottom:.5rem;color:var(--muted)}
+        .desktop-notice-inner .hint{margin-top:1.25rem;padding:.75rem 1rem;background:rgba(101,118,255,.08);border-radius:.5rem;font-size:.8125rem;color:var(--bs-primary);font-weight:500}
+        .mobile-shell{display:none}
+        @media (max-width:991.98px){.desktop-notice{display:none!important}.mobile-shell{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;padding-bottom:calc(var(--tabbar-height) + env(safe-area-inset-bottom,0px))}}
+        @media (min-width:992px){.desktop-notice{display:flex}.mobile-shell{display:none!important}}
+        .mob-header{position:sticky;top:0;z-index:1040;height:calc(var(--header-height) + env(safe-area-inset-top,0px));padding-top:env(safe-area-inset-top,0px);background:#fff;border-bottom:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06);display:flex;align-items:center;gap:.75rem;padding-left:.75rem;padding-right:1rem}
+        .mob-header-btn{width:44px;height:44px;border:none;background:transparent;border-radius:.5rem;display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:1.35rem;cursor:pointer;flex-shrink:0}
+        .mob-header-btn:active{background:var(--bg)}
+        .mob-header-title{flex:1;min-width:0;font-size:1rem;font-weight:600;color:var(--ink);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .mob-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#ff8c00,#ff6b00);color:#fff;font-weight:700;font-size:.875rem;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0}
+        .mob-content{flex:1;padding:1rem;overflow-y:auto}
+        .page-panel{display:none}.page-panel.active{display:block}
+        .stat-card{padding:1rem;border-radius:.75rem;background:#fff;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06);position:relative;overflow:hidden;height:100%}
+        .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--bs-primary),var(--bs-secondary))}
+        .stat-card.warning::before{background:linear-gradient(90deg,var(--bs-warning),#d97706)}
+        .stat-card.secondary::before{background:linear-gradient(90deg,var(--bs-success),#059669)}
+        .stat-card.info::before{background:linear-gradient(90deg,var(--bs-info),#0891b2)}
+        .stat-card-icon{width:40px;height:40px;border-radius:.625rem;background:rgba(101,118,255,.1);display:flex;align-items:center;justify-content:center;font-size:1.25rem;color:var(--bs-primary);margin-bottom:.625rem}
+        .stat-card.warning .stat-card-icon{background:rgba(245,158,11,.12);color:var(--bs-warning)}
+        .stat-card.secondary .stat-card-icon{background:rgba(16,185,129,.12);color:var(--bs-success)}
+        .stat-card.info .stat-card-icon{background:rgba(6,182,212,.12);color:var(--bs-info)}
+        .stat-card-value{font-size:1.375rem;font-weight:700;color:var(--ink);line-height:1.2;margin-bottom:.125rem}
+        .stat-card-label{font-size:.6875rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+        .card-bordered{background:#fff;border:1px solid var(--border);border-radius:.75rem;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:1rem}
+        .card-bordered .card-header{padding:.875rem 1rem;border-bottom:1px solid var(--border);font-weight:600;color:var(--ink);font-size:.875rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+        .card-bordered .card-body{padding:1rem}
+        .chart-placeholder{height:180px;background:linear-gradient(180deg,rgba(101,118,255,.06),rgba(101,118,255,.02));border-radius:.5rem;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.8125rem;border:1px dashed var(--border)}
+        .filter-chips{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.25rem;margin-bottom:1rem;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+        .filter-chips::-webkit-scrollbar{display:none}
+        .filter-chip{flex-shrink:0;padding:.375rem .875rem;border-radius:2rem;font-size:.8125rem;font-weight:500;border:1px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;white-space:nowrap}
+        .filter-chip.active{background:var(--bs-primary);border-color:var(--bs-primary);color:#fff}
+        .list-card{background:#fff;border:1px solid var(--border);border-radius:.75rem;padding:1rem;margin-bottom:.75rem;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+        .list-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.625rem;gap:.5rem}
+        .list-card-title{font-weight:600;color:var(--ink);font-size:.9375rem}
+        .list-card-meta{font-size:.8125rem;color:#64748b;margin-bottom:.25rem}
+        .list-card-meta i{width:16px;color:#94a3b8}
+        .list-card-actions{display:flex;gap:.5rem;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)}
+        .list-card-actions .btn{flex:1;font-size:.8125rem;padding:.5rem}
+        .badge-status{font-size:.6875rem;font-weight:600;padding:.25rem .625rem;border-radius:2rem;text-transform:capitalize;white-space:nowrap}
+        .badge-pending{background:rgba(245,158,11,.15);color:#b45309}
+        .badge-confirmed{background:rgba(16,185,129,.15);color:#047857}
+        .badge-checked_in{background:rgba(101,118,255,.15);color:var(--bs-primary)}
+        .badge-new{background:rgba(239,68,68,.12);color:var(--bs-danger)}
+        .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:.75rem}
+        .cal-grid .cal-day-name{font-weight:600;color:#94a3b8;padding:.375rem 0}
+        .cal-grid .cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:.375rem;color:var(--ink)}
+        .cal-grid .cal-day.other{color:#cbd5e1}
+        .cal-grid .cal-day.today{background:var(--bs-primary);color:#fff;font-weight:700}
+        .cal-grid .cal-day.has-event{position:relative}
+        .cal-grid .cal-day.has-event::after{content:'';position:absolute;bottom:3px;width:4px;height:4px;border-radius:50%;background:var(--bs-primary)}
+        .cal-grid .cal-day.today.has-event::after{background:#fff}
+        .event-item{display:flex;gap:.75rem;padding:.75rem 0;border-bottom:1px solid var(--border)}
+        .event-item:last-child{border-bottom:none}
+        .event-time{font-size:.75rem;font-weight:600;color:var(--bs-primary);min-width:48px}
+        .event-title{font-weight:500;color:var(--ink);font-size:.875rem}
+        .event-sub{font-size:.75rem;color:#64748b}
+        .mob-tabbar{position:fixed;bottom:0;left:0;right:0;z-index:1040;height:calc(var(--tabbar-height) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 12px rgba(0,0,0,.06);display:flex;align-items:stretch}
+        .mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;color:#94a3b8;font-size:.625rem;font-weight:600;cursor:pointer;padding:.375rem .25rem;min-height:44px;position:relative}
+        .mob-tab i{font-size:1.25rem}
+        .mob-tab.active{color:var(--bs-primary)}
+        .mob-tab .tab-badge{position:absolute;top:4px;right:calc(50% - 18px);min-width:16px;height:16px;padding:0 4px;background:var(--bs-danger);color:#fff;font-size:.5625rem;font-weight:700;border-radius:8px;display:flex;align-items:center;justify-content:center}
+        .drawer-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:1050;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
+        .drawer-overlay.open{opacity:1;visibility:visible}
+        .mob-drawer{position:fixed;top:0;left:0;width:min(var(--sidebar-width),88vw);height:100dvh;background:#fff;z-index:1060;transform:translateX(-100%);transition:transform .3s ease;display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,.12);padding-top:env(safe-area-inset-top,0px)}
+        .mob-drawer.open{transform:translateX(0)}
+        .drawer-brand{height:var(--header-height);display:flex;align-items:center;justify-content:space-between;padding:0 1rem;border-bottom:1px solid var(--border);flex-shrink:0}
+        .drawer-brand a{display:flex;align-items:center;gap:.5rem;text-decoration:none;color:var(--ink);font-weight:700;font-size:1.125rem}
+        .drawer-brand a i{color:var(--bs-primary);font-size:1.375rem}
+        .drawer-nav{flex:1;overflow-y:auto;padding:.75rem 0}
+        .drawer-link{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;margin:.125rem .75rem;color:var(--muted);text-decoration:none;border-radius:.5rem;font-size:.875rem;min-height:44px}
+        .drawer-link i.icon{font-size:1.125rem;width:24px;text-align:center}
+        .drawer-link.active{background:rgba(101,118,255,.1);color:var(--bs-primary);font-weight:500}
+        .drawer-link .badge-count{margin-left:auto;background:var(--bs-primary);color:#fff;font-size:.6875rem;padding:.125rem .5rem;border-radius:.25rem;font-weight:600}
+        .drawer-submenu{display:none;padding-left:2.75rem}
+        .drawer-group.open .drawer-submenu{display:block}
+        .drawer-sub-link{display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;color:#64748b;text-decoration:none;font-size:.8125rem;border-radius:.375rem;margin:.125rem .75rem;min-height:40px}
+        .drawer-group-toggle .chevron{margin-left:auto;transition:transform .2s;font-size:.75rem}
+        .drawer-group.open .drawer-group-toggle .chevron{transform:rotate(90deg)}
+        .drawer-footer{padding:1rem;border-top:1px solid var(--border);flex-shrink:0;padding-bottom:calc(1rem + env(safe-area-inset-bottom,0px))}
+        .dark-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:.625rem 0;font-size:.875rem;color:var(--muted)}
+        .preview-banner{background:linear-gradient(90deg,var(--bs-primary),var(--bs-secondary));color:#fff;text-align:center;padding:.375rem .75rem;font-size:.6875rem;font-weight:600;letter-spacing:.03em}
+        body.dark-mode{background:#0f172a;color:#cbd5e1}
+        body.dark-mode .mob-header,body.dark-mode .mob-tabbar,body.dark-mode .mob-drawer,body.dark-mode .stat-card,body.dark-mode .card-bordered,body.dark-mode .list-card{background:#1e293b;border-color:#334155}
+        body.dark-mode .mob-header-title,body.dark-mode .stat-card-value,body.dark-mode .list-card-title,body.dark-mode .card-bordered .card-header,body.dark-mode .drawer-brand a{color:#e2e8f0}
+        body.dark-mode .filter-chip{background:#1e293b;border-color:#334155;color:#cbd5e1}
+        body.dark-mode .chart-placeholder{background:rgba(101,118,255,.08);border-color:#334155}
+        body.dark-mode .drawer-link{color:#cbd5e1}
+        body.dark-mode .drawer-link.active{background:rgba(101,118,255,.2)}
+    </style>
+</head>
+<body>
+<div class="desktop-notice"><div class="desktop-notice-inner"><i class="bi bi-phone main-icon"></i><h1>Admin Mobile Layout Preview</h1><p>This file previews the <strong>mobile-first admin shell</strong> only.</p><p>The existing desktop admin panel layout at 992px and above will remain <strong>unchanged</strong>.</p><p class="hint"><i class="bi bi-arrows-angle-expand"></i> Resize your browser below 992px, or open on a phone, to preview the mobile layout.</p><p class="mt-3 mb-0" style="font-size:.75rem;color:#94a3b8;">File: admin/admin_mobile_preview.html</p></div></div>
+
+<div class="mobile-shell" id="mobileShell">
+<div class="preview-banner">PREVIEW — Static mock data · No backend · admin/ only</div>
+<header class="mob-header">
+<button class="mob-header-btn" id="btnHamburger" aria-label="Open menu"><i class="bi bi-list"></i></button>
+<h1 class="mob-header-title" id="pageTitle">Dashboard</h1>
+<button class="mob-avatar" id="btnAvatar" data-bs-toggle="dropdown">A</button>
+<ul class="dropdown-menu dropdown-menu-end" style="min-width:200px">
+<li><a class="dropdown-item" href="#"><i class="bi bi-person-circle me-2"></i>Profile</a></li>
+<li><hr class="dropdown-divider"></li>
+<li><div class="dropdown-item dark-toggle-row" style="cursor:default"><span><i class="bi bi-moon-stars me-2"></i>Dark Mode</span><div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="darkModeToggle"></div></div></li>
+<li><hr class="dropdown-divider"></li>
+<li><a class="dropdown-item text-danger" href="#"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+</ul>
+</header>
+<main class="mob-content">
+<div class="page-panel active" id="panel-dashboard" data-title="Dashboard">
+<div class="row g-2 mb-3">
+<div class="col-6"><div class="stat-card"><div class="stat-card-icon"><i class="bi bi-calendar-check"></i></div><div class="stat-card-value">248</div><div class="stat-card-label">Total Bookings</div></div></div>
+<div class="col-6"><div class="stat-card warning"><div class="stat-card-icon"><i class="bi bi-clock-history"></i></div><div class="stat-card-value">12</div><div class="stat-card-label">Pending</div></div></div>
+<div class="col-6"><div class="stat-card secondary"><div class="stat-card-icon"><i class="bi bi-check-circle"></i></div><div class="stat-card-value">186</div><div class="stat-card-label">Confirmed</div></div></div>
+<div class="col-6"><div class="stat-card info"><div class="stat-card-icon"><i class="bi bi-currency-dollar"></i></div><div class="stat-card-value">₱842K</div><div class="stat-card-label">Revenue</div></div></div>
+</div>
+<div class="card-bordered"><div class="card-header"><span><i class="bi bi-bar-chart-line me-1"></i> Sales Trend</span><select class="form-select form-select-sm" style="width:auto;font-size:.75rem"><option>Last 30 Days</option></select></div><div class="card-body"><div class="chart-placeholder"><i class="bi bi-graph-up me-2"></i>Chart renders here</div></div></div>
+<div class="card-bordered"><div class="card-header"><span><i class="bi bi-pie-chart me-1"></i> Today's Status</span></div><div class="card-body"><div class="d-flex flex-wrap gap-2"><span class="badge-status badge-pending">Pending 3</span><span class="badge-status badge-confirmed">Confirmed 8</span><span class="badge-status badge-checked_in">Checked In 5</span></div></div></div>
+</div>
+
+<div class="page-panel" id="panel-bookings" data-title="Bookings">
+<div class="d-flex justify-content-between align-items-center mb-3"><p class="mb-0 text-muted" style="font-size:.8125rem">Manage reservations</p><button class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Add</button></div>
+<div class="filter-chips" id="bookingFilters">
+<button class="filter-chip active" data-filter="all">All</button><button class="filter-chip" data-filter="pending">Pending</button><button class="filter-chip" data-filter="confirmed">Confirmed</button><button class="filter-chip" data-filter="checked_in">Checked In</button>
+</div>
+<div id="bookingList">
+<div class="list-card" data-status="confirmed"><div class="list-card-header"><div><div class="list-card-title">#BH-202508-0042</div><div class="list-card-meta"><i class="bi bi-person"></i> Maria Santos</div></div><span class="badge-status badge-confirmed">Confirmed</span></div><div class="list-card-meta"><i class="bi bi-calendar3"></i> Aug 31 → Sep 2, 2026</div><div class="list-card-meta"><i class="bi bi-door-open"></i> Standard Double · 2 guests</div><div class="list-card-meta"><i class="bi bi-cash"></i> ₱2,400.00 · Paid</div><div class="list-card-actions"><button class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye"></i> View</button><button class="btn btn-primary btn-sm"><i class="bi bi-box-arrow-in-right"></i> Check In</button></div></div>
+<div class="list-card" data-status="pending"><div class="list-card-header"><div><div class="list-card-title">#BH-202508-0041</div><div class="list-card-meta"><i class="bi bi-person"></i> Juan Dela Cruz</div></div><span class="badge-status badge-pending">Pending</span></div><div class="list-card-meta"><i class="bi bi-calendar3"></i> Sep 1 → Sep 3, 2026</div><div class="list-card-meta"><i class="bi bi-cash"></i> ₱4,800.00 · Unpaid</div><div class="list-card-actions"><button class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye"></i> View</button><button class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Confirm</button></div></div>
+<div class="list-card" data-status="checked_in"><div class="list-card-header"><div><div class="list-card-title">#BH-202508-0038</div><div class="list-card-meta"><i class="bi bi-person"></i> Ana Reyes</div></div><span class="badge-status badge-checked_in">Checked In</span></div><div class="list-card-meta"><i class="bi bi-calendar3"></i> Aug 30 → Sep 1, 2026</div><div class="list-card-actions"><button class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye"></i> View</button><button class="btn btn-warning btn-sm"><i class="bi bi-box-arrow-right"></i> Check Out</button></div></div>
+</div></div>
+<div class="page-panel" id="panel-calendar" data-title="Calendar">
+<div class="card-bordered"><div class="card-header"><button class="btn btn-sm btn-outline-secondary py-0 px-2"><i class="bi bi-chevron-left"></i></button><span>August 2026</span><button class="btn btn-sm btn-outline-secondary py-0 px-2"><i class="bi bi-chevron-right"></i></button></div><div class="card-body"><div class="cal-grid"><div class="cal-day-name">Su</div><div class="cal-day-name">Mo</div><div class="cal-day-name">Tu</div><div class="cal-day-name">We</div><div class="cal-day-name">Th</div><div class="cal-day-name">Fr</div><div class="cal-day-name">Sa</div><div class="cal-day other">27</div><div class="cal-day other">28</div><div class="cal-day other">29</div><div class="cal-day other">30</div><div class="cal-day other">31</div><div class="cal-day">1</div><div class="cal-day">2</div><div class="cal-day has-event">3</div><div class="cal-day">4</div><div class="cal-day has-event">5</div><div class="cal-day">6</div><div class="cal-day">7</div><div class="cal-day">8</div><div class="cal-day">9</div><div class="cal-day has-event">10</div><div class="cal-day">11</div><div class="cal-day">12</div><div class="cal-day">13</div><div class="cal-day">14</div><div class="cal-day has-event">15</div><div class="cal-day">16</div><div class="cal-day">17</div><div class="cal-day">18</div><div class="cal-day">19</div><div class="cal-day">20</div><div class="cal-day">21</div><div class="cal-day">22</div><div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day">25</div><div class="cal-day">26</div><div class="cal-day">27</div><div class="cal-day">28</div><div class="cal-day">29</div><div class="cal-day">30</div><div class="cal-day today has-event">31</div></div></div></div>
+<div class="card-bordered"><div class="card-header"><span><i class="bi bi-calendar-event me-1"></i> Today — Aug 31</span></div><div class="card-body pt-2 pb-2"><div class="event-item"><div class="event-time">2:00 PM</div><div><div class="event-title">Check-in: Maria Santos</div><div class="event-sub">Standard Double · #BH-0042</div></div></div><div class="event-item"><div class="event-time">11:00 AM</div><div><div class="event-title">Check-out: Pedro Lim</div><div class="event-sub">Family Room · #BH-0035</div></div></div></div></div>
+</div>
+<div class="page-panel" id="panel-inquiries" data-title="Inquiries">
+<div class="d-flex justify-content-between align-items-center mb-3"><p class="mb-0 text-muted" style="font-size:.8125rem">3 unread messages</p><button class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i></button></div>
+<div class="list-card"><div class="list-card-header"><div><div class="list-card-title">Room availability inquiry</div><div class="list-card-meta">from robert.garcia@gmail.com</div></div><span class="badge-status badge-new">New</span></div><div class="list-card-meta" style="margin-bottom:.5rem">Hi, do you have a family room available for Sept 15–17?</div><div class="list-card-meta"><i class="bi bi-clock"></i> 2 hours ago</div><div class="list-card-actions"><button class="btn btn-primary btn-sm"><i class="bi bi-reply"></i> Reply</button><button class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye"></i> View</button></div></div>
+<div class="list-card"><div class="list-card-header"><div><div class="list-card-title">Re: Booking #BH-0039</div><div class="list-card-meta">from ana.reyes@yahoo.com</div></div><span class="badge-status badge-confirmed">Replied</span></div><div class="list-card-meta"><i class="bi bi-clock"></i> Yesterday</div><div class="list-card-actions"><button class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye"></i> View</button></div></div>
+</div>
+</main>
+
+<nav class="mob-tabbar" aria-label="Main navigation">
+<button class="mob-tab active" data-tab="dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></button>
+<button class="mob-tab" data-tab="bookings"><i class="bi bi-calendar-check"></i><span>Bookings</span></button>
+<button class="mob-tab" data-tab="calendar"><i class="bi bi-calendar3"></i><span>Calendar</span></button>
+<button class="mob-tab" data-tab="inquiries"><i class="bi bi-envelope"></i><span>Inquiries</span><span class="tab-badge">3</span></button>
+<button class="mob-tab" data-tab="menu" id="tabMenu"><i class="bi bi-grid"></i><span>Menu</span></button>
+</nav>
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="mob-drawer" id="mobDrawer" aria-label="Admin navigation">
+<div class="drawer-brand"><a href="#"><i class="bi bi-building"></i> BODARE Admin</a><button class="mob-header-btn" id="btnCloseDrawer"><i class="bi bi-x-lg"></i></button></div>
+<nav class="drawer-nav">
+<a href="#" class="drawer-link active" data-nav="dashboard"><i class="bi bi-speedometer2 icon"></i> Dashboard</a>
+<a href="#" class="drawer-link" data-nav="bookings"><i class="bi bi-calendar-check icon"></i> Bookings</a>
+<a href="#" class="drawer-link" data-nav="calendar"><i class="bi bi-calendar3 icon"></i> Calendar</a>
+<a href="#" class="drawer-link"><i class="bi bi-door-open icon"></i> Rooms</a>
+<a href="#" class="drawer-link" data-nav="inquiries"><i class="bi bi-envelope icon"></i> Inquiries <span class="badge-count">3</span></a>
+<a href="#" class="drawer-link"><i class="bi bi-mailbox icon"></i> Email/SMTP</a>
+<a href="#" class="drawer-link"><i class="bi bi-person-badge icon"></i> Customers/Guests</a>
+<div class="drawer-group"><a href="#" class="drawer-link drawer-group-toggle" onclick="event.preventDefault();this.closest('.drawer-group').classList.toggle('open')"><i class="bi bi-credit-card icon"></i> Billing &amp; Payments<i class="bi bi-chevron-right chevron"></i></a><div class="drawer-submenu"><a href="#" class="drawer-sub-link"><i class="bi bi-receipt"></i> Invoices</a><a href="#" class="drawer-sub-link"><i class="bi bi-cash-coin"></i> Payments</a><a href="#" class="drawer-sub-link"><i class="bi bi-calendar-event"></i> Events</a></div></div>
+<div class="drawer-group"><a href="#" class="drawer-link drawer-group-toggle" onclick="event.preventDefault();this.closest('.drawer-group').classList.toggle('open')"><i class="bi bi-graph-up icon"></i> Reports<i class="bi bi-chevron-right chevron"></i></a><div class="drawer-submenu"><a href="#" class="drawer-sub-link"><i class="bi bi-calendar-day"></i> Daily Sales</a><a href="#" class="drawer-sub-link"><i class="bi bi-receipt"></i> Billing &amp; Collections</a><a href="#" class="drawer-sub-link"><i class="bi bi-cash-coin"></i> Payments Report</a><a href="#" class="drawer-sub-link"><i class="bi bi-calendar-event"></i> Events Revenue</a></div></div>
+<a href="#" class="drawer-link"><i class="bi bi-people icon"></i> Users</a>
+<a href="#" class="drawer-link"><i class="bi bi-shield-check icon"></i> Roles</a>
+<a href="#" class="drawer-link"><i class="bi bi-box-arrow-right icon"></i> Logout</a>
+</nav>
+<div class="drawer-footer"><div class="dark-toggle-row"><span><i class="bi bi-moon-stars me-1"></i> Dark Mode</span><div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="darkModeToggleDrawer"></div></div></div>
+</aside>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function(){var drawer=document.getElementById('mobDrawer'),overlay=document.getElementById('drawerOverlay'),pageTitle=document.getElementById('pageTitle'),tabs=document.querySelectorAll('.mob-tab'),panels=document.querySelectorAll('.page-panel'),drawerLinks=document.querySelectorAll('.drawer-link[data-nav]');function openDrawer(){drawer.classList.add('open');overlay.classList.add('open');document.body.style.overflow='hidden'}function closeDrawer(){drawer.classList.remove('open');overlay.classList.remove('open');document.body.style.overflow=''}function switchTab(tabName){tabs.forEach(function(t){t.classList.toggle('active',t.dataset.tab===tabName)});panels.forEach(function(p){p.classList.toggle('active',p.id==='panel-'+tabName)});var ap=document.getElementById('panel-'+tabName);if(ap){pageTitle.textContent=ap.dataset.title||tabName}drawerLinks.forEach(function(l){l.classList.toggle('active',l.dataset.nav===tabName)});closeDrawer();window.scrollTo(0,0)}document.getElementById('btnHamburger').addEventListener('click',openDrawer);document.getElementById('btnCloseDrawer').addEventListener('click',closeDrawer);overlay.addEventListener('click',closeDrawer);tabs.forEach(function(tab){tab.addEventListener('click',function(){if(tab.dataset.tab==='menu'){openDrawer();return}switchTab(tab.dataset.tab)})});drawerLinks.forEach(function(link){link.addEventListener('click',function(e){e.preventDefault();var nav=link.dataset.nav;if(nav&&document.getElementById('panel-'+nav)){switchTab(nav)}else{closeDrawer()}})});document.querySelectorAll('#bookingFilters .filter-chip').forEach(function(chip){chip.addEventListener('click',function(){document.querySelectorAll('#bookingFilters .filter-chip').forEach(function(c){c.classList.remove('active')});chip.classList.add('active');var filter=chip.dataset.filter;document.querySelectorAll('#bookingList .list-card').forEach(function(card){card.style.display=(filter==='all'||card.dataset.status===filter)?'':'none'})})});var darkToggle=document.getElementById('darkModeToggle'),darkToggleDrawer=document.getElementById('darkModeToggleDrawer');function setDarkMode(on){document.body.classList.toggle('dark-mode',on);if(darkToggle)darkToggle.checked=on;if(darkToggleDrawer)darkToggleDrawer.checked=on;localStorage.setItem('adminPreviewDarkMode',on?'true':'false')}if(localStorage.getItem('adminPreviewDarkMode')==='true')setDarkMode(true);if(darkToggle)darkToggle.addEventListener('change',function(){setDarkMode(this.checked)});if(darkToggleDrawer)darkToggleDrawer.addEventListener('change',function(){setDarkMode(this.checked)})})();
+</script>
+</body></html>

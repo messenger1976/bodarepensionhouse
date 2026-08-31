@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/site-config.php';
+require_once __DIR__ . '/firebase.php';
 require_once __DIR__ . '/adsense.php';
 
 if (!isset($enableAds)) {
@@ -152,6 +153,7 @@ if (!headers_sent()) {
         if (window.Capacitor) {
             document.documentElement.classList.add('is-capacitor');
         }
+        window.BODARE_PUSH_ENABLED = <?php echo json_encode(bodare_push_enabled()); ?>;
     </script>
     <script src="native-bridge.js?v=<?php echo is_file(dirname(__DIR__) . '/native-bridge.js') ? filemtime(dirname(__DIR__) . '/native-bridge.js') : time(); ?>"></script>
 </head>

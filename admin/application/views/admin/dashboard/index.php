@@ -30,28 +30,28 @@
 
 <div class="nk-block">
     <div class="row g-gs">
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="stat-card">
                 <div class="stat-card-icon"><i class="bi bi-calendar-check"></i></div>
                 <div class="stat-card-value"><?php echo $total_bookings; ?></div>
                 <div class="stat-card-label">Total Bookings</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="stat-card warning">
                 <div class="stat-card-icon"><i class="bi bi-clock-history"></i></div>
                 <div class="stat-card-value"><?php echo $pending_bookings; ?></div>
                 <div class="stat-card-label">Pending</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="stat-card secondary">
                 <div class="stat-card-icon"><i class="bi bi-check-circle"></i></div>
                 <div class="stat-card-value"><?php echo $confirmed_bookings; ?></div>
                 <div class="stat-card-label">Confirmed</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="stat-card info">
                 <div class="stat-card-icon"><i class="bi bi-currency-dollar"></i></div>
                 <div class="stat-card-value">₱<?php echo number_format($total_revenue, 2); ?></div>

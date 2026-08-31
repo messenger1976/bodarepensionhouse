@@ -213,6 +213,9 @@ $route['api/payment/card-checkout'] = 'api/payment/create_card_checkout';
 $route['api/payment/verify'] = 'api/payment/verify';
 $route['api/payment/webhook'] = 'api/payment/webhook';
 
+$route['api/push/register'] = 'api/push/register';
+$route['api/push/unregister'] = 'api/push/unregister';
+
 // Customer Dashboard routes
 $route['customer/dashboard'] = 'customer/dashboard/index';
 $route['customer/booking/(:any)'] = 'customer/dashboard/booking/$1';

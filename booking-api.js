@@ -1279,6 +1279,10 @@ async function checkUserLogin() {
         const response = await API.auth.check();
         if (response.success && response.logged_in) {
             localStorage.setItem('user', JSON.stringify(response.user));
+
+            if (typeof window.BODARE_syncPushToken === 'function') {
+                window.BODARE_syncPushToken();
+            }
             
             // If on checkout, restore the complete authenticated state and profile.
             if (document.getElementById('checkout-login-form')) {

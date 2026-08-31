@@ -49,6 +49,12 @@ Push-Location $MobileRoot
 try {
     npm install
     npx cap sync android
+    $googleServices = Join-Path $AndroidRoot 'app\google-services.json'
+    if (-not (Test-Path $googleServices)) {
+        Write-Host ""
+        Write-Host "Note: google-services.json not found in android/app/." -ForegroundColor Yellow
+        Write-Host "Push notifications will crash if enabled without it. See mobile/FIREBASE_SETUP.md" -ForegroundColor Yellow
+    }
     Push-Location $AndroidRoot
     & .\gradlew.bat assembleDebug --no-daemon
     Pop-Location

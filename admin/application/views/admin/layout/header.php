@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Ensure URL helper is loaded before using base_url()
 if (!function_exists('base_url') && isset($this) && is_object($this) && method_exists($this, 'load')) {
     $this->load->helper('url');
@@ -8,13 +8,20 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
 <html lang="en" class="h-100">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0, private">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT">
     <meta name="cache-timestamp" content="<?php echo time(); ?>">
     <title><?php echo isset($title) ? $title . ' - ' : ''; ?>Admin Panel - BODARE Pension House</title>
+    <meta name="theme-color" content="#6576ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="BODARE Admin">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="<?php echo base_url('manifest.json'); ?>">
+    <link rel="stylesheet" href="<?php echo base_url('assets/css/admin-mobile.css'); ?>">
     
     <!-- Dashlite CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
@@ -2160,7 +2167,7 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
         }
         
         .breadcrumb-item + .breadcrumb-item::before {
-            content: "›";
+            content: "â€º";
             color: #cbd5e1;
             padding: 0 0.5rem;
         }
@@ -3565,8 +3572,11 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
         </nav>
     </div>
     
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
     <!-- Header -->
     <div class="nk-header">
+        <button type="button" class="mob-header-btn menu-toggle d-lg-none" aria-label="Open menu"><i class="bi bi-list"></i></button>
         <div class="nk-header-brand">
             <a href="<?php echo base_url('dashboard'); ?>" class="logo-link">
                 <i class="bi bi-building"></i>

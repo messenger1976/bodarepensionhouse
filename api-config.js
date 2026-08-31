@@ -344,6 +344,22 @@ const API = {
             const qs = params.toString();
             return API.request(`payment/verify${qs ? `?${qs}` : ''}`);
         }
+    },
+
+    push: {
+        async registerToken(payload) {
+            return API.request('push/register', {
+                method: 'POST',
+                body: JSON.stringify(payload || {})
+            });
+        },
+
+        async unregisterToken(payload) {
+            return API.request('push/unregister', {
+                method: 'POST',
+                body: JSON.stringify(payload || {})
+            });
+        }
     }
 };
 

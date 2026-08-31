@@ -32,24 +32,45 @@
         });
     }
 
+    async function syncPushTokenToServer(tokenValue) {
+        if (!tokenValue || typeof API === 'undefined' || !API.push) {
+            return;
+        }
+
+        try {
+            const platform = window.Capacitor.getPlatform
+                ? window.Capacitor.getPlatform()
+                : 'android';
+            await API.push.registerToken({
+                token: tokenValue,
+                platform,
+                device_label: navigator.userAgent ? navigator.userAgent.substring(0, 255) : '',
+            });
+        } catch (error) {
+            console.log('Push token sync skipped', error);
+        }
+    }
+
+    window.BODARE_syncPushToken = async function () {
+        if (window.BODARE_PUSH_TOKEN) {
+            await syncPushTokenToServer(window.BODARE_PUSH_TOKEN);
+        }
+    };
+
     async function setupPush() {
+        if (window.BODARE_PUSH_ENABLED !== true) {
+            return;
+        }
+
         const PushNotifications = plugin('PushNotifications');
         if (!PushNotifications) return;
 
         try {
-            let perm = await PushNotifications.checkPermissions();
-            if (perm.receive !== 'granted') {
-                perm = await PushNotifications.requestPermissions();
-            }
-            if (perm.receive !== 'granted') {
-                return;
-            }
-
-            await PushNotifications.register();
-
             PushNotifications.addListener('registration', (token) => {
+                const tokenValue = token && token.value ? token.value : '';
+                window.BODARE_PUSH_TOKEN = tokenValue;
                 console.log('FCM token registered');
-                window.BODARE_PUSH_TOKEN = token && token.value ? token.value : '';
+                syncPushTokenToServer(tokenValue);
             });
 
             PushNotifications.addListener('registrationError', (error) => {
@@ -68,6 +89,16 @@
                     window.location.href = 'customer-dashboard.php';
                 }
             });
+
+            let perm = await PushNotifications.checkPermissions();
+            if (perm.receive !== 'granted') {
+                perm = await PushNotifications.requestPermissions();
+            }
+            if (perm.receive !== 'granted') {
+                return;
+            }
+
+            await PushNotifications.register();
         } catch (error) {
             console.log('Push notifications skipped', error);
         }

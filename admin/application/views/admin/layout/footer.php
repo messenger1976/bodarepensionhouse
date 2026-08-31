@@ -1,6 +1,8 @@
     </div>
     <!-- End Content -->
     
+    <?php $this->load->view('admin/layout/mobile_nav'); ?>
+    
     <!-- Dashlite JS -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -19,18 +21,7 @@
             });
         }, 5000);
         
-        // Mobile menu toggle
         document.addEventListener('DOMContentLoaded', function() {
-            // Add mobile menu toggle functionality if needed
-            var sidebar = document.getElementById('sidebar');
-            var menuToggle = document.querySelector('.menu-toggle');
-            
-            if (menuToggle) {
-                menuToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('mobile-menu');
-                });
-            }
-            
             // Dark Mode Toggle
             const darkModeToggle = document.getElementById('darkModeToggle');
             const body = document.body;
@@ -354,5 +345,14 @@
     <script>window.INQUIRY_POLL_URL = <?php echo json_encode(base_url('inquiries/poll')); ?>;</script>
     <script src="<?php echo base_url('assets/js/inquiry-poll.js'); ?>"></script>
     <?php endif; ?>
+    <script src="<?php echo base_url('assets/js/admin-mobile.js'); ?>"></script>
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register(<?php echo json_encode(base_url('sw.js')); ?>, { scope: <?php echo json_encode(rtrim(base_url(), '/') . '/'); ?> })
+                .catch(function (err) { console.warn('SW registration failed:', err); });
+        });
+    }
+    </script>
 </body>
 </html>

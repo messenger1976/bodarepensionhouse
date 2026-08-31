@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 $filter_status = isset($filter_status) ? $filter_status : '';
 $filter_range = isset($filter_range) ? $filter_range : 'today';
 $filter_date_from = isset($filter_date_from) ? $filter_date_from : date('Y-m-d');
@@ -60,7 +60,7 @@ if (!empty($fetchParams)) {
         </div>
     <?php endif; ?>
 
-    <div class="mb-3 d-flex flex-wrap gap-1">
+    <div class="mb-3 d-flex flex-wrap gap-1 mob-filter-chips">
         <a href="<?php echo $buildStatusUrl(''); ?>" class="btn btn-sm <?php echo empty($filter_status) ? 'btn-primary' : 'btn-outline-primary'; ?>">All (<?php echo (int) $counts['all']; ?>)</a>
         <a href="<?php echo $buildStatusUrl('new'); ?>" class="btn btn-sm <?php echo $filter_status === 'new' ? 'btn-danger' : 'btn-outline-danger'; ?>">New (<?php echo (int) $counts['new']; ?>)</a>
         <a href="<?php echo $buildStatusUrl('guest_replied'); ?>" class="btn btn-sm <?php echo $filter_status === 'guest_replied' ? 'btn-primary' : 'btn-outline-primary'; ?>">Guest Replied (<?php echo (int) $counts['guest_replied']; ?>)</a>
@@ -69,7 +69,7 @@ if (!empty($fetchParams)) {
         <a href="<?php echo $buildStatusUrl('closed'); ?>" class="btn btn-sm <?php echo $filter_status === 'closed' ? 'btn-secondary' : 'btn-outline-secondary'; ?>">Closed (<?php echo (int) $counts['closed']; ?>)</a>
     </div>
 
-    <form id="inquiry-date-filter" class="row g-2 align-items-end mb-3" method="get" action="<?php echo base_url('inquiries'); ?>">
+    <form id="inquiry-date-filter" class="inquiry-date-filter row g-2 align-items-end mb-3" method="get" action="<?php echo base_url('inquiries'); ?>">
         <?php if ($filter_status) { ?>
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($filter_status, ENT_QUOTES, 'UTF-8'); ?>">
         <?php } ?>
@@ -95,7 +95,7 @@ if (!empty($fetchParams)) {
         </div>
     </form>
 
-    <div class="table-responsive">
+    <div class="table-responsive mob-desktop-table">
         <table class="table table-hover dtInquiry" id="inquiriesTable">
             <thead>
                 <tr>
@@ -138,6 +138,44 @@ if (!empty($fetchParams)) {
             </tbody>
         </table>
     </div>
+
+    <div class="mob-card-list d-lg-none">
+        <?php if (!empty($inquiries)): ?>
+            <?php foreach ($inquiries as $row): ?>
+                <?php
+                $badge = 'secondary';
+                if ($row->status === 'new') $badge = 'danger';
+                elseif ($row->status === 'guest_replied') $badge = 'primary';
+                elseif ($row->status === 'read') $badge = 'warning';
+                elseif ($row->status === 'replied') $badge = 'success';
+                elseif ($row->status === 'closed') $badge = 'info';
+                $inquiryHref = base_url('inquiries/' . (int) $row->inquiryid);
+                $isBold = in_array($row->status, array('new', 'guest_replied'), TRUE);
+                ?>
+                <div class="mob-list-card inquiry-row-link" data-href="<?php echo $inquiryHref; ?>" style="cursor:pointer;<?php echo $isBold ? 'font-weight:600;' : ''; ?>">
+                    <div class="mob-list-card-header">
+                        <div class="min-w-0 flex-grow-1">
+                            <div class="mob-list-card-title"><?php echo htmlspecialchars($row->subject, ENT_QUOTES, 'UTF-8'); ?></div>
+                            <div class="mob-list-card-meta"><?php echo htmlspecialchars($row->name, ENT_QUOTES, 'UTF-8'); ?> &middot; <?php echo htmlspecialchars($row->email, ENT_QUOTES, 'UTF-8'); ?></div>
+                        </div>
+                        <span class="badge bg-<?php echo $badge; ?>"><?php echo ucwords(str_replace('_', ' ', $row->status)); ?></span>
+                    </div>
+                    <div class="mob-list-card-meta">
+                        <i class="bi bi-clock"></i>
+                        <?php echo !empty($row->created_at) ? date('M j, Y g:i A', strtotime($row->created_at)) : $row->cdate; ?>
+                    </div>
+                    <div class="mob-list-card-actions inquiry-row-actions" onclick="event.stopPropagation();">
+                        <a href="<?php echo $inquiryHref; ?>" class="btn btn-sm btn-primary" title="View"><i class="bi bi-eye"></i> View</a>
+                        <?php if ($can_delete): ?>
+                        <a href="<?php echo base_url('inquiries/delete/' . (int) $row->inquiryid); ?>" class="btn btn-sm btn-danger" title="Delete" onclick="return confirm('Delete this inquiry permanently?');"><i class="bi bi-trash"></i> Delete</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="mob-list-card text-center text-muted py-4">No inquiries found</div>
+        <?php endif; ?>
+    </div>
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -160,3 +198,5 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+
+
