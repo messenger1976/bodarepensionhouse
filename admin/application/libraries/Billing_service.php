@@ -111,6 +111,16 @@ class Billing_service {
             }
         }
 
+        // Push when invoice is issued (or created as issued) for the guest app.
+        if ($invoice && isset($invoice->status) && $invoice->status !== 'draft' && $invoice->status !== 'void') {
+            try {
+                $this->CI->load->library('push_notify');
+                $this->CI->push_notify->invoice_ready($invoice);
+            } catch (Exception $e) {
+                log_message('error', 'Auto-invoice push failed: ' . $e->getMessage());
+            }
+        }
+
         return array(
             'created' => true,
             'invoice_id' => (int) $invoice_id,

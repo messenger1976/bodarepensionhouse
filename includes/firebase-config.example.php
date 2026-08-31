@@ -22,4 +22,7 @@ return [
 
     // Absolute path to the Firebase Admin service account JSON (server-side send only).
     'service_account_json' => dirname(__DIR__) . '/admin/config/firebase-service-account.json',
+
+    // Secret for cron URLs (check-in reminders). Required for /admin/index.php/cron/check_in_reminders?key=...
+    'cron_secret' => 'change-me-to-a-long-random-string',
 ];

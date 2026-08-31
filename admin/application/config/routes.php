@@ -217,6 +217,8 @@ $route['api/push/register'] = 'api/push/register';
 $route['api/push/unregister'] = 'api/push/unregister';
 $route['api/push/status'] = 'api/push/status';
 
+$route['cron/check_in_reminders'] = 'cron/check_in_reminders';
+
 // Customer Dashboard routes
 $route['customer/dashboard'] = 'customer/dashboard/index';
 $route['customer/booking/(:any)'] = 'customer/dashboard/booking/$1';

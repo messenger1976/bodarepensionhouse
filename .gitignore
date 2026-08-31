@@ -9,8 +9,8 @@ composer.lock
 .env.*.local
 
 # Firebase (secrets — never commit)
-includes/firebase-config.php
-admin/config/firebase-service-account.json
+#includes/firebase-config.php
+#admin/config/firebase-service-account.json
 
 # IDE
 .vscode/

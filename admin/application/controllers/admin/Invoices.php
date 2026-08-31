@@ -265,6 +265,13 @@ class Invoices extends Admin_Controller {
         }
         $this->Invoice_model->issue($id);
         $this->Invoice_model->recalculate_totals($id);
+        $invoice = $this->Invoice_model->get($id);
+        try {
+            $this->load->library('push_notify');
+            $this->push_notify->invoice_ready($invoice);
+        } catch (Exception $e) {
+            log_message('error', 'Invoice issue push failed: ' . $e->getMessage());
+        }
         $this->session->set_flashdata('success', 'Invoice issued.');
         redirect('invoices/view/' . $id);
     }
@@ -338,6 +345,13 @@ class Invoices extends Admin_Controller {
             $this->Invoice_model->mark_emailed($id);
             if ($invoice->status === 'draft') {
                 $this->Invoice_model->issue($id);
+                $invoice = $this->Invoice_model->get($id);
+            }
+            try {
+                $this->load->library('push_notify');
+                $this->push_notify->invoice_ready($invoice);
+            } catch (Exception $e) {
+                log_message('error', 'Invoice email push failed: ' . $e->getMessage());
             }
             $this->session->set_flashdata('success', 'Invoice emailed to ' . $invoice->guest_email . '.');
         } else {

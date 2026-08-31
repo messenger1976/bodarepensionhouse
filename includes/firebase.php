@@ -14,6 +14,7 @@ if (!function_exists('bodare_firebase_config')) {
             'push_enabled' => false,
             'project_id' => '',
             'service_account_json' => '',
+            'cron_secret' => '',
         ];
 
         $path = __DIR__ . '/firebase-config.php';

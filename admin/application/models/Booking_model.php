@@ -116,6 +116,13 @@ class Booking_model extends CI_Model {
             unset($data['extra_services']);
         }
 
+        $old_status = null;
+        $booking_snapshot = null;
+        if (isset($data['status'])) {
+            $booking_snapshot = $this->get_booking($id);
+            $old_status = $booking_snapshot ? $booking_snapshot->status : null;
+        }
+
         $this->db->where('id', $id);
         $result = $this->db->update('bookings', $data);
 
@@ -123,6 +130,17 @@ class Booking_model extends CI_Model {
             $this->db->where('booking_id', $id);
             $this->db->where('status !=', 'cancelled');
             $this->db->update('booking_items', array('status' => $data['status']));
+        }
+
+        if ($result && isset($data['status']) && $booking_snapshot && $old_status !== null && $old_status !== $data['status']) {
+            $booking_snapshot->status = $data['status'];
+            try {
+                $CI =& get_instance();
+                $CI->load->library('push_notify');
+                $CI->push_notify->booking_status_changed($booking_snapshot, $old_status, $data['status']);
+            } catch (Exception $e) {
+                log_message('error', 'Booking push notify: ' . $e->getMessage());
+            }
         }
 
         return $result;

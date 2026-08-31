@@ -197,7 +197,45 @@ Configured in `native-bridge.js`:
 
 ---
 
-## Step 6 — Send from PHP (optional)
+## Booking engine events (server push)
+
+Requires `push_enabled`, service account JSON, and a device token linked to the guest’s `user_id` (guest must log in on the APK so `api/push/register` stores `user_id`).
+
+| Event | Trigger | Title (sample) |
+|-------|---------|----------------|
+| Booking confirmed | Status → `confirmed` (PayMongo paid, admin confirm/edit) | Booking confirmed |
+| Booking cancelled | Status → `cancelled` (guest API or admin) | Booking cancelled |
+| Checked in / out | Admin check-in / check-out | Welcome / Thank you |
+| Invoice ready | Auto-invoice issue, admin Issue, or Email invoice | Invoice ready |
+| Check-in reminder | Cron (tomorrow’s confirmed stays) | Check-in tomorrow |
+
+Library: `admin/application/libraries/Push_notify.php`  
+Status changes hook: `Booking_model::update_booking()` when `status` changes.
+
+### Check-in reminder cron
+
+1. Set `cron_secret` in `includes/firebase-config.php` (production).
+2. Schedule daily (example):
+
+```
+https://pensionhouse.bodarempc.com/admin/index.php/cron/check_in_reminders?key=YOUR_SECRET
+```
+
+Optional: `&date=YYYY-MM-DD` (defaults to tomorrow).
+
+### Server send prerequisite
+
+Upload Firebase Admin **service account** JSON to:
+
+```
+admin/config/firebase-service-account.json
+```
+
+Without it, tokens still register, but PHP cannot send booking pushes (`Fcm_service::is_configured()` is false).
+
+---
+
+## Step 6 — Send from PHP (optional / low-level)
 
 For booking alerts and other server-triggered push:
 
