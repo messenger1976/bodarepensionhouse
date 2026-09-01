@@ -20,16 +20,10 @@ html.app-html {
 }
 
 html.app-html body {
-    font-family: 'Jost', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Jost', system-ui, sans-serif;
     background: var(--app-bg);
     color: #111827;
     padding-bottom: calc(var(--app-tab-h) + env(safe-area-inset-bottom, 0px));
-}
-
-/* Capacitor: prefer system fonts (Google Fonts CDN skipped for speed) */
-html.is-capacitor body,
-html.is-capacitor.app-html body {
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 @media (min-width: 768px) {
