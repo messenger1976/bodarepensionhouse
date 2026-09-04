@@ -440,6 +440,7 @@ async function updateHeaderAuthButtons() {
                     API.auth.clearLocalSession();
                 } else {
                     localStorage.removeItem('user');
+                    if (typeof clearAuthToken === 'function') { clearAuthToken(); } else { localStorage.removeItem('bodare_auth_token'); }
                 }
             }
             showLoggedOut();
@@ -522,6 +523,11 @@ async function handleHeaderLogout() {
         console.error('Logout error:', error);
     } finally {
         localStorage.removeItem('user');
+        if (typeof clearAuthToken === 'function') {
+            clearAuthToken();
+        } else {
+            localStorage.removeItem('bodare_auth_token');
+        }
         if (typeof clearBookingCartData === 'function') {
             clearBookingCartData();
         }

@@ -68,17 +68,22 @@ function setupRegistrationForm() {
             const response = await API.auth.register(userData);
             
             if (response.success) {
-                // Email confirmation required — do not auto-login.
+                // Account created - an OTP was emailed. Send the guest to the
+                // code entry page (email pre-filled) to activate the account.
                 if (response.requires_verification) {
-                    showMessage(response.message || 'Please check your email and click the confirmation link to activate your account.', 'success');
+                    const regEmail = userData.email ? userData.email.trim().toLowerCase() : '';
+                    showMessage(response.message || 'Please check your email for the 6-digit verification code.', 'success');
 
                     form.reset();
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
 
+                    const params = new URLSearchParams();
+                    if (regEmail) params.set('email', regEmail);
+                    params.set('registered', '1');
                     setTimeout(() => {
-                        window.location.href = 'login.php';
-                    }, 4000);
+                        window.location.href = 'verify-account.php?' + params.toString();
+                    }, 1800);
                     return;
                 }
 
@@ -1298,6 +1303,7 @@ async function checkUserLogin() {
                 API.auth.clearLocalSession();
             } else {
                 localStorage.removeItem('user');
+                if (typeof clearAuthToken === 'function') { clearAuthToken(); } else { localStorage.removeItem('bodare_auth_token'); }
             }
         }
         return null;

@@ -183,6 +183,8 @@ $route['api/auth/forgot-password'] = 'api/auth/forgot_password';
 $route['api/auth/verify-reset-token'] = 'api/auth/verify_reset_token';
 $route['api/auth/reset-password'] = 'api/auth/reset_password';
 $route['api/auth/activate-account'] = 'api/auth/activate_account';
+$route['api/auth/send-activation-otp'] = 'api/auth/send_activation_otp';
+$route['api/auth/verify-otp'] = 'api/auth/verify_otp';
 
 $route['api/booking/availability'] = 'api/booking/check_availability';
 $route['api/booking/get_availability'] = 'api/booking/get_availability';

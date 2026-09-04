@@ -8,6 +8,7 @@ class Push extends CI_Controller {
         parent::__construct();
         $this->load->library('session');
         $this->load->model('Push_device_model');
+        $this->load->library('api_auth');
         header('Content-Type: application/json');
     }
 
@@ -16,7 +17,7 @@ class Push extends CI_Controller {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
     }
 
@@ -40,11 +41,8 @@ class Push extends CI_Controller {
 
     protected function current_user_id()
     {
-        if (!$this->session->userdata('user_logged_in')) {
-            return null;
-        }
-        $user_id = (int) $this->session->userdata('user_id');
-        return $user_id > 0 ? $user_id : null;
+        // Bearer token first, cookie session fallback (see Api_auth).
+        return $this->api_auth->customer_user_id();
     }
 
     /**

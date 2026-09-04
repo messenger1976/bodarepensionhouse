@@ -360,6 +360,7 @@ include __DIR__ . '/includes/site-head.php';
                 } catch (parseError) {
                     console.error('Error parsing user data:', parseError);
                     localStorage.removeItem('user');
+if (typeof clearAuthToken === 'function') { clearAuthToken(); } else { localStorage.removeItem('bodare_auth_token'); }
                     showMessage('Invalid session data. Please log in again.', 'error');
                     setTimeout(() => {
                         window.location.href = 'registration.php';
@@ -857,6 +858,7 @@ include __DIR__ . '/includes/site-head.php';
                         await API.auth.forceLogout('login.php');
                     } else {
                         localStorage.removeItem('user');
+if (typeof clearAuthToken === 'function') { clearAuthToken(); } else { localStorage.removeItem('bodare_auth_token'); }
                         window.location.href = 'login.php';
                     }
                     return;
@@ -965,6 +967,7 @@ include __DIR__ . '/includes/site-head.php';
                         await API.auth.forceLogout('login.php');
                     } else {
                         localStorage.removeItem('user');
+if (typeof clearAuthToken === 'function') { clearAuthToken(); } else { localStorage.removeItem('bodare_auth_token'); }
                         window.location.href = 'login.php';
                     }
                     return;

@@ -8,6 +8,7 @@ class Inquiry extends CI_Controller {
         $this->load->library('session');
         $this->load->library('form_validation');
         $this->load->library('form_security');
+        $this->load->library('api_auth');
         $this->load->database();
         $this->load->helper('url');
         header('Content-Type: application/json');
@@ -126,20 +127,12 @@ class Inquiry extends CI_Controller {
             return;
         }
         
-        $logged_in = (bool) $this->session->userdata('user_logged_in');
-        $user_id = $this->session->userdata('user_id');
-        $user = NULL;
+        $auth = $this->api_auth->customer();
+        $user = $auth ? $auth['user'] : NULL;
         $name = '';
         $email = '';
 
-        if ($logged_in && $user_id) {
-            $this->load->model('User_model');
-            $user = $this->User_model->get_user($user_id);
-            if (!$user) {
-                $this->output->set_status_header(401);
-                echo json_encode(array('success' => FALSE, 'message' => 'User not found. Please log in again.'));
-                return;
-            }
+        if ($user) {
             $name = trim($user->first_name . ' ' . $user->last_name);
             $email = $user->email;
             $data['name'] = $name;

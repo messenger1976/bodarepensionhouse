@@ -2,7 +2,13 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Auth extends CI_Controller {
-    
+
+    /** OTP validity window (seconds). */
+    const OTP_EXPIRY_SECONDS = 900; // 15 minutes
+
+    /** Minimum wait before an OTP can be resent (seconds). */
+    const OTP_RESEND_COOLDOWN_SECONDS = 60;
+
     public function __construct() {
         parent::__construct();
         $this->load->library('session');
@@ -11,9 +17,10 @@ class Auth extends CI_Controller {
         $this->load->model('Password_reset_model');
         $this->load->model('Email_verification_model');
         $this->load->library('form_validation');
+        $this->load->library('api_auth');
         header('Content-Type: application/json');
     }
-    
+
     /**
      * Register new user
      */
@@ -22,25 +29,25 @@ class Auth extends CI_Controller {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
-        
+
         if ($this->input->method() === 'options') {
             exit;
         }
-        
+
         if ($this->input->method() !== 'post') {
             $this->output->set_status_header(405);
             echo json_encode(['success' => false, 'message' => 'Method not allowed']);
             return;
         }
-        
+
         $data = json_decode(file_get_contents('php://input'), true);
         if (!$data) {
             $data = $this->input->post();
         }
-        
+
         // Validate we have data
         if (empty($data)) {
             $this->output->set_status_header(400);
@@ -50,7 +57,7 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         // Validation
         $this->form_validation->set_data($data);
         $this->form_validation->set_rules('first_name', 'First Name', 'required|trim');
@@ -60,7 +67,7 @@ class Auth extends CI_Controller {
         $this->form_validation->set_rules('address', 'Address', 'required|trim');
         $this->form_validation->set_rules('password', 'Password', 'required|min_length[6]');
         $this->form_validation->set_rules('confirm_password', 'Confirm Password', 'required|matches[password]');
-        
+
         // Optional fields validation
         if (isset($data['date_of_birth']) && !empty($data['date_of_birth'])) {
             $this->form_validation->set_rules('date_of_birth', 'Date of Birth', 'trim');
@@ -68,7 +75,7 @@ class Auth extends CI_Controller {
         if (isset($data['gender']) && !empty($data['gender'])) {
             $this->form_validation->set_rules('gender', 'Gender', 'trim|in_list[male,female,other]');
         }
-        
+
         if ($this->form_validation->run() == FALSE) {
             $this->output->set_status_header(400);
             echo json_encode([
@@ -78,10 +85,10 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         // Normalize email (trim and lowercase)
         $email = trim(strtolower($data['email']));
-        
+
         // Check if email exists in users table
         if ($this->User_model->email_exists($email)) {
             $this->output->set_status_header(400);
@@ -91,7 +98,7 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         // Check if email exists in customers table
         if ($this->Customer_model->email_exists($email)) {
             $this->output->set_status_header(400);
@@ -101,7 +108,7 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         // Prepare user data (for authentication) — inactive until email is confirmed
         $user_data = array(
             'first_name' => trim($data['first_name']),
@@ -113,7 +120,7 @@ class Auth extends CI_Controller {
             'email_verified' => 0,
             'status' => 'inactive'
         );
-        
+
         // Prepare customer data (for detailed customer records)
         $customer_data = array(
             'first_name' => trim($data['first_name']),
@@ -133,17 +140,17 @@ class Auth extends CI_Controller {
             'id_number' => isset($data['id_number']) ? trim($data['id_number']) : null,
             'status' => 'inactive'
         );
-        
+
         // Start transaction to ensure both records are created
         $this->db->trans_start();
-        
+
         // Create user (for authentication)
         $user_id = $this->User_model->register($user_data);
-        
+
         if ($user_id) {
             // Create customer record (for detailed customer management)
             $customer_id = $this->Customer_model->create($customer_data);
-            
+
             if (!$customer_id) {
                 // Rollback if customer creation fails
                 $this->db->trans_rollback();
@@ -163,10 +170,10 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         // Complete transaction
         $this->db->trans_complete();
-        
+
         if ($this->db->trans_status() === FALSE) {
             $this->output->set_status_header(500);
             echo json_encode([
@@ -177,52 +184,69 @@ class Auth extends CI_Controller {
         }
 
         $user = $this->User_model->get_user($user_id);
-        $token = bin2hex(random_bytes(32));
-        $expires_at = date('Y-m-d H:i:s', strtotime('+24 hours'));
-
-        if (!$this->Email_verification_model->create_token($email, $token, $expires_at)) {
-            $this->output->set_status_header(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Your account was created, but we could not prepare the confirmation email. Please contact support.'
-            ]);
-            return;
-        }
-
-        $activate_url = $this->build_frontend_activate_url($token);
         $name = trim($user->first_name . ' ' . $user->last_name);
         if ($name === '') {
             $name = $email;
         }
 
+        // Issue a 6-digit OTP instead of a clickable link. The code is stored
+        // hashed and expires in 15 minutes (standard email-verification flow).
+        try {
+            $code = (string) random_int(100000, 999999);
+        } catch (Exception $e) {
+            log_message('error', 'OTP generation failed: ' . $e->getMessage());
+            $this->output->set_status_header(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'We encountered an issue creating your account. Please try again in a few moments.'
+            ]);
+            return;
+        }
+
+        $expires_at = date('Y-m-d H:i:s', time() + self::OTP_EXPIRY_SECONDS);
+        $code_hash = password_hash($code, PASSWORD_DEFAULT);
+
+        if (!$this->Email_verification_model->create_otp($email, $code_hash, $expires_at)) {
+            $this->output->set_status_header(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Your account was created, but we could not prepare the verification code. Please contact support.'
+            ]);
+            return;
+        }
+
         $title = 'BODARE Pension House';
-        $subject = 'Confirm your email - ' . $title;
-        $message = $this->build_activation_email($title, $name, $activate_url);
+        $subject = 'Your verification code - ' . $title;
+        $message = $this->build_otp_email($title, $name, $code, self::OTP_EXPIRY_SECONDS / 60);
 
         $this->load->library('coop_mail');
         $this->coop_mail->set_profile('account');
 
         if (!$this->coop_mail->send($email, $subject, $message)) {
             $smtp_error = $this->coop_mail->get_last_error();
-            log_message('error', 'Registration confirmation email failed: ' . $smtp_error);
-
-            $response = [
-                'success' => false,
-                'message' => 'Your account was created, but we could not send the confirmation email. Please try again later or contact support.'
-            ];
+            log_message('error', 'Registration OTP email failed: ' . $smtp_error);
+            // Remove the pending code so the user can safely request a new one.
+            $this->Email_verification_model->delete_by_email($email);
 
             $this->output->set_status_header(500);
-            echo json_encode($response);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Your account was created, but we could not send the verification code. Please try again later or contact support.'
+            ]);
             return;
         }
 
         echo json_encode([
             'success' => true,
             'requires_verification' => true,
-            'message' => 'Your account has been created. Please check your email and click the confirmation link to activate your account before logging in.'
+            'message' => 'Your account has been created. We emailed a 6-digit verification code to ' . $this->mask_email($email) . ' - enter it to activate your account.',
+            'email_masked' => $this->mask_email($email),
+            'expires_in' => self::OTP_EXPIRY_SECONDS,
+            'resend_after' => self::OTP_RESEND_COOLDOWN_SECONDS,
+            'verify_url' => $this->frontend_site_root() . '/verify-account.php'
         ]);
     }
-    
+
     /**
      * Login user
      */
@@ -231,25 +255,25 @@ class Auth extends CI_Controller {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
-        
+
         if ($this->input->method() === 'options') {
             exit;
         }
-        
+
         if ($this->input->method() !== 'post') {
             $this->output->set_status_header(405);
             echo json_encode(['success' => false, 'message' => 'Method not allowed']);
             return;
         }
-        
+
         $data = json_decode(file_get_contents('php://input'), true);
         if (!$data) {
             $data = $this->input->post();
         }
-        
+
         // Validate we have data
         if (empty($data)) {
             $this->output->set_status_header(400);
@@ -259,11 +283,11 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         $this->form_validation->set_data($data);
         $this->form_validation->set_rules('email', 'Email', 'required|valid_email');
         $this->form_validation->set_rules('password', 'Password', 'required');
-        
+
         if ($this->form_validation->run() == FALSE) {
             $this->output->set_status_header(400);
             echo json_encode([
@@ -273,14 +297,14 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         // Trim email for consistency
         $email = trim(strtolower($data['email']));
         $password = $data['password'];
-        
+
         // Check if user exists first
         $user_exists = $this->User_model->get_user_by_email($email);
-        
+
         if (!$user_exists) {
             $this->output->set_status_header(401);
             echo json_encode([
@@ -289,23 +313,24 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         // Check if user is active / email-confirmed
         if ($user_exists->status != 'active') {
             $pending_verification = isset($user_exists->email_verified) && (int) $user_exists->email_verified === 0;
             $this->output->set_status_header(401);
             echo json_encode([
                 'success' => false,
+                'requires_activation' => true,
                 'message' => $pending_verification
-                    ? 'Please confirm your email first. Check your inbox for the activation link we sent when you registered.'
+                    ? 'Your account isn\'t activated yet. We emailed you a 6-digit verification code - enter it to activate your account, or request a new code.'
                     : 'Your account is not active. Please contact support for assistance.'
             ]);
             return;
         }
-        
+
         // Try to login
         $user = $this->User_model->login($email, $password);
-        
+
         if ($user) {
             $this->session->set_userdata([
                 'user_logged_in' => true,
@@ -313,7 +338,26 @@ class Auth extends CI_Controller {
                 'user_email' => $user->email,
                 'user_name' => $user->first_name . ' ' . $user->last_name
             ]);
-            
+
+            // Issue a bearer token kept in the client's localStorage so the
+            // mobile app / WebView stays signed in even if the session cookie
+            // is dropped or expired by the OS.
+            $remember = isset($data['remember']) ? (bool) $data['remember'] : true;
+            $lifetime = $remember
+                ? Api_auth::TOKEN_LIFETIME_REMEMBER // 30 days
+                : Api_auth::TOKEN_LIFETIME_SHORT;   // 12 hours
+            $token = $this->api_auth->issue_token($user->id, $lifetime);
+
+            if ($token === null) {
+                log_message('error', 'Login succeeded but auth token could not be created for user ' . $user->id);
+                $this->output->set_status_header(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'We could not create a secure sign-in session. Please contact support and mention "auth token table".'
+                ]);
+                return;
+            }
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Welcome back! You have successfully logged in.',
@@ -321,12 +365,15 @@ class Auth extends CI_Controller {
                     'id' => $user->id,
                     'name' => $user->first_name . ' ' . $user->last_name,
                     'email' => $user->email
-                ]
+                ],
+                'token' => $token,
+                'remember' => $remember,
+                'expires_in' => $lifetime
             ]);
         } else {
             // More detailed error checking
             $user_exists = $this->User_model->get_user_by_email($email);
-            
+
             if (!$user_exists) {
                 $this->output->set_status_header(401);
                 echo json_encode([
@@ -338,8 +385,9 @@ class Auth extends CI_Controller {
                 $this->output->set_status_header(401);
                 echo json_encode([
                     'success' => false,
+                    'requires_activation' => true,
                     'message' => $pending_verification
-                        ? 'Please confirm your email first. Check your inbox for the activation link we sent when you registered.'
+                        ? 'Your account isn\'t activated yet. We emailed you a 6-digit verification code - enter it to activate your account, or request a new code.'
                         : 'Your account is not active. Please contact support for assistance.'
                 ]);
             } else {
@@ -352,7 +400,7 @@ class Auth extends CI_Controller {
             }
         }
     }
-    
+
     /**
      * Logout user
      */
@@ -361,16 +409,19 @@ class Auth extends CI_Controller {
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
-        
+
+        // Revoke the presented bearer token (idempotent).
+        $this->api_auth->revoke_current_token();
+
         $this->session->unset_userdata(['user_logged_in', 'user_id', 'user_email', 'user_name']);
         $this->session->sess_destroy();
-        
+
         echo json_encode([
             'success' => true,
             'message' => 'Logout successful'
         ]);
     }
-    
+
     /**
      * Check if user is logged in
      */
@@ -379,38 +430,32 @@ class Auth extends CI_Controller {
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
-        
-        if ($this->session->userdata('user_logged_in')) {
-            $user_id = $this->session->userdata('user_id');
-            $user = $this->User_model->get_user($user_id);
-            
-            if ($user && (!isset($user->status) || $user->status === 'active')) {
-                echo json_encode([
-                    'success' => true,
-                    'logged_in' => true,
-                    'user' => [
-                        'id' => $user->id,
-                        'name' => $user->first_name . ' ' . $user->last_name,
-                        'email' => $user->email
-                    ]
-                ]);
-            } else {
-                // Account missing/inactive — clear server session so client can logout account
-                $this->session->unset_userdata(['user_logged_in', 'user_id', 'user_email', 'user_name']);
-                echo json_encode([
-                    'success' => true,
-                    'logged_in' => false,
-                    'message' => 'User session is no longer valid'
-                ]);
-            }
-        } else {
+
+        // Bearer token first, cookie session as fallback (see Api_auth).
+        $auth = $this->api_auth->customer();
+
+        if ($auth) {
+            $user = $auth['user'];
             echo json_encode([
                 'success' => true,
-                'logged_in' => false
+                'logged_in' => true,
+                'auth_source' => $auth['auth_source'],
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->first_name . ' ' . $user->last_name,
+                    'email' => $user->email
+                ]
             ]);
+            return;
         }
+
+        // No valid token or session (or account is gone/inactive).
+        echo json_encode([
+            'success' => true,
+            'logged_in' => false
+        ]);
     }
-    
+
     /**
      * Forgot password - send reset link
      */
@@ -418,28 +463,28 @@ class Auth extends CI_Controller {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
-        
+
         if ($this->input->method() === 'options') {
             exit;
         }
-        
+
         if ($this->input->method() !== 'post') {
             $this->output->set_status_header(405);
             echo json_encode(['success' => false, 'message' => 'Method not allowed']);
             return;
         }
-        
+
         $data = json_decode(file_get_contents('php://input'), true);
         if (!$data) {
             $data = $this->input->post();
         }
-        
+
         $this->form_validation->set_data($data);
         $this->form_validation->set_rules('email', 'Email', 'required|valid_email');
-        
+
         if ($this->form_validation->run() == FALSE) {
             $this->output->set_status_header(400);
             echo json_encode([
@@ -448,7 +493,7 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         $email = trim(strtolower($data['email']));
 
         // Same message whether or not the account exists (avoid email enumeration).
@@ -541,7 +586,7 @@ class Auth extends CI_Controller {
             ]);
         }
     }
-    
+
     /**
      * Verify reset token
      */
@@ -549,25 +594,25 @@ class Auth extends CI_Controller {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
-        
+
         if ($this->input->method() === 'options') {
             exit;
         }
-        
+
         if ($this->input->method() !== 'post') {
             $this->output->set_status_header(405);
             echo json_encode(['success' => false, 'message' => 'Method not allowed']);
             return;
         }
-        
+
         $data = json_decode(file_get_contents('php://input'), true);
         if (!$data) {
             $data = $this->input->post();
         }
-        
+
         if (empty($data['token'])) {
             $this->output->set_status_header(400);
             echo json_encode([
@@ -576,10 +621,10 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         $token = $data['token'];
         $reset_token = $this->Password_reset_model->get_token($token);
-        
+
         if (!$reset_token) {
             $this->output->set_status_header(400);
             echo json_encode([
@@ -588,14 +633,14 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         echo json_encode([
             'success' => true,
             'message' => 'Token is valid.',
             'email' => $reset_token->email
         ]);
     }
-    
+
     /**
      * Reset password with token
      */
@@ -603,29 +648,29 @@ class Auth extends CI_Controller {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
-        
+
         if ($this->input->method() === 'options') {
             exit;
         }
-        
+
         if ($this->input->method() !== 'post') {
             $this->output->set_status_header(405);
             echo json_encode(['success' => false, 'message' => 'Method not allowed']);
             return;
         }
-        
+
         $data = json_decode(file_get_contents('php://input'), true);
         if (!$data) {
             $data = $this->input->post();
         }
-        
+
         $this->form_validation->set_data($data);
         $this->form_validation->set_rules('token', 'Token', 'required');
         $this->form_validation->set_rules('password', 'Password', 'required|min_length[6]');
-        
+
         if ($this->form_validation->run() == FALSE) {
             $this->output->set_status_header(400);
             echo json_encode([
@@ -635,13 +680,13 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         $token = $data['token'];
         $password = $data['password'];
-        
+
         // Verify token
         $reset_token = $this->Password_reset_model->get_token($token);
-        
+
         if (!$reset_token) {
             $this->output->set_status_header(400);
             echo json_encode([
@@ -650,7 +695,7 @@ class Auth extends CI_Controller {
             ]);
             return;
         }
-        
+
         // Get user login account
         $user = $this->User_model->get_user_by_email($reset_token->email);
 
@@ -684,7 +729,7 @@ class Auth extends CI_Controller {
         if ($saved) {
             // Mark token as used
             $this->Password_reset_model->mark_as_used($token);
-            
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Your password has been reset successfully. You can now login with your new password.'
@@ -699,13 +744,272 @@ class Auth extends CI_Controller {
     }
 
     /**
+     * Resend the account-activation OTP (with a 60s cooldown).
+     * POST api/auth/send-activation-otp  { email }
+     */
+    public function send_activation_otp() {
+        $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Access-Control-Allow-Methods: POST, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
+        header('Access-Control-Allow-Credentials: true');
+        header('Content-Type: application/json');
+
+        if ($this->input->method() === 'options') {
+            exit;
+        }
+
+        if ($this->input->method() !== 'post') {
+            $this->output->set_status_header(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!$data) {
+            $data = $this->input->post();
+        }
+
+        $email = isset($data['email']) ? trim(strtolower((string) $data['email'])) : '';
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->output->set_status_header(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Please enter a valid email address.'
+            ]);
+            return;
+        }
+
+        $user = $this->User_model->get_user_by_email($email);
+        $is_verified = $user && isset($user->email_verified) && (int) $user->email_verified === 1;
+
+        if (!$user || ($user->status === 'active' && $is_verified) || $user->status === 'suspended') {
+            // Do not leak whether the address exists for active/suspended accounts.
+            $this->output->set_status_header(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'This email is not registered or the account is already active. Please log in instead.'
+            ]);
+            return;
+        }
+
+        // Resend cooldown (one code per 60 seconds).
+        $latest = $this->Email_verification_model->get_latest_by_email($email);
+        if ($latest && isset($latest->created_at) && $latest->created_at !== '') {
+            $elapsed = time() - strtotime($latest->created_at);
+            if ($elapsed < self::OTP_RESEND_COOLDOWN_SECONDS) {
+                $wait = self::OTP_RESEND_COOLDOWN_SECONDS - max(0, $elapsed);
+                $this->output->set_status_header(429);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Please wait ' . $wait . ' second' . ($wait === 1 ? '' : 's') . ' before requesting another code.',
+                    'resend_after' => $wait
+                ]);
+                return;
+            }
+        }
+
+        $name = trim($user->first_name . ' ' . $user->last_name);
+        if ($name === '') {
+            $name = $email;
+        }
+
+        $result = $this->create_and_send_otp($email, $name);
+        if (!$result['ok']) {
+            $this->output->set_status_header(500);
+            echo json_encode([
+                'success' => false,
+                'message' => $result['message']
+            ]);
+            return;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'A new 6-digit verification code has been sent to ' . $this->mask_email($email) . '.',
+            'email_masked' => $this->mask_email($email),
+            'expires_in' => self::OTP_EXPIRY_SECONDS,
+            'resend_after' => self::OTP_RESEND_COOLDOWN_SECONDS
+        ]);
+    }
+
+    /**
+     * Verify the emailed OTP and activate (and sign in) the account.
+     * POST api/auth/verify-otp  { email, code }
+     */
+    public function verify_otp() {
+        $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Access-Control-Allow-Methods: POST, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
+        header('Access-Control-Allow-Credentials: true');
+        header('Content-Type: application/json');
+
+        if ($this->input->method() === 'options') {
+            exit;
+        }
+
+        if ($this->input->method() !== 'post') {
+            $this->output->set_status_header(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!$data) {
+            $data = $this->input->post();
+        }
+
+        $email = isset($data['email']) ? trim(strtolower((string) $data['email'])) : '';
+        $code = isset($data['code']) ? trim((string) $data['code']) : '';
+
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->output->set_status_header(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Please enter the email address you registered with.'
+            ]);
+            return;
+        }
+
+        if (!preg_match('/^\d{6}$/', $code)) {
+            $this->output->set_status_header(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Please enter the 6-digit code from the email.'
+            ]);
+            return;
+        }
+
+        $user = $this->User_model->get_user_by_email($email);
+        if (!$user) {
+            $this->output->set_status_header(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'No account was found for this email address.'
+            ]);
+            return;
+        }
+
+        $is_verified = isset($user->email_verified) && (int) $user->email_verified === 1;
+        if ($user->status === 'active' && $is_verified) {
+            echo json_encode([
+                'success' => true,
+                'already_active' => true,
+                'message' => 'Your account is already active. Please log in with your email and password.'
+            ]);
+            return;
+        }
+
+        if ($user->status === 'suspended') {
+            $this->output->set_status_header(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'This account is not active. Please contact support for assistance.'
+            ]);
+            return;
+        }
+
+        $verification = $this->Email_verification_model->get_active_by_email($email);
+        if (!$verification) {
+            $this->output->set_status_header(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'That code is invalid or has expired. Please request a new code.'
+            ]);
+            return;
+        }
+
+        if (!password_verify($code, $verification->token)) {
+            $attempts = $this->Email_verification_model->record_failed_attempt($email);
+
+            if ($attempts >= Email_verification_model::MAX_ATTEMPTS) {
+                $this->Email_verification_model->lock_by_email($email);
+                $this->output->set_status_header(400);
+                echo json_encode([
+                    'success' => false,
+                    'code_locked' => true,
+                    'message' => 'Too many incorrect attempts. This code is no longer valid - please request a new code.'
+                ]);
+                return;
+            }
+
+            $remaining = Email_verification_model::MAX_ATTEMPTS - $attempts;
+            $this->output->set_status_header(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'That code is incorrect. ' . $remaining . ' attempt' . ($remaining === 1 ? '' : 's') . ' remaining.',
+                'attempts_remaining' => $remaining
+            ]);
+            return;
+        }
+
+        // Code correct -> activate the account.
+        $this->db->trans_start();
+
+        $this->User_model->update_user($user->id, array(
+            'email_verified' => 1,
+            'status' => 'active'
+        ));
+
+        $customer = $this->Customer_model->get_customer_by_email($email);
+        if ($customer) {
+            $this->Customer_model->update($customer->id, array('status' => 'active'));
+        }
+
+        $this->Email_verification_model->mark_as_used_by_email($email);
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === FALSE) {
+            $this->output->set_status_header(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'We could not activate your account right now. Please try again later.'
+            ]);
+            return;
+        }
+
+        // Auto sign-in after activation (smooth real-world onboarding).
+        $fresh = $this->User_model->get_user($user->id);
+        $this->session->set_userdata([
+            'user_logged_in' => true,
+            'user_id' => $fresh->id,
+            'user_email' => $fresh->email,
+            'user_name' => $fresh->first_name . ' ' . $fresh->last_name
+        ]);
+
+        $token = $this->api_auth->issue_token($fresh->id, Api_auth::TOKEN_LIFETIME_REMEMBER);
+        if ($token === null) {
+            $this->output->set_status_header(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Your account was activated but we could not start a sign-in session. Please log in manually.'
+            ]);
+            return;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Your account has been activated. Welcome!',
+            'user' => [
+                'id' => $fresh->id,
+                'name' => $fresh->first_name . ' ' . $fresh->last_name,
+                'email' => $fresh->email
+            ],
+            'token' => $token,
+            'remember' => true,
+            'expires_in' => Api_auth::TOKEN_LIFETIME_REMEMBER
+        ]);
+    }
+
+    /**
      * Activate account from email confirmation link
      */
     public function activate_account() {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
 
@@ -916,6 +1220,133 @@ class Auth extends CI_Controller {
               </p>
               <p style="margin:0;font-size:13px;line-height:1.6;color:#777;">
                 If you did not create an account, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 28px;background:#f8f9fb;font-size:12px;color:#888;">
+              &copy; ' . date('Y') . ' ' . $safe_title . '
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>';
+    }
+
+    /**
+     * Generate a fresh 6-digit OTP, store it (hashed) and email it.
+     * Existing pending codes for the address are replaced.
+     *
+     * @param string $email
+     * @param string $name
+     * @return array ['ok' => bool, 'message' => string]
+     */
+    protected function create_and_send_otp($email, $name) {
+        try {
+            $code = (string) random_int(100000, 999999);
+        } catch (Exception $e) {
+            log_message('error', 'OTP generation failed: ' . $e->getMessage());
+            return array('ok' => false, 'message' => 'We could not generate a verification code. Please try again.');
+        } catch (Error $e) {
+            log_message('error', 'OTP generation failed: ' . $e->getMessage());
+            return array('ok' => false, 'message' => 'We could not generate a verification code. Please try again.');
+        }
+
+        $expires_at = date('Y-m-d H:i:s', time() + self::OTP_EXPIRY_SECONDS);
+        $code_hash = password_hash($code, PASSWORD_DEFAULT);
+
+        if (!$this->Email_verification_model->create_otp($email, $code_hash, $expires_at)) {
+            return array('ok' => false, 'message' => 'We could not store the verification code. Please try again.');
+        }
+
+        $title = 'BODARE Pension House';
+        $subject = 'Your verification code - ' . $title;
+        $message = $this->build_otp_email($title, $name, $code, self::OTP_EXPIRY_SECONDS / 60);
+
+        $this->load->library('coop_mail');
+        $this->coop_mail->set_profile('account');
+
+        if (!$this->coop_mail->send($email, $subject, $message)) {
+            $smtp_error = $this->coop_mail->get_last_error();
+            log_message('error', 'OTP email failed for ' . $email . ': ' . $smtp_error);
+            $this->Email_verification_model->delete_by_email($email);
+            return array('ok' => false, 'message' => 'We could not send the verification code right now. Please try again later.');
+        }
+
+        return array('ok' => true, 'message' => '');
+    }
+
+    /**
+     * Mask an email address for display, e.g. juan@example.com -> ju**@example.com.
+     *
+     * @param string $email
+     * @return string
+     */
+    protected function mask_email($email) {
+        $email = trim((string) $email);
+        $at = strpos($email, '@');
+        if ($at === false) {
+            return '***';
+        }
+        $local = substr($email, 0, $at);
+        $domain = substr($email, $at + 1);
+
+        if ($local === '') {
+            return '***@' . $domain;
+        }
+        if (strlen($local) === 1) {
+            $masked = $local . '*';
+        } elseif (strlen($local) === 2) {
+            $masked = $local . '**';
+        } else {
+            $masked = substr($local, 0, 2) . str_repeat('*', strlen($local) - 2);
+        }
+        return $masked . '@' . $domain;
+    }
+
+    /**
+     * HTML email carrying the 6-digit verification code.
+     */
+    protected function build_otp_email($title, $name, $code, $minutes) {
+        $safe_title = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+        $safe_name = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+        $safe_code = htmlspecialchars((string) $code, ENT_QUOTES, 'UTF-8');
+        $minutes = max(1, (int) $minutes);
+
+        $logo_src = htmlspecialchars($this->frontend_site_root() . '/img/logo.png', ENT_QUOTES, 'UTF-8');
+        $accent = '#b2945b';
+
+        return '
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Your Verification Code</title></head>
+<body style="margin:0;padding:0;background:#f5f6fa;font-family:Arial,Helvetica,sans-serif;color:#333;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f6fa;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="background:#ffffff;border-radius:12px;overflow:hidden;max-width:560px;width:100%;">
+          <tr>
+            <td style="background:' . $accent . ';padding:20px 28px;color:#fff;">
+              <div style="font-size:18px;font-weight:bold;">' . $safe_title . '</div>
+              <div style="font-size:13px;opacity:.9;margin-top:4px;">Account verification</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px;">
+              <img src="' . $logo_src . '" alt="' . $safe_title . '" style="max-height:48px;margin-bottom:16px;">
+              <p style="margin:0 0 12px;font-size:15px;">Hi ' . $safe_name . ',</p>
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">
+                Enter the 6-digit code below to activate your BODARE Pension House account.
+                This code will expire in <strong>' . $minutes . ' minutes</strong>.
+              </p>
+              <p style="margin:20px 0;" align="center">
+                <span style="display:inline-block;background:#f5f6fa;border:1px dashed ' . $accent . ';color:#1a2238;letter-spacing:8px;font-size:28px;font-weight:bold;padding:14px 22px;border-radius:8px;">' . $safe_code . '</span>
+              </p>
+              <p style="margin:0 0 16px;font-size:13px;line-height:1.6;color:#555;">
+                If you did not create an account with ' . $safe_title . ', you can safely ignore this email.
               </p>
             </td>
           </tr>

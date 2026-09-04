@@ -40,6 +40,11 @@ include __DIR__ . '/includes/site-head.php';
                         <label for="login-password-input">Password</label>
                         <input type="password" id="login-password-input" placeholder="Enter your password" required autocomplete="current-password">
                     </div>
+
+                    <div class="form-group-contact" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; flex-direction: row;">
+                        <input type="checkbox" id="login-remember-input" checked style="width: auto; height: auto; margin: 0;">
+                        <label for="login-remember-input" style="margin: 0; font-weight: 400; font-size: 0.95rem; color: #555;">Keep me signed in on this device</label>
+                    </div>
                     
                     <button type="submit" class="cta-button" style="width: 100%;">Login</button>
 
@@ -104,6 +109,7 @@ include __DIR__ . '/includes/site-head.php';
                         API.auth.clearLocalSession();
                     } else {
                         localStorage.removeItem('user');
+                        if (typeof clearAuthToken === 'function') { clearAuthToken(); }
                     }
                 } catch (error) {
                     // Session check failed, clear local account state
@@ -111,6 +117,7 @@ include __DIR__ . '/includes/site-head.php';
                         API.auth.clearLocalSession();
                     } else {
                         localStorage.removeItem('user');
+                        if (typeof clearAuthToken === 'function') { clearAuthToken(); }
                     }
                 }
             }
@@ -153,15 +160,15 @@ include __DIR__ . '/includes/site-head.php';
                         ? getCartStorageSnapshot()
                         : null;
 
-                    const response = await API.auth.login(email, password);
+                    const rememberInput = document.getElementById('login-remember-input');
+                    const remember = !rememberInput || rememberInput.checked;
+
+                    const response = await API.auth.login(email, password, remember);
                     
                     if (response.success) {
                         // Show success message
                         showMessage('Welcome back! You have successfully logged in. Redirecting...', 'success');
                         
-                        // Store user info
-                        localStorage.setItem('user', JSON.stringify(response.user));
-
                         // Ensure cart survives login transitions.
                         if (typeof restoreCartStorageSnapshot === 'function') {
                             restoreCartStorageSnapshot(cartSnapshot);
@@ -176,7 +183,25 @@ include __DIR__ . '/includes/site-head.php';
                 } catch (error) {
                     // Handle API errors
                     let errorMessage = 'We couldn\'t log you in. Please check your email and password and try again.';
-                    
+
+                    // Account exists but still needs OTP activation -> invite the
+                    // user to the code entry page (with the email pre-filled).
+                    if (error.response && error.response.requires_activation) {
+                        errorMessage = 'Your account isn\'t activated yet. A 6-digit verification code was sent to your email.';
+                        showMessage(errorMessage, 'error');
+                        const activationLink = document.createElement('a');
+                        activationLink.href = 'verify-account.php' + (email ? '?email=' + encodeURIComponent(email) : '');
+                        activationLink.textContent = 'Enter the verification code or resend it';
+                        activationLink.style.cssText = 'display:block;text-align:center;margin:0.75rem 0 0;color:#b2945b;font-weight:600;';
+                        const messageEl = document.querySelector('.api-message');
+                        if (messageEl && messageEl.parentElement) {
+                            messageEl.parentElement.insertBefore(activationLink, messageEl.nextSibling);
+                        }
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                        return;
+                    }
+
                     if (error.message) {
                         if (error.message.includes('No account found') || error.message.includes('email')) {
                             errorMessage = 'No account found with this email address. Please register first or check your email.';

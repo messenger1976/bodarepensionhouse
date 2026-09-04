@@ -10,6 +10,7 @@ class Invoice extends CI_Controller {
         $this->load->model('Invoice_item_model');
         $this->load->model('Payment_model');
         $this->load->model('User_model');
+        $this->load->library('api_auth');
         header('Content-Type: application/json');
     }
 
@@ -17,13 +18,15 @@ class Invoice extends CI_Controller {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
     }
 
     private function require_customer_session() {
-        if (!$this->session->userdata('user_logged_in')) {
+        // Accepts either a bearer token (localStorage) or the cookie session.
+        $auth = $this->api_auth->customer();
+        if (!$auth) {
             $this->output->set_status_header(401);
             echo json_encode(array(
                 'success' => false,
@@ -32,27 +35,7 @@ class Invoice extends CI_Controller {
             return null;
         }
 
-        $user_id = (int) $this->session->userdata('user_id');
-        if (!$user_id) {
-            $this->output->set_status_header(401);
-            echo json_encode(array(
-                'success' => false,
-                'message' => 'User session is invalid. Please log in again.'
-            ));
-            return null;
-        }
-
-        $user = $this->User_model->get_user($user_id);
-        if (!$user) {
-            $this->output->set_status_header(401);
-            echo json_encode(array(
-                'success' => false,
-                'message' => 'User account not found. Please log in again.'
-            ));
-            return null;
-        }
-
-        return $user;
+        return $auth['user'];
     }
 
     /**

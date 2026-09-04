@@ -20,6 +20,37 @@ const API_BASE_CANDIDATES = (function() {
 let ACTIVE_API_BASE_URL = API_BASE_CANDIDATES[0];
 const API_BASE_URL = ACTIVE_API_BASE_URL;
 
+// ---------------------------------------------------------------------------
+// Auth token storage (localStorage "remember me").
+// The server no longer depends only on the PHP session cookie: after login /
+// OTP activation we keep an opaque bearer token here and send it with every
+// request. This survives WebView/OS cookie clearing (the mobile app issue)
+// and server session timeouts.
+// ---------------------------------------------------------------------------
+const AUTH_TOKEN_KEY = 'bodare_auth_token';
+
+function getAuthToken() {
+    try {
+        return localStorage.getItem(AUTH_TOKEN_KEY) || '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function setAuthToken(token) {
+    try {
+        if (token) {
+            localStorage.setItem(AUTH_TOKEN_KEY, token);
+        } else {
+            localStorage.removeItem(AUTH_TOKEN_KEY);
+        }
+    } catch (e) { /* storage unavailable */ }
+}
+
+function clearAuthToken() {
+    setAuthToken('');
+}
+
 // API Helper Functions
 const API = {
     baseURL: ACTIVE_API_BASE_URL,
@@ -27,11 +58,16 @@ const API = {
     // Helper method for API calls
     async request(endpoint, options = {}) {
         const normalizedEndpoint = String(endpoint || '').replace(/^\/+/, '');
+
+        // Attach the bearer token (localStorage) if we have one. The server
+        // accepts it instead of / in addition to the session cookie.
+        const authToken = getAuthToken();
         const defaultOptions = {
             headers: {
                 'Content-Type': 'application/json',
+                ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
             },
-            credentials: 'include', // Include cookies for session
+            credentials: 'include', // Keep cookies for legacy/session fallback
         };
 
         const config = {
@@ -109,6 +145,19 @@ const API = {
                     wrappedError.originalError = error;
                     throw wrappedError;
                 }
+
+                // A rejected token/session on a protected endpoint means the
+                // stored credential is stale - drop it so the user can simply
+                // log in again (skip auth endpoints: failed logins are not
+                // credential-expiry signals).
+                if (error.status === 401
+                    && !(error.response && error.response.requires_activation)
+                    && getAuthToken()
+                    && normalizedEndpoint.indexOf('auth/') !== 0) {
+                    clearAuthToken();
+                    localStorage.removeItem('user');
+                }
+
                 throw error;
             }
         }
@@ -134,23 +183,36 @@ const API = {
                 body: JSON.stringify(userData)
             });
         },
-        
-        async login(email, password) {
-            return API.request('auth/login', {
+
+        async login(email, password, remember = true) {
+            const response = await API.request('auth/login', {
                 method: 'POST',
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password, remember })
             });
-        },
-        
-        async logout() {
-            return API.request('auth/logout', {
-                method: 'POST'
-            });
+            if (response && response.success && response.token) {
+                setAuthToken(response.token);
+                if (response.user) {
+                    localStorage.setItem('user', JSON.stringify(response.user));
+                }
+            }
+            return response;
         },
 
-        // Clear client-side account state when the server session is missing/expired.
-        // Keep the booking cart/services so checkout can continue after re-login.
+        async logout() {
+            try {
+                return await API.request('auth/logout', {
+                    method: 'POST'
+                });
+            } finally {
+                // Drop the local token regardless of server response.
+                clearAuthToken();
+            }
+        },
+
+        // Clear client-side account state (token + user) when the server
+        // session/token is missing or expired. Keeps the booking cart intact.
         clearLocalSession() {
+            clearAuthToken();
             localStorage.removeItem('user');
         },
 
@@ -167,25 +229,34 @@ const API = {
                 }
             }
         },
-        
+
         async check() {
-            return API.request('auth/check');
+            const response = await API.request('auth/check');
+            // If the server no longer recognises us (expired token/session),
+            // remove the stale local state so UIs show the logged-out view.
+            if (response && response.success && !response.logged_in) {
+                if (getAuthToken() || localStorage.getItem('user')) {
+                    clearAuthToken();
+                    localStorage.removeItem('user');
+                }
+            }
+            return response;
         },
-        
+
         async forgotPassword(email) {
             return API.request('auth/forgot-password', {
                 method: 'POST',
                 body: JSON.stringify({ email })
             });
         },
-        
+
         async verifyResetToken(token) {
             return API.request('auth/verify-reset-token', {
                 method: 'POST',
                 body: JSON.stringify({ token })
             });
         },
-        
+
         async resetPassword(token, password) {
             return API.request('auth/reset-password', {
                 method: 'POST',
@@ -198,6 +269,32 @@ const API = {
                 method: 'POST',
                 body: JSON.stringify({ token })
             });
+        },
+
+        // OTP account activation ------------------------------------------
+
+        // Request a fresh 6-digit code (registration + resend).
+        async sendActivationOtp(email) {
+            return API.request('auth/send-activation-otp', {
+                method: 'POST',
+                body: JSON.stringify({ email })
+            });
+        },
+
+        // Submit the 6-digit code. On success the server activates the account
+        // and returns a token, which we persist (auto sign-in).
+        async verifyOtp(email, code) {
+            const response = await API.request('auth/verify-otp', {
+                method: 'POST',
+                body: JSON.stringify({ email, code })
+            });
+            if (response && response.success && response.token) {
+                setAuthToken(response.token);
+                if (response.user) {
+                    localStorage.setItem('user', JSON.stringify(response.user));
+                }
+            }
+            return response;
         }
     },
     

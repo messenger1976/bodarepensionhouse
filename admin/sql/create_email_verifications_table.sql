@@ -1,5 +1,7 @@
 -- Email Verifications Table
--- Stores account activation tokens sent after customer registration
+-- Stores account activation tokens / OTP codes sent after customer registration.
+-- `token` holds either a legacy 64-hex activation link OR a bcrypt hash of the
+-- 6-digit OTP code. `attempts` counts wrong OTP submissions (lock after 5).
 
 USE bodarepensionhouse;
 
@@ -9,12 +11,17 @@ CREATE TABLE IF NOT EXISTS `email_verifications` (
   `token` varchar(255) NOT NULL,
   `expires_at` datetime NOT NULL,
   `used` tinyint(1) DEFAULT 0,
+  `attempts` tinyint(4) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_email` (`email`),
   KEY `idx_token` (`token`),
   KEY `idx_expires` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Existing installs created before OTP support: add the attempts column.
+-- (Fails with "Duplicate column name" if already present — harmless.)
+-- ALTER TABLE `email_verifications` ADD COLUMN `attempts` TINYINT(4) NOT NULL DEFAULT 0 AFTER `used`;
 
 -- Optional: mark existing active logins as already verified
 -- UPDATE users SET email_verified = 1 WHERE status = 'active' AND (email_verified IS NULL OR email_verified = 0);

@@ -9,6 +9,7 @@ class User extends CI_Controller {
         $this->load->model('User_model');
         $this->load->model('Customer_model');
         $this->load->library('form_validation');
+        $this->load->library('api_auth');
         header('Content-Type: application/json');
     }
     
@@ -20,7 +21,7 @@ class User extends CI_Controller {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: GET, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
         
@@ -29,10 +30,8 @@ class User extends CI_Controller {
             exit;
         }
         
-        $session_logged_in = $this->session->userdata('user_logged_in');
-        $session_user_id = $this->session->userdata('user_id');
-        
-        if (!$session_logged_in) {
+        $auth = $this->api_auth->customer();
+        if (!$auth) {
             $this->output->set_status_header(401);
             echo json_encode([
                 'success' => false,
@@ -40,19 +39,10 @@ class User extends CI_Controller {
             ]);
             return;
         }
-        
-        $user_id = $session_user_id;
-        if (!$user_id) {
-            $this->output->set_status_header(401);
-            echo json_encode([
-                'success' => false,
-                'message' => 'User session is invalid. Please log in again.'
-            ]);
-            return;
-        }
-        
-        $user = $this->User_model->get_user($user_id);
-        
+
+        $user_id = (int) $auth['user']->id;
+        $user = $auth['user'];
+
         if ($user) {
             // Try to get customer data for additional fields
             $customer = $this->Customer_model->get_customer_by_email($user->email);
@@ -113,14 +103,15 @@ class User extends CI_Controller {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
         
         if ($this->input->method() === 'options') {
             exit;
         }
         
-        if (!$this->session->userdata('user_logged_in')) {
+        $auth = $this->api_auth->customer();
+        if (!$auth) {
             $this->output->set_status_header(401);
             echo json_encode([
                 'success' => false,
@@ -128,7 +119,7 @@ class User extends CI_Controller {
             ]);
             return;
         }
-        
+
         if ($this->input->method() !== 'post') {
             $this->output->set_status_header(405);
             echo json_encode(['success' => false, 'message' => 'Method not allowed']);
@@ -140,7 +131,7 @@ class User extends CI_Controller {
             $data = $this->input->post();
         }
         
-        $user_id = $this->session->userdata('user_id');
+        $user_id = (int) $auth['user']->id;
         
         // Validation
         $this->form_validation->set_data($data);
@@ -321,14 +312,15 @@ class User extends CI_Controller {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
 
         if ($this->input->method() === 'options') {
             exit;
         }
 
-        if (!$this->session->userdata('user_logged_in')) {
+        $auth = $this->api_auth->customer();
+        if (!$auth) {
             $this->output->set_status_header(401);
             echo json_encode([
                 'success' => false,
@@ -379,7 +371,7 @@ class User extends CI_Controller {
             return;
         }
 
-        $user_id = $this->session->userdata('user_id');
+        $user_id = (int) $auth['user']->id;
         $user = $this->User_model->get_user($user_id);
 
         if (!$user) {
@@ -409,6 +401,9 @@ class User extends CI_Controller {
             ]);
             return;
         }
+
+        // Password changed -> sign out every device except this one.
+        $this->api_auth->revoke_user_tokens($user_id, isset($auth['token']) ? $auth['token'] : null);
 
         echo json_encode([
             'success' => true,

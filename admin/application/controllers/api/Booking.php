@@ -13,6 +13,7 @@ class Booking extends CI_Controller {
         $this->load->model('User_model');
         $this->load->model('Booking_settings_model');
         $this->load->library('form_validation');
+        $this->load->library('api_auth');
         header('Content-Type: application/json');
     }
     
@@ -22,7 +23,7 @@ class Booking extends CI_Controller {
     public function check_availability() {
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         
         if ($this->input->method() === 'options') {
             exit;
@@ -175,7 +176,7 @@ class Booking extends CI_Controller {
     public function create() {
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         
         if ($this->input->method() === 'options') {
             exit;
@@ -555,7 +556,7 @@ class Booking extends CI_Controller {
         // Include room_id for backward compatibility (use first room's ID)
         $booking_data = array(
             'room_id' => $first_room_id, // Keep for backward compatibility
-            'user_id' => $this->session->userdata('user_id'), // May be null for guest booking
+            'user_id' => $this->api_auth->customer_user_id(), // May be null for guest booking
             'guest_name' => $data['guest_name'],
             'guest_email' => $data['guest_email'],
             'guest_phone' => $data['guest_phone'],
@@ -777,7 +778,7 @@ class Booking extends CI_Controller {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: GET, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
         
@@ -788,7 +789,8 @@ class Booking extends CI_Controller {
         }
         
         try {
-            if (!$this->session->userdata('user_logged_in')) {
+            $auth = $this->api_auth->customer();
+            if (!$auth) {
                 ob_clean();
                 $this->output->set_status_header(401);
                 echo json_encode([
@@ -798,19 +800,9 @@ class Booking extends CI_Controller {
                 ob_end_flush();
                 return;
             }
-            
-            $user_id = $this->session->userdata('user_id');
-            if (!$user_id) {
-                ob_clean();
-                $this->output->set_status_header(401);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'User session is invalid. Please log in again.'
-                ]);
-                ob_end_flush();
-                return;
-            }
-            
+
+            $user_id = (int) $auth['user']->id;
+
             // Get bookings
             $bookings = $this->User_model->get_user_bookings($user_id);
             
@@ -925,7 +917,7 @@ class Booking extends CI_Controller {
         $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Methods: POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
 
@@ -939,13 +931,14 @@ class Booking extends CI_Controller {
             return;
         }
 
-        if (!$this->session->userdata('user_logged_in')) {
+        $auth = $this->api_auth->customer();
+        if (!$auth) {
             $this->output->set_status_header(401);
             echo json_encode(['success' => false, 'message' => 'Please login to cancel a booking']);
             return;
         }
 
-        $user_id = $this->session->userdata('user_id');
+        $user_id = (int) $auth['user']->id;
         $data = json_decode($this->input->raw_input_stream, true);
         if (!$data) {
             $data = $this->input->post();
@@ -1033,7 +1026,7 @@ class Booking extends CI_Controller {
         
         if ($booking) {
             // Check if user has permission to view this booking
-            $user_id = $this->session->userdata('user_id');
+            $user_id = $this->api_auth->customer_user_id();
             if ($booking->user_id && $booking->user_id != $user_id && !$this->session->userdata('admin_logged_in')) {
                 $this->output->set_status_header(403);
                 echo json_encode([
