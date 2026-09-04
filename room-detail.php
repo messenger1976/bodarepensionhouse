@@ -13,7 +13,7 @@ $flatpickrHead = '
 if ($room) {
     $roomUrl = bodare_absolute_url('room-detail.php?room=' . rawurlencode($roomKey));
     $roomImageUrl = bodare_absolute_url($room['image']);
-    $offerDescription = '₱' . number_format($room['price']) . ' ' . $room['price_unit'];
+    $offerDescription = 'â‚±' . number_format($room['price']) . ' ' . $room['price_unit'];
 
     $hotelRoomSchema = [
         '@context' => 'https://schema.org',
@@ -87,8 +87,8 @@ $initialDescription = $room
     ? $room['description']
     : 'Spacious and elegantly appointed, the Executive Room is designed for guests seeking extra comfort and space. It provides a relaxing sanctuary with modern amenities, perfect for families or business travelers who appreciate a higher standard of accommodation.';
 $initialPriceHtml = $room
-    ? '<strong>₱' . number_format($room['price']) . '</strong> / ' . htmlspecialchars($room['price_unit'], ENT_QUOTES, 'UTF-8')
-    : '<strong>₱1,999</strong> / night';
+    ? '<strong>â‚±' . number_format($room['price']) . '</strong> / ' . htmlspecialchars($room['price_unit'], ENT_QUOTES, 'UTF-8')
+    : '<strong>â‚±1,999</strong> / night';
 $amenityItems = !empty($room['amenities'])
     ? $room['amenities']
     : ['Cable TV', 'Shower', 'Safe box', 'Free WiFi', 'Work Desk', 'Bathtub'];
@@ -114,9 +114,9 @@ $extraBedPrice = (float) bodare_room_setting('extra_bed_price', 199);
                 <div class="room-details-main">
                     <h1 id="room-title"><?php echo htmlspecialchars($initialTitle, ENT_QUOTES, 'UTF-8'); ?></h1>
                     <div class="room-specs">
-                        <span>👥 <span id="room-capacity"><?php echo htmlspecialchars($initialCapacity, ENT_QUOTES, 'UTF-8'); ?></span></span>
-                        <span>📏 10ft Size</span>
-                        <span>🛏️ Normal Beds</span>
+                        <span>ðŸ‘¥ <span id="room-capacity"><?php echo htmlspecialchars($initialCapacity, ENT_QUOTES, 'UTF-8'); ?></span></span>
+                        <span>ðŸ“ 10ft Size</span>
+                        <span>ðŸ›ï¸ Normal Beds</span>
                     </div>
                     <div class="room-image-grid" id="room-image-grid-container">
                     </div>
@@ -180,7 +180,7 @@ $extraBedPrice = (float) bodare_room_setting('extra_bed_price', 199);
                                 </div>
                             </div>
                             <div class="guest-inputs">
-                                <label>Extra Bed (₱<?php echo number_format($extraBedPrice); ?>/night)</label>
+                                <label>Extra Bed (â‚±<?php echo number_format($extraBedPrice); ?>/night)</label>
                                 <div class="counter" data-min="0" data-cost="<?php echo htmlspecialchars((string) $extraBedPrice, ENT_QUOTES, 'UTF-8'); ?>">
                                     <button type="button">-</button>
                                     <input type="text" value="0" readonly id="extra-bed-count">
@@ -191,7 +191,7 @@ $extraBedPrice = (float) bodare_room_setting('extra_bed_price', 199);
 
                         <div class="total-cost">
                             <h3>Total Cost</h3>
-                            <span id="total-cost-display"><?php echo $room ? '₱' . number_format($room['price']) : '₱1,999'; ?></span>
+                            <span id="total-cost-display"><?php echo $room ? 'â‚±' . number_format($room['price']) : 'â‚±1,999'; ?></span>
                         </div>
 
                         <button type="submit" class="cta-button">Add to Cart</button>
@@ -209,7 +209,7 @@ $extraBedPrice = (float) bodare_room_setting('extra_bed_price', 199);
         <span class="lightbox-close">&times;</span>
         <img class="lightbox-content" id="lightbox-image" alt="Enlarged room photo">
     </div>
-    <script src="api-config.js"></script>
+    <script src="api-config.js?v=<?php echo @filemtime(__DIR__ . '/api-config.js') ?: time(); ?>"></script>
     <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
 </body>
 </html>

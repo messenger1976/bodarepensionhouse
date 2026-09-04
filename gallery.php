@@ -1,7 +1,7 @@
 <?php
 $pageSeo = [
     'title' => 'Photo Gallery | BODARE Pension House Tagbilaran',
-    'description' => 'Explore photos of rooms and spaces at BODARE Pension House in Tagbilaran City, Bohol — from dormitory lodging to executive suites.',
+    'description' => 'Explore photos of rooms and spaces at BODARE Pension House in Tagbilaran City, Bohol â€” from dormitory lodging to executive suites.',
     'canonical_path' => 'gallery.php',
     'og_image' => 'img/ambassador.jpg',
 ];
@@ -42,7 +42,7 @@ include __DIR__ . '/includes/site-head.php';
 <?php
     include __DIR__ . '/includes/site-footer.php';
 ?>
-    <script src="api-config.js"></script>
+    <script src="api-config.js?v=<?php echo @filemtime(__DIR__ . '/api-config.js') ?: time(); ?>"></script>
     <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
 </body>
 </html>

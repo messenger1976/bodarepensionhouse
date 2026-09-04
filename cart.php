@@ -47,26 +47,26 @@ include __DIR__ . '/includes/site-head.php';
                                 <input type="checkbox" id="service-pet" data-name="Pet-Friendly Amenities" data-cost="500" onchange="updateCartServices()">
                                 <label for="service-pet">
                                     <strong>Pet-Friendly Amenities</strong>
-                                    <span>₱500 / stay</span>
+                                    <span>â‚±500 / stay</span>
                                 </label>
                             </div>
                             <div class="service-item-cart">
                                 <input type="checkbox" id="service-spa" data-name="Spa Services" data-cost="1000" onchange="updateCartServices()">
                                 <label for="service-spa">
                                     <strong>Spa Services</strong>
-                                    <span>₱1,000 / person</span>
+                                    <span>â‚±1,000 / person</span>
                                 </label>
                             </div>
                             <div class="service-item-cart">
                                 <input type="checkbox" id="service-laundry" data-name="Laundry and Cleaning" data-cost="250" onchange="updateCartServices()">
                                 <label for="service-laundry">
                                     <strong>Laundry and Cleaning</strong>
-                                    <span>₱250 / stay</span>
+                                    <span>â‚±250 / stay</span>
                                 </label>
                             </div>
                         </div>
                         <div id="services-total" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 1.1rem;">
-                            <strong>Services Total: <span id="services-total-amount">₱0.00</span></strong>
+                            <strong>Services Total: <span id="services-total-amount">â‚±0.00</span></strong>
                         </div>
                     </div>
                     
@@ -75,11 +75,11 @@ include __DIR__ . '/includes/site-head.php';
                             <h3>Order Summary</h3>
                             <div class="summary-row">
                                 <span>Rooms Subtotal</span>
-                                <span id="cart-subtotal">₱0.00</span>
+                                <span id="cart-subtotal">â‚±0.00</span>
                             </div>
                             <div class="summary-row">
                                 <span>Services</span>
-                                <span id="cart-services-total">₱0.00</span>
+                                <span id="cart-services-total">â‚±0.00</span>
                             </div>
                             <div class="summary-row">
                                 <span>Total Items</span>
@@ -87,7 +87,7 @@ include __DIR__ . '/includes/site-head.php';
                             </div>
                             <div class="summary-total-row">
                                 <span>Total</span>
-                                <strong id="cart-total">₱0.00</strong>
+                                <strong id="cart-total">â‚±0.00</strong>
                             </div>
                             <div class="cart-summary-actions">
                                 <a href="checkout.php" class="cta-button">Proceed to Checkout</a>
@@ -104,7 +104,7 @@ include __DIR__ . '/includes/site-head.php';
     include __DIR__ . '/includes/site-footer.php';
 ?>
     
-    <script src="api-config.js"></script>
+    <script src="api-config.js?v=<?php echo @filemtime(__DIR__ . '/api-config.js') ?: time(); ?>"></script>
     <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
     <script>
         // Load and display cart items
@@ -142,7 +142,7 @@ include __DIR__ . '/includes/site-head.php';
             div.dataset.cartId = item.cartId;
             
             const servicesList = item.services && item.services.length > 0 
-                ? item.services.map(s => `${s.name} (₱${s.cost.toLocaleString()})`).join(', ')
+                ? item.services.map(s => `${s.name} (â‚±${s.cost.toLocaleString()})`).join(', ')
                 : 'None';
 
             const roomSubtotal = typeof getCartItemRoomSubtotal === 'function'
@@ -155,7 +155,7 @@ include __DIR__ . '/includes/site-head.php';
             const extraBedCost = parseFloat(item.extraBedCost) || (typeof getDefaultExtraBedPrice === 'function' ? getDefaultExtraBedPrice() : 199);
             const extraBedControls = `
                 <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem;">
-                    <strong>Extra Bed (₱${extraBedCost.toLocaleString()}/night):</strong>
+                    <strong>Extra Bed (â‚±${extraBedCost.toLocaleString()}/night):</strong>
                     <div style="display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid #ddd; border-radius: 4px; padding: 0.25rem 0.5rem;">
                         <button type="button" onclick="changeCartExtraBeds('${item.cartId}', -1)" style="border: none; background: none; cursor: pointer; font-size: 1rem;">-</button>
                         <span>${extraBeds}</span>
@@ -164,7 +164,7 @@ include __DIR__ . '/includes/site-head.php';
                 </div>
             `;
             const extraBedLine = extraBedTotal > 0
-                ? `<p><strong>Extra Bed Total:</strong> ₱${extraBedTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>`
+                ? `<p><strong>Extra Bed Total:</strong> â‚±${extraBedTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>`
                 : '';
             
             div.innerHTML = `
@@ -179,7 +179,7 @@ include __DIR__ . '/includes/site-head.php';
                         <p><strong>Nights:</strong> ${item.nights}</p>
                         <p><strong>Guests:</strong> ${item.adults} Adult(s), ${item.children} Child(ren)</p>
                         <p><strong>Rooms:</strong> ${item.rooms}</p>
-                        <p><strong>Room Rate:</strong> ₱${roomSubtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                        <p><strong>Room Rate:</strong> â‚±${roomSubtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                         ${extraBedControls}
                         ${extraBedLine}
                         <p style="color: #999; font-size: 0.85rem;"><em>Services can be added below</em></p>
@@ -272,10 +272,10 @@ include __DIR__ . '/includes/site-head.php';
             const cartServicesTotalEl = document.getElementById('cart-services-total');
             
             if (servicesTotalEl) {
-                servicesTotalEl.textContent = `₱${servicesTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                servicesTotalEl.textContent = `â‚±${servicesTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             }
             if (cartServicesTotalEl) {
-                cartServicesTotalEl.textContent = `₱${servicesTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                cartServicesTotalEl.textContent = `â‚±${servicesTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             }
             
             // Update cart total
@@ -312,10 +312,10 @@ include __DIR__ . '/includes/site-head.php';
             const total = roomsSubtotal + servicesTotal;
             const itemCount = cart.length;
             
-            document.getElementById('cart-subtotal').textContent = `₱${roomsSubtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            document.getElementById('cart-services-total').textContent = `₱${servicesTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('cart-subtotal').textContent = `â‚±${roomsSubtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('cart-services-total').textContent = `â‚±${servicesTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             document.getElementById('cart-item-count').textContent = itemCount;
-            document.getElementById('cart-total').textContent = `₱${total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('cart-total').textContent = `â‚±${total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         }
         
         // Load cart on page load

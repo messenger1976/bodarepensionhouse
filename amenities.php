@@ -27,37 +27,37 @@ include __DIR__ . '/includes/site-head.php';
             <div class="amenities-grid">
                 
                 <div class="amenity-card">
-                    <span class="icon">📶</span>
+                    <span class="icon">ðŸ“¶</span>
                     <h3>High-Speed WiFi</h3>
                     <p>Stay connected with complimentary high-speed internet access available in all rooms and public areas.</p>
                 </div>
 
                 <div class="amenity-card">
-                    <span class="icon">🅿️</span>
+                    <span class="icon">ðŸ…¿ï¸</span>
                     <h3>Free Parking</h3>
                     <p>Enjoy the convenience of free, secured on-site parking for all our registered guests.</p>
                 </div>
 
                 <div class="amenity-card">
-                    <span class="icon">🛎️</span>
+                    <span class="icon">ðŸ›Žï¸</span>
                     <h3>24-Hour Front Desk</h3>
                     <p>Our team is available around the clock to assist with check-in, check-out, and any requests you may have.</p>
                 </div>
 
                 <div class="amenity-card">
-                    <span class="icon">❄️</span>
+                    <span class="icon">â„ï¸</span>
                     <h3>Air Conditioning</h3>
                     <p>All rooms are equipped with individually controlled air conditioning for your personal comfort.</p>
                 </div>
 
                 <div class="amenity-card">
-                    <span class="icon">📺</span>
+                    <span class="icon">ðŸ“º</span>
                     <h3>Cable Television</h3>
                     <p>Unwind with a wide selection of local and international channels on your in-room flat-screen TV.</p>
                 </div>
 
                 <div class="amenity-card">
-                    <span class="icon">🚿</span>
+                    <span class="icon">ðŸš¿</span>
                     <h3>Private Bathrooms</h3>
                     <p>Each room features a clean, private bathroom complete with hot and cold showers and essential toiletries.</p>
                 </div>
@@ -71,7 +71,7 @@ include __DIR__ . '/includes/site-head.php';
     include __DIR__ . '/includes/site-footer.php';
 ?>
     
-    <script src="api-config.js"></script>
+    <script src="api-config.js?v=<?php echo @filemtime(__DIR__ . '/api-config.js') ?: time(); ?>"></script>
     <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
 </body>
 </html>

@@ -213,8 +213,8 @@ include __DIR__ . '/includes/site-head.php';
     include __DIR__ . '/includes/site-footer.php';
 ?>
     
-    <script src="api-config.js"></script>
-    <script src="booking-api.js"></script>
+    <script src="api-config.js?v=<?php echo @filemtime(__DIR__ . '/api-config.js') ?: time(); ?>"></script>
+    <script src="booking-api.js?v=<?php echo @filemtime(__DIR__ . '/booking-api.js') ?: time(); ?>"></script>
     <script src="script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
 </body>
 </html>
