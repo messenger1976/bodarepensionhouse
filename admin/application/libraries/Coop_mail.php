@@ -158,7 +158,15 @@ class Coop_mail {
         $this->CI->email->subject($subject);
         $this->CI->email->message($message);
 
-        if ($this->CI->email->send()) {
+        // Suppress any stray PHP warnings/notices the transport may emit
+        // (e.g. fsockopen failures on an unreachable SMTP host). Without this
+        // the response body gets HTML error text prepended before the JSON
+        // payload, which breaks API clients.
+        ob_start();
+        $sent = $this->CI->email->send();
+        ob_end_clean();
+
+        if ($sent) {
             return TRUE;
         }
 
