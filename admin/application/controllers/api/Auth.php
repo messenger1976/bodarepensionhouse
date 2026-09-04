@@ -89,25 +89,36 @@ class Auth extends CI_Controller {
         // Normalize email (trim and lowercase)
         $email = trim(strtolower($data['email']));
 
-        // Check if email exists in users table
-        if ($this->User_model->email_exists($email)) {
+        // Look up existing records for this address before creating anything.
+        $existing_user = $this->User_model->get_user_by_email($email);
+        $existing_customer = $this->Customer_model->get_customer_by_email($email);
+
+        // Only an account that is actually usable (active, verified, or
+        // suspended by staff) blocks re-registration. Inactive accounts that
+        // were never email-verified are incomplete registrations, not real
+        // accounts - they must not produce a false "already registered".
+        if ($existing_user && ($existing_user->status !== 'inactive' || (int)$existing_user->email_verified === 1)) {
+            $blocked_message = ($existing_user->status === 'suspended')
+                ? 'This account is currently suspended. Please contact us for assistance.'
+                : 'This email address is already registered. Please use a different email or try logging in instead.';
             $this->output->set_status_header(400);
             echo json_encode([
                 'success' => false,
-                'message' => 'This email address is already registered. Please use a different email or try logging in instead.'
+                'message' => $blocked_message
             ]);
             return;
         }
 
-        // Check if email exists in customers table
-        if ($this->Customer_model->email_exists($email)) {
-            $this->output->set_status_header(400);
-            echo json_encode([
-                'success' => false,
-                'message' => 'This email address is already registered. Please use a different email or try logging in instead.'
-            ]);
-            return;
-        }
+        // If we get here the email is brand new, or it belongs only to an
+        // incomplete earlier attempt (inactive + never verified) and/or an
+        // offline customer profile. Decide how to proceed:
+        //   - $resuming:       an inactive/unverified user exists - reuse it
+        //                      and simply issue a fresh verification code.
+        //   - $reuse_customer: no user yet, but the email is already attached
+        //                      to an offline/walk-in customer profile - create
+        //                      the online account without duplicating the row.
+        $resuming = ($existing_user !== null);
+        $reuse_customer = (!$existing_user && $existing_customer !== null);
 
         // Prepare user data (for authentication) — inactive until email is confirmed
         $user_data = array(
@@ -141,19 +152,35 @@ class Auth extends CI_Controller {
             'status' => 'inactive'
         );
 
-        // Start transaction to ensure both records are created
-        $this->db->trans_start();
+        // Branch creation based on whether we are resuming an incomplete
+        // registration. Track rows created in THIS request so they can be
+        // removed again if the verification email cannot be delivered.
+        $created_this_request = array(
+            'users' => null,
+            'customers' => null
+        );
 
-        // Create user (for authentication)
-        $user_id = $this->User_model->register($user_data);
+        if ($resuming) {
+            // Incomplete account from an earlier attempt: reuse the existing
+            // (inactive, never-verified) user and refresh it with the details
+            // just submitted - including the password the visitor typed now.
+            $user_id = (int)$existing_user->id;
+            $this->User_model->update_user($user_id, $user_data);
 
-        if ($user_id) {
-            // Create customer record (for detailed customer management)
-            $customer_id = $this->Customer_model->create($customer_data);
+            // Mirror the customer record too when one does not exist yet.
+            // (An existing customer profile - e.g. from a walk-in booking - is
+            // left untouched; the account links to it through the shared email.)
+            if (!$existing_customer) {
+                $new_customer_id = $this->Customer_model->create($customer_data);
+                if ($new_customer_id) {
+                    $created_this_request['customers'] = (int)$new_customer_id;
+                }
+            }
+        } else {
+            // Fresh online account.
+            $user_id = $this->User_model->register($user_data);
 
-            if (!$customer_id) {
-                // Rollback if customer creation fails
-                $this->db->trans_rollback();
+            if (!$user_id) {
                 $this->output->set_status_header(500);
                 echo json_encode([
                     'success' => false,
@@ -161,27 +188,46 @@ class Auth extends CI_Controller {
                 ]);
                 return;
             }
-        } else {
-            $this->db->trans_rollback();
-            $this->output->set_status_header(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'We encountered an issue creating your account. Our team has been notified. Please try again in a few moments.'
-            ]);
-            return;
+            $created_this_request['users'] = (int)$user_id;
+
+            if ($reuse_customer) {
+                // The email already belongs to an offline/walk-in customer
+                // profile added by staff - do not duplicate the profile. The
+                // new online account links to it through the shared email.
+            } else {
+                // Create customer record (for detailed customer management)
+                $customer_id = $this->Customer_model->create($customer_data);
+
+                if (!$customer_id) {
+                    // Remove the user row that was just created.
+                    $this->db->where('id', (int)$user_id);
+                    $this->db->delete('users');
+                    $created_this_request['users'] = null;
+                    $this->output->set_status_header(500);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'We encountered an issue creating your account. Our team has been notified. Please try again in a few moments.'
+                    ]);
+                    return;
+                }
+                $created_this_request['customers'] = (int)$customer_id;
+            }
         }
 
-        // Complete transaction
-        $this->db->trans_complete();
-
-        if ($this->db->trans_status() === FALSE) {
-            $this->output->set_status_header(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'We encountered an issue creating your account. Our team has been notified. Please try again in a few moments.'
-            ]);
-            return;
-        }
+        // Cleanup helper: remove exactly the rows THIS request created, so a
+        // failed delivery never leaves an unusable ghost account behind.
+        $cleanup_created_rows = function () use (&$created_this_request) {
+            if (!empty($created_this_request['customers'])) {
+                $this->db->where('id', $created_this_request['customers']);
+                $this->db->delete('customers');
+                $created_this_request['customers'] = null;
+            }
+            if (!empty($created_this_request['users'])) {
+                $this->db->where('id', $created_this_request['users']);
+                $this->db->delete('users');
+                $created_this_request['users'] = null;
+            }
+        };
 
         $user = $this->User_model->get_user($user_id);
         $name = trim($user->first_name . ' ' . $user->last_name);
@@ -195,6 +241,7 @@ class Auth extends CI_Controller {
             $code = (string) random_int(100000, 999999);
         } catch (Exception $e) {
             log_message('error', 'OTP generation failed: ' . $e->getMessage());
+            $cleanup_created_rows();
             $this->output->set_status_header(500);
             echo json_encode([
                 'success' => false,
@@ -207,10 +254,12 @@ class Auth extends CI_Controller {
         $code_hash = password_hash($code, PASSWORD_DEFAULT);
 
         if (!$this->Email_verification_model->create_otp($email, $code_hash, $expires_at)) {
+            log_message('error', 'OTP row could not be created for: ' . $email);
+            $cleanup_created_rows();
             $this->output->set_status_header(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Your account was created, but we could not prepare the verification code. Please contact support.'
+                'message' => 'We could not complete your registration right now. Please try again in a few moments.'
             ]);
             return;
         }
@@ -227,19 +276,29 @@ class Auth extends CI_Controller {
             log_message('error', 'Registration OTP email failed: ' . $smtp_error);
             // Remove the pending code so the user can safely request a new one.
             $this->Email_verification_model->delete_by_email($email);
+            // Remove any rows created by THIS request so a failed delivery
+            // never leaves an unusable ghost account behind.
+            $rows_were_created = !empty($created_this_request['users']) || !empty($created_this_request['customers']);
+            $cleanup_created_rows();
 
             $this->output->set_status_header(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Your account was created, but we could not send the verification code. Please try again later or contact support.'
+                'message' => $rows_were_created
+                    ? 'We could not email the verification code, so no account was created. Please try again in a few minutes or contact support.'
+                    : 'We could not email a new verification code right now. Please try again in a few minutes or request a new code from the verification page.'
             ]);
             return;
         }
 
+        $success_message = $resuming
+            ? 'An account for this email was already started but not yet activated. We emailed a NEW 6-digit verification code to ' . $this->mask_email($email) . ' - enter it to activate your account.'
+            : 'Your account has been created. We emailed a 6-digit verification code to ' . $this->mask_email($email) . ' - enter it to activate your account.';
+
         echo json_encode([
             'success' => true,
             'requires_verification' => true,
-            'message' => 'Your account has been created. We emailed a 6-digit verification code to ' . $this->mask_email($email) . ' - enter it to activate your account.',
+            'message' => $success_message,
             'email_masked' => $this->mask_email($email),
             'expires_in' => self::OTP_EXPIRY_SECONDS,
             'resend_after' => self::OTP_RESEND_COOLDOWN_SECONDS,

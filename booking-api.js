@@ -117,10 +117,14 @@ function setupRegistrationForm() {
             let errorMessage = 'We encountered an issue creating your account. Please check your information and try again.';
             
             if (error.message) {
-                // Make error messages more user-friendly
-                if (error.message.includes('Email already registered') || error.message.includes('email')) {
+                // Make error messages more user-friendly. Only rewrite the
+                // message when the server truly reported the email as taken.
+                // (The old "contains the word email" check relabelled unrelated
+                // errors - mailer failures, bad API paths, etc. - as
+                // "email already registered", which confused users.)
+                if (/already registered/i.test(error.message)) {
                     errorMessage = 'This email address is already registered. Please use a different email or try logging in instead.';
-                } else if (error.message.includes('Validation failed')) {
+                } else if (/validation failed/i.test(error.message)) {
                     errorMessage = 'Please check the form fields and ensure all information is entered correctly.';
                 } else {
                     errorMessage = error.message;
