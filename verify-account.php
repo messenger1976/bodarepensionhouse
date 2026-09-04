@@ -121,6 +121,10 @@ include __DIR__ . '/includes/site-head.php';
             let statusEl = null;
             let resendTimer = null;
 
+            // Seconds shown/waited before sending the guest to the dashboard
+            // after a successful OTP. Easy to tweak.
+            const REDIRECT_COUNTDOWN_SECONDS = 3;
+
             function esc(value) {
                 const div = document.createElement('div');
                 div.textContent = String(value == null ? '' : value);
@@ -303,10 +307,26 @@ include __DIR__ . '/includes/site-head.php';
                             setTimeout(() => { window.location.href = 'login.php?email=' + encodeURIComponent(email); }, 2000);
                             return;
                         }
-                        setStatus(response.message || 'Your account has been activated. Welcome!', 'success');
                         clearBoxes();
-                        // Token + session were persisted -> straight to the dashboard, logged in.
-                        setTimeout(() => { window.location.href = 'customer-dashboard.php'; }, 1600);
+                        // Token + session were persisted -> straight to the
+                        // dashboard, logged in, after a short visible countdown.
+                        const successBase = response.message || 'Your account has been activated. Welcome!';
+                        let countdownLeft = REDIRECT_COUNTDOWN_SECONDS;
+                        const paintCountdown = () => {
+                            setStatus(countdownLeft > 0
+                                ? successBase + ' Redirecting to your dashboard in ' + countdownLeft + '…'
+                                : successBase, 'success');
+                        };
+                        paintCountdown();
+                        const cdTimer = setInterval(() => {
+                            countdownLeft -= 1;
+                            if (countdownLeft <= 0) {
+                                clearInterval(cdTimer);
+                                window.location.href = 'customer-dashboard.php';
+                                return;
+                            }
+                            paintCountdown();
+                        }, 1000);
                     } else {
                         setStatus(response.message || 'That code is invalid. Please try again.', 'error');
                         submitBtn.disabled = false;
