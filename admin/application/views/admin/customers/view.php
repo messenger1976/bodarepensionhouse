@@ -211,7 +211,10 @@
     
     <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
         <?php if (isset($can_delete) && $can_delete): ?>
-        <a href="<?php echo base_url('customers/delete/' . $customer->id); ?>" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this customer/guest?');">
+        <a href="<?php echo base_url('customers/delete/' . $customer->id); ?>"
+           class="btn btn-danger delete-customer-btn"
+           data-name="<?php echo htmlspecialchars(trim($customer->first_name . ' ' . $customer->last_name), ENT_QUOTES, 'UTF-8'); ?>"
+           data-email="<?php echo htmlspecialchars($customer->email, ENT_QUOTES, 'UTF-8'); ?>">
             <i class="bi bi-trash"></i> Delete
         </a>
         <?php endif; ?>
@@ -220,4 +223,82 @@
         </a>
     </div>
 </div>
+
+<!-- Confirm-delete modal. Warns that the matching website account is removed too. -->
+<div class="modal fade" id="confirmDeleteCustomerModal" tabindex="-1" aria-labelledby="confirmDeleteCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmDeleteCustomerModalLabel">
+                    <i class="bi bi-exclamation-triangle text-danger"></i> Delete customer/guest?
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>You are about to permanently delete <strong id="deleteCustomerName">this customer/guest</strong>.</p>
+                <div class="alert alert-warning mb-0">
+                    <strong>Important:</strong> If this person has an online website account, it will
+                    <strong>also be deleted</strong> and they will no longer be able to log in to the website.
+                    Past bookings are kept but will be detached from the account. This action
+                    <strong>cannot be undone</strong>.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a id="confirmDeleteCustomerBtn" href="#" class="btn btn-danger">
+                    <i class="bi bi-trash"></i> Yes, delete
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    function bindDeleteButtons() {
+        var buttons = document.querySelectorAll('.delete-customer-btn');
+        var modalEl = document.getElementById('confirmDeleteCustomerModal');
+        var modalSupported = (typeof bootstrap !== 'undefined') && bootstrap.Modal && modalEl;
+
+        if (!modalSupported) {
+            // Fallback: native confirm() when the Bootstrap modal is unavailable.
+            buttons.forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    var name = btn.getAttribute('data-name') || 'this customer/guest';
+                    var ok = window.confirm('Delete ' + name + '?\n\nWarning: if this person has an online website account it will also be deleted and they will no longer be able to log in to the website. Past bookings are kept but detached. This cannot be undone.');
+                    if (!ok) e.preventDefault();
+                });
+            });
+            return;
+        }
+
+        var nameEl = document.getElementById('deleteCustomerName');
+        var confirmBtn = document.getElementById('confirmDeleteCustomerBtn');
+        var modal = new bootstrap.Modal(modalEl);
+
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                var name = btn.getAttribute('data-name') || '';
+                var email = btn.getAttribute('data-email') || '';
+                if (nameEl) {
+                    nameEl.textContent = name
+                        ? name + (email ? ' (' + email + ')' : '')
+                        : 'this customer/guest';
+                }
+                if (confirmBtn) {
+                    confirmBtn.setAttribute('href', btn.getAttribute('href'));
+                }
+                modal.show();
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindDeleteButtons);
+    } else {
+        bindDeleteButtons();
+    }
+})();
+</script>
 
