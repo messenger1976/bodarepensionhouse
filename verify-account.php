@@ -8,6 +8,36 @@ $pageSeo = [
 $enableAds = false;
 include __DIR__ . '/includes/site-head.php';
 ?>
+<style>
+    .otp-boxes {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 0.25rem 0 0.35rem;
+    }
+    .otp-digit {
+        width: 3rem;
+        height: 3.4rem;
+        text-align: center;
+        font-size: 1.6rem;
+        font-weight: 600;
+        color: #1a2238;
+        border: 2px solid #d5d9e2;
+        border-radius: 8px;
+        background: #fff;
+        padding: 0;
+        caret-color: #b2945b;
+    }
+    .otp-digit:focus {
+        outline: none;
+        border-color: #b2945b;
+        box-shadow: 0 0 0 3px rgba(178, 148, 91, 0.25);
+    }
+    @media (max-width: 420px) {
+        .otp-boxes { gap: 0.35rem; }
+        .otp-digit { width: 2.6rem; height: 3rem; font-size: 1.4rem; }
+    }
+</style>
 <body>
 
     <?php
@@ -21,15 +51,15 @@ include __DIR__ . '/includes/site-head.php';
     <section class="app-page-hero">
         <div class="page-header-content app-section" style="padding-top:0;padding-bottom:0;">
             <h1>Verify Your Account</h1>
-            <p>Enter the 6-digit code we emailed you</p>
+            <p>We emailed a 6-digit OTP to your email address</p>
         </div>
     </section>
 
     <main class="content-section app-section">
         <div class="container">
             <div class="registration-container app-card" style="max-width: 480px; margin: 0 auto; padding: 1.5rem;">
-                <h2 class="text-emerald-950 font-black text-lg" style="margin-bottom: 0.25rem;">Account Activation</h2>
-                <p style="text-align: center; color: #666; margin-bottom: 1.25rem;" id="verify-intro-text">We sent a 6-digit code to your email. Enter it below to activate your account.</p>
+                <h2 class="text-emerald-950 font-black text-lg" style="margin-bottom: 0.25rem;">Enter Your OTP</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 1.25rem;" id="verify-intro-text">We sent a 6-digit OTP to your email. Enter it in the boxes below to activate your account.</p>
 
                 <form id="verify-otp-form" class="minimal-form" autocomplete="off">
                     <div class="form-group-contact">
@@ -37,15 +67,25 @@ include __DIR__ . '/includes/site-head.php';
                         <input type="email" id="verify-email-input" placeholder="Enter your registered email" required autocomplete="email">
                     </div>
                     <div class="form-group-contact">
-                        <label for="verify-code-input">6-Digit Verification Code</label>
-                        <input type="text" id="verify-code-input" inputmode="numeric" pattern="[0-9]*" maxlength="6"
-                               placeholder="••••••" required
-                               style="text-align:center; font-size:1.5rem; letter-spacing:0.6em; font-weight:600;"
-                               aria-describedby="code-help">
-                        <p id="code-help" style="font-size:0.8rem;color:#888;margin-top:0.35rem;text-align:center;">The code expires in 15 minutes.</p>
+                        <label>6-Digit OTP</label>
+                        <div class="otp-boxes" id="otp-boxes" role="group" aria-label="6-digit verification code">
+                            <input type="tel" inputmode="numeric" autocomplete="one-time-code" maxlength="1"
+                                   pattern="[0-9]*" class="otp-digit" data-idx="0" aria-label="Digit 1">
+                            <input type="tel" inputmode="numeric" autocomplete="off" maxlength="1"
+                                   pattern="[0-9]*" class="otp-digit" data-idx="1" aria-label="Digit 2">
+                            <input type="tel" inputmode="numeric" autocomplete="off" maxlength="1"
+                                   pattern="[0-9]*" class="otp-digit" data-idx="2" aria-label="Digit 3">
+                            <input type="tel" inputmode="numeric" autocomplete="off" maxlength="1"
+                                   pattern="[0-9]*" class="otp-digit" data-idx="3" aria-label="Digit 4">
+                            <input type="tel" inputmode="numeric" autocomplete="off" maxlength="1"
+                                   pattern="[0-9]*" class="otp-digit" data-idx="4" aria-label="Digit 5">
+                            <input type="tel" inputmode="numeric" autocomplete="off" maxlength="1"
+                                   pattern="[0-9]*" class="otp-digit" data-idx="5" aria-label="Digit 6">
+                        </div>
+                        <p id="code-help" style="font-size:0.8rem;color:#888;margin-top:0.35rem;text-align:center;">The OTP expires in 15 minutes.</p>
                     </div>
 
-                    <button type="submit" id="verify-submit-btn" class="cta-button" style="width: 100%;">Activate My Account</button>
+                    <button type="submit" id="verify-submit-btn" class="cta-button" style="width: 100%;">Verify &amp; Activate My Account</button>
 
                     <div style="text-align:center; margin-top: 1.25rem;">
                         <span style="color:#666; font-size:0.95rem;">Didn't receive the code?</span>
@@ -71,7 +111,7 @@ include __DIR__ . '/includes/site-head.php';
     <script>
         (function () {
             const emailInput = document.getElementById('verify-email-input');
-            const codeInput = document.getElementById('verify-code-input');
+            const otpBoxes = Array.from(document.querySelectorAll('.otp-digit'));
             const form = document.getElementById('verify-otp-form');
             const submitBtn = document.getElementById('verify-submit-btn');
             const resendBtn = document.getElementById('resend-otp-btn');
@@ -125,15 +165,69 @@ include __DIR__ . '/includes/site-head.php';
                 return emailInput ? emailInput.value.trim().toLowerCase() : '';
             }
 
+            function getCode() {
+                return otpBoxes.map(b => b.value).join('');
+            }
+
+            function clearBoxes() {
+                otpBoxes.forEach(b => { b.value = ''; });
+                if (otpBoxes.length) otpBoxes[0].focus();
+            }
+
             function refreshIntro() {
                 if (!introEl) return;
                 const email = currentEmail();
                 if (email) {
-                    introEl.textContent = 'We sent a 6-digit code to ' + email + '. Enter it below to activate your account.';
+                    introEl.textContent = 'We emailed a 6-digit OTP to ' + email + '. Enter it below to activate your account.';
                 } else {
-                    introEl.textContent = 'Enter your email and the 6-digit code we sent to activate your account.';
+                    introEl.textContent = 'Enter your email and the 6-digit OTP we emailed to activate your account.';
                 }
             }
+
+            // ---- 6-box OTP input behaviour ----
+            otpBoxes.forEach((box, i) => {
+                box.addEventListener('input', (e) => {
+                    const digits = box.value.replace(/\D/g, '');
+                    box.value = digits.slice(0, 1);
+                    if (box.value && i < otpBoxes.length - 1) {
+                        otpBoxes[i + 1].focus();
+                    }
+                    // Auto-submit when the last digit is typed.
+                    if (i === otpBoxes.length - 1 && getCode().length === otpBoxes.length) {
+                        form.requestSubmit();
+                    }
+                });
+
+                box.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace') {
+                        if (!box.value && i > 0) {
+                            e.preventDefault();
+                            otpBoxes[i - 1].value = '';
+                            otpBoxes[i - 1].focus();
+                        }
+                    } else if (e.key === 'ArrowLeft' && i > 0) {
+                        e.preventDefault();
+                        otpBoxes[i - 1].focus();
+                    } else if (e.key === 'ArrowRight' && i < otpBoxes.length - 1) {
+                        e.preventDefault();
+                        otpBoxes[i + 1].focus();
+                    } else if (e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+                        e.preventDefault();
+                    }
+                });
+
+                box.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+                    const digits = text.replace(/\D/g, '').slice(0, otpBoxes.length).split('');
+                    otpBoxes.forEach((b, idx) => { b.value = digits[idx] || ''; });
+                    const next = digits.length < otpBoxes.length ? digits.length : otpBoxes.length - 1;
+                    otpBoxes[Math.min(next, otpBoxes.length - 1)].focus();
+                    if (digits.length === otpBoxes.length) {
+                        form.requestSubmit();
+                    }
+                });
+            });
 
             async function resendCode() {
                 if (typeof API === 'undefined') {
@@ -150,9 +244,10 @@ include __DIR__ . '/includes/site-head.php';
                 try {
                     const response = await API.auth.sendActivationOtp(email);
                     if (response.success) {
-                        setStatus('A new code has been sent to ' + email + '.', 'success');
+                        setStatus('A new OTP has been sent to ' + email + '.', 'success');
                         const wait = (response.resend_after || 60);
                         startResendCountdown(wait);
+                        clearBoxes();
                     } else {
                         setStatus(response.message || 'We could not send the code right now. Please try again.', 'error');
                         if (response.resend_after) {
@@ -182,7 +277,7 @@ include __DIR__ . '/includes/site-head.php';
                 }
 
                 const email = currentEmail();
-                const code = codeInput ? codeInput.value.trim() : '';
+                const code = getCode();
 
                 if (!email) {
                     setStatus('Please enter the email address you registered with.', 'error');
@@ -191,7 +286,7 @@ include __DIR__ . '/includes/site-head.php';
                 }
                 if (!/^\d{6}$/.test(code)) {
                     setStatus('Please enter the 6-digit code from the email.', 'error');
-                    codeInput.focus();
+                    otpBoxes[0].focus();
                     return;
                 }
 
@@ -209,13 +304,14 @@ include __DIR__ . '/includes/site-head.php';
                             return;
                         }
                         setStatus(response.message || 'Your account has been activated. Welcome!', 'success');
-                        codeInput.value = '';
-                        // Auto sign-in completed server-side (token stored).
-                        setTimeout(() => { window.location.href = 'customer-dashboard.php'; }, 1800);
+                        clearBoxes();
+                        // Token + session were persisted -> straight to the dashboard, logged in.
+                        setTimeout(() => { window.location.href = 'customer-dashboard.php'; }, 1600);
                     } else {
                         setStatus(response.message || 'That code is invalid. Please try again.', 'error');
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalText;
+                        clearBoxes();
                     }
                 } catch (error) {
                     const data = error.response || {};
@@ -224,8 +320,7 @@ include __DIR__ . '/includes/site-head.php';
                     } else {
                         setStatus(data.message || error.message || 'We could not verify the code. Please try again.', 'error');
                     }
-                    codeInput.value = '';
-                    codeInput.focus();
+                    clearBoxes();
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                 }
@@ -245,8 +340,11 @@ include __DIR__ . '/includes/site-head.php';
                 }
                 if (params.get('registered') === '1') {
                     startResendCountdown(60);
+                    if (emailParam) {
+                        setStatus('Your account was created! We emailed a 6-digit OTP to ' + emailParam.toLowerCase() + '. Enter it in the boxes above to activate your account.', 'success');
+                    }
                 }
-                codeInput.focus();
+                if (otpBoxes.length) otpBoxes[0].focus();
             });
         })();
     </script>
