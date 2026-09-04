@@ -173,9 +173,46 @@ class Customers extends Admin_Controller {
         if (!$this->has_permission('delete_bookings')) {
             $this->require_permission('delete_bookings');
         }
-        
-        if ($this->Customer_model->delete($id)) {
-            $this->session->set_flashdata('success', 'Customer/guest deleted successfully');
+
+        $customer = $this->Customer_model->get_customer($id);
+
+        if ($customer && $this->Customer_model->delete($id)) {
+            // Also remove the matching main-website account (users table).
+            // Customers and their online login are the same person - deleting
+            // the customer must free the email for the website too, otherwise
+            // the account lingers and blocks re-registration ("email already
+            // registered") even though it was deleted here.
+            $email = strtolower(trim($customer->email));
+            if ($email !== '') {
+                $this->db->where('LOWER(email) =', $this->db->escape($email), FALSE);
+                $user = $this->db->get('users')->row();
+
+                if ($user) {
+                    $user_id = (int)$user->id;
+
+                    // Revoke bearer tokens and pending verification codes.
+                    if ($this->db->table_exists('user_auth_tokens')) {
+                        $this->db->where('user_id', $user_id);
+                        $this->db->delete('user_auth_tokens');
+                    }
+                    if ($this->db->table_exists('email_verifications')) {
+                        $this->db->where('email', $email);
+                        $this->db->delete('email_verifications');
+                    }
+                    // Detach historical bookings so they stay viewable in the
+                    // admin while no longer pointing at a deleted account.
+                    if ($this->db->table_exists('bookings')) {
+                        $this->db->where('user_id', $user_id);
+                        $this->db->set('user_id', null);
+                        $this->db->update('bookings');
+                    }
+
+                    $this->db->where('id', $user_id);
+                    $this->db->delete('users');
+                }
+            }
+
+            $this->session->set_flashdata('success', 'Customer/guest and their website account were deleted successfully');
         } else {
             $this->session->set_flashdata('error', 'Failed to delete customer/guest');
         }
