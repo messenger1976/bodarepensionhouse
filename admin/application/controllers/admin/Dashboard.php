@@ -54,9 +54,13 @@ class Dashboard extends Admin_Controller {
         $data['inventory_summary_today'] = $this->Booking_model->get_inventory_summary_for_date(date('Y-m-d'));
         $data['occupancy_forecast'] = $this->Booking_model->get_occupancy_forecast(30, date('Y-m-d'));
 
-        // System Activity Logs widget (guarded in case the table is not migrated yet).
+        // System Activity Logs widget — only for users who can access Activity Logs
+        // (same gate as the sidebar menu: super admin or view_activity_logs).
+        $data['can_view_activity_logs'] = $this->is_super_admin()
+            || $this->has_permission('view_activity_logs');
         $data['recent_activity'] = array();
-        if ($this->db->table_exists('activity_logs') && $this->has_permission('view_activity_logs')) {
+        $data['activity_summary'] = array('total' => 0, 'by_type' => array());
+        if ($data['can_view_activity_logs'] && $this->db->table_exists('activity_logs')) {
             $data['recent_activity'] = $this->Activity_log_model->recent(8);
             $data['activity_summary'] = $this->Activity_log_model->summary_counts(7);
         }

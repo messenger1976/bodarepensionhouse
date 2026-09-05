@@ -61,7 +61,7 @@
     </div>
 </div>
 
-<?php if (!empty($recent_activity)): ?>
+<?php if (!empty($can_view_activity_logs)): ?>
 <div class="nk-block">
     <div class="card card-bordered">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -86,6 +86,7 @@
                     <span class="small text-muted">No activity recorded yet.</span>
                 <?php endif; ?>
             </div>
+            <?php if (!empty($recent_activity)): ?>
             <div class="table-responsive">
                 <table class="table table-sm table-hover mb-0">
                     <thead>
@@ -110,6 +111,9 @@
                     </tbody>
                 </table>
             </div>
+            <?php else: ?>
+            <div class="px-3 py-4 text-center text-muted small">No recent activity to show.</div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
