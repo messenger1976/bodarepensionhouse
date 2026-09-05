@@ -49,12 +49,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 | Examples:	my-controller/index	-> my_controller/index
 |		my-controller/my-method	-> my_controller/my_method
 */
-$route['default_controller'] = 'admin/auth';
+// CI3 cannot use a subdirectory controller as default_controller (e.g. admin/auth).
+// Home redirects to login (or dashboard if already logged in).
+$route['default_controller'] = 'home';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 
 // Admin Panel Routes
-$route[''] = 'admin/auth/login';
 $route['login'] = 'admin/auth/login';
 $route['logout'] = 'admin/auth/logout';
 $route['forgot-password'] = 'admin/auth/forgot_password';

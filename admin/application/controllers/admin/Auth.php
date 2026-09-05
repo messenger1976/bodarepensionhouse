@@ -13,8 +13,11 @@ class Auth extends CI_Controller {
     }
     
     public function index() {
-        // Redirect to login if index is accessed
-        $this->login();
+        // Keep URL on /login and reuse the same session gate as login()
+        if ($this->session->userdata('admin_logged_in')) {
+            redirect('dashboard');
+        }
+        redirect('login');
     }
     
     public function login() {
