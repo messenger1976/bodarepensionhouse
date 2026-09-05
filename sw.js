@@ -1,5 +1,5 @@
 // Service Worker for BODARE Pension House PWA
-const CACHE_NAME = 'bodare-pwa-v5';
+const CACHE_NAME = 'bodare-pwa-v6';
 const urlsToCache = [
   '/',
   '/index.php',

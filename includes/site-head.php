@@ -121,7 +121,7 @@ if (!headers_sent()) {
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png">
-    <link rel="apple-touch-icon" href="img/logo.png">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
     <link rel="shortcut icon" href="/favicon.ico">
 
     <link rel="stylesheet" href="style.css?v=<?php echo is_file(dirname(__DIR__) . '/style.css') ? filemtime(dirname(__DIR__) . '/style.css') : time(); ?>">

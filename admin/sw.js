@@ -6,7 +6,7 @@
  */
 'use strict';
 
-var CACHE_NAME = 'bodare-admin-shell-v2';
+var CACHE_NAME = 'bodare-admin-shell-v3';
 var SHELL_ASSETS = [
   './assets/css/admin-mobile.css',
   './assets/js/admin-mobile.js',
