@@ -10,6 +10,10 @@ $GLOBALS['enableAds'] = $enableAds;
 
 $site = bodare_site_config();
 
+// System Activity Logs — record this public page view (best-effort, silent on failure).
+require_once __DIR__ . '/activity-log.php';
+bodare_log_page_view();
+
 $defaultPageSeo = [
     'title' => $site['name'],
     'description' => $site['tagline'],

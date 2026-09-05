@@ -10,6 +10,7 @@ A comprehensive booking management system for a pension house built with PHP (Co
 - **Admin Panel**: Comprehensive admin control panel with granular permissions
 - **Payment Integration**: Booking confirmation and checkout system
 - **API Endpoints**: RESTful API for integrations
+- **System Activity Logs / Audit Trail**: Records page views, auth events, CRUD operations and system events across the admin panel, public website and API
 - **Mobile Responsive**: Works on desktop and mobile devices
 - **Progressive Web App**: PWA support with service workers
 
@@ -75,6 +76,7 @@ See `admin/API_ENDPOINTS_SUMMARY.md` for complete API endpoint documentation.
 - [Admin Panel Complete Guide](docs/ADMIN_PANEL_COMPLETE.md)
 - [Granular Permissions](docs/GRANULAR_PERMISSIONS_README.md)
 - [Module Generator Guide](docs/MODULE_GENERATOR_GUIDE.md)
+- [System Activity Logs / Audit Trail](docs/ACTIVITY_LOGS.md)
 
 ## Troubleshooting
 

@@ -56,4 +56,23 @@ class Cron extends CI_Controller {
             'stats' => $stats,
         ]);
     }
+
+    /**
+     * GET/POST admin/index.php/cron/purge_activity_logs?key=YOUR_SECRET
+     * Deletes activity_log rows older than the configured retention window.
+     */
+    public function purge_activity_logs()
+    {
+        $this->require_cron_secret();
+        header('Content-Type: application/json');
+
+        $this->load->library('activity_log');
+        $deleted = $this->activity_log->purge_old();
+
+        echo json_encode([
+            'success' => true,
+            'deleted' => $deleted,
+            'retention_days' => $this->activity_log->retention_days(),
+        ]);
+    }
 }

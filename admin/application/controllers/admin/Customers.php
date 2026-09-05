@@ -88,6 +88,9 @@ class Customers extends Admin_Controller {
                 
                 if ($customer_id) {
                     $this->session->set_flashdata('success', 'Customer/guest registered successfully');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->crud('customers', 'create', 'customer', $customer_id, 'Customer/guest registered: ' . $customer_data['first_name'] . ' ' . $customer_data['last_name'] . ' (' . $customer_data['email'] . ')', null, $customer_data);
+                    }
                     redirect('customers');
                 } else {
                     $this->session->set_flashdata('error', 'Failed to register customer/guest');
@@ -153,6 +156,9 @@ class Customers extends Admin_Controller {
                 
                 if ($this->Customer_model->update($id, $customer_data)) {
                     $this->session->set_flashdata('success', 'Customer/guest updated successfully');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->crud('customers', 'update', 'customer', $id, 'Customer/guest updated: ' . $customer_data['first_name'] . ' ' . $customer_data['last_name'] . ' (' . $customer_data['email'] . ')', array('id' => $customer->id, 'email' => $customer->email, 'status' => $customer->status), $customer_data);
+                    }
                     redirect('customers');
                 } else {
                     $this->session->set_flashdata('error', 'Failed to update customer/guest');
@@ -213,6 +219,9 @@ class Customers extends Admin_Controller {
             }
 
             $this->session->set_flashdata('success', 'Customer/guest and their website account were deleted successfully');
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('customers', 'delete', 'customer', $id, 'Customer/guest deleted: ' . $customer->first_name . ' ' . $customer->last_name . ' (' . $customer->email . ')', array('id' => $customer->id, 'email' => $customer->email), null);
+            }
         } else {
             $this->session->set_flashdata('error', 'Failed to delete customer/guest');
         }

@@ -26,6 +26,15 @@ The system now supports granular permissions that allow you to control who can a
 - `edit_rooms` - Edit existing rooms
 - `delete_rooms` - Delete rooms
 
+### Activity Logs Module
+- `view_activity_logs` - View the activity log list and entry details
+- `export_activity_logs` - Export the filtered log list to CSV
+- `delete_activity_logs` - Clear / purge activity log entries
+
+Permissions are seeded by `admin/sql/add_activity_logs_permission.sql`
+(assigned to the Super Admin role automatically). The underlying module
+reference is documented in `docs/ACTIVITY_LOGS.md`.
+
 ## Installation
 
 1. **Run the SQL script** to add the new permissions:

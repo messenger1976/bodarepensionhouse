@@ -154,6 +154,34 @@ A complete booking and reservation system with user authentication and role-base
   - Security settings
   - File protection
 
+### 9. System Activity Logs / Audit Trail
+
+A centralized audit trail that records activity across the public website, the
+admin panel, the API and background/system events.
+
+- **File**: `admin/sql/create_activity_logs.sql` - `activity_logs` table
+- **File**: `admin/sql/add_activity_logs_permission.sql` - Activity Logs permissions
+- **File**: `admin/application/libraries/Activity_log.php` - best-effort writer
+  (`log()`, `page_view()`, `crud()`, `auth_event()`, `purge_old()`, `clear()`)
+- **File**: `admin/application/models/Activity_log_model.php` - query helpers
+- **File**: `admin/application/config/activity_log.php` - settings (enabled,
+  retention, ignore paths, length caps)
+- **File**: `admin/application/controllers/admin/Activity_logs.php` + views
+  `admin/application/views/admin/activity_logs/` - admin UI (list, filter, view,
+  export, clear)
+- **File**: `includes/activity-log.php` - public-site helper
+  (`bodare_activity_log()`, `bodare_log_page_view()`)
+- **File**: `docs/ACTIVITY_LOGS.md` - full module reference
+
+**What is captured automatically:**
+- Authenticated admin page views (`Admin_Controller`)
+- Public website page views (`includes/site-head.php`)
+- Auth events (login, failed_login, logout, forgot/reset, register, activate)
+- CRUD operations with before/after snapshots (Users, Roles, Groups, Rooms,
+  Bookings, Customers, Inquiries, Invoices, Payments, Events, Profile, settings)
+- API events (booking create/cancel, inquiry submit, payment webhook, profile)
+- Retention auto-purge via `admin/index.php/cron/purge_activity_logs`
+
 ---
 
 ## 🎯 Key Features
@@ -176,6 +204,7 @@ A complete booking and reservation system with user authentication and role-base
 5. ✅ Booking Management
 6. ✅ Room Management
 7. ✅ Admin User Management
+8. ✅ System Activity Logs / Audit Trail (view, filter, export, clear)
 
 ### System Features
 1. ✅ Secure Password Hashing
@@ -186,6 +215,7 @@ A complete booking and reservation system with user authentication and role-base
 6. ✅ Booking Number Generation
 7. ✅ Room Availability Checking
 8. ✅ Price Calculation
+9. ✅ Centralized Activity Logging / Audit Trail (page views, auth, CRUD, API, system, security)
 
 ---
 
@@ -263,6 +293,15 @@ Admin Users → User Groups → Roles → Permissions
 - `SETUP_GUIDE.md`
 - `SYSTEM_SUMMARY.md`
 - `admin1/.htaccess`
+- `admin/sql/create_activity_logs.sql` - activity logs table (System Activity Logs)
+- `admin/sql/add_activity_logs_permission.sql` - activity log admin permissions
+- `admin/application/libraries/Activity_log.php` - audit trail writer
+- `admin/application/models/Activity_log_model.php` - audit trail queries
+- `admin/application/config/activity_log.php` - audit trail settings
+- `admin/application/controllers/admin/Activity_logs.php` - audit trail UI controller
+- `admin/application/views/admin/activity_logs/` - audit trail UI views
+- `includes/activity-log.php` - public-site audit trail helper
+- `docs/ACTIVITY_LOGS.md` - audit trail module documentation
 
 ### Files Modified
 - `admin1/application/models/Booking_model.php` - Added new methods

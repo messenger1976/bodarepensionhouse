@@ -22,13 +22,20 @@
 2. Choose file: `admin/database_schema.sql`
 3. Click "Go"
 4. Repeat for `admin/database_schema_extended.sql`
+5. Repeat for `admin/sql/create_activity_logs.sql` (System Activity Logs / Audit Trail table)
+6. Repeat for `admin/sql/add_activity_logs_permission.sql` (Activity Logs admin permissions)
 
 #### Option B: Via Command Line
 ```bash
 cd C:\xampp3\htdocs\bodarepensionhouse
 mysql -u root -p bodarepensionhouse < admin/database_schema.sql
 mysql -u root -p bodarepensionhouse < admin/database_schema_extended.sql
+mysql -u root -p bodarepensionhouse < admin/sql/create_activity_logs.sql
+mysql -u root -p bodarepensionhouse < admin/sql/add_activity_logs_permission.sql
 ```
+
+> **Note:** The Activity Logs (audit trail) tables are created with `IF NOT EXISTS`
+> and the permission seeding is idempotent, so they are safe to re-run.
 
 ### 4. Configure Database Connection
 

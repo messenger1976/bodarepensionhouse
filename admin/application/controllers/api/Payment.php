@@ -13,6 +13,7 @@ class Payment extends CI_Controller {
         $this->load->model('Invoice_model');
         $this->load->library('paymongo');
         $this->load->library('paymongo_service');
+        $this->load->library('activity_log');
         header('Content-Type: application/json');
     }
 
@@ -520,6 +521,10 @@ class Payment extends CI_Controller {
         // qrph.expired — no DB mutation required; client regenerates on demand
         if ($event_type === 'qrph.expired') {
             $handled = true;
+        }
+
+        if (isset($this->activity_log)) {
+            $this->activity_log->log('system', 'payments', 'webhook', 'PayMongo webhook received (event: ' . $event_type . ', handled: ' . ($handled ? 'yes' : 'no') . ')', array('status' => 'success', 'metadata' => array('event_type' => $event_type, 'handled' => $handled)));
         }
 
         echo json_encode(array('success' => true, 'handled' => $handled, 'event' => $event_type));

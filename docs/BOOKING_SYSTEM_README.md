@@ -41,11 +41,17 @@ mysql -u root -p bodarepensionhouse < admin/database_schema.sql
 
 -- Step 2: Run extended schema (users table and enhancements)
 mysql -u root -p bodarepensionhouse < admin/database_schema_extended.sql
+
+-- Step 3: System Activity Logs / Audit Trail
+mysql -u root -p bodarepensionhouse < admin/sql/create_activity_logs.sql
+mysql -u root -p bodarepensionhouse < admin/sql/add_activity_logs_permission.sql
 ```
 
 Or import via phpMyAdmin:
 1. Import `admin/database_schema.sql`
 2. Import `admin/database_schema_extended.sql`
+3. Import `admin/sql/create_activity_logs.sql`
+4. Import `admin/sql/add_activity_logs_permission.sql`
 
 ### 2. Configure Database Connection
 
@@ -180,6 +186,9 @@ GET /admin/api/booking/calculate?room_id=1&check_in=2025-01-15&check_out=2025-01
 - `view_reports` - View reports
   - Daily Sales Report - View daily sales data, booking statistics, revenue totals, and sales breakdown by room type
 - `system_settings` - System configuration
+- `view_activity_logs` - View the system activity log (audit trail)
+- `export_activity_logs` - Export the activity log to CSV
+- `delete_activity_logs` - Clear / purge activity log entries
 
 ### Using Permissions in Controllers
 
@@ -224,6 +233,7 @@ Access via: `http://localhost/bodarepensionhouse/admin/`
 - `/users` - Manage admin users
 - `/groups` - Manage user groups
 - `/roles` - Manage roles
+- `/activity_logs` - System activity logs / audit trail (view, filter, export, clear)
 
 ---
 
@@ -362,6 +372,7 @@ bodarepensionhouse/
 4. **SQL Injection Protection**: CodeIgniter's Query Builder prevents SQL injection
 5. **XSS Protection**: Input validation and output escaping
 6. **CSRF Protection**: Available via CodeIgniter's CSRF tokens (can be enabled)
+7. **Audit Trail**: Every page view, login, CRUD operation and system event is recorded in the `activity_logs` table (see `docs/ACTIVITY_LOGS.md`)
 
 ---
 

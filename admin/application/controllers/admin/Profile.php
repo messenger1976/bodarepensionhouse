@@ -115,6 +115,12 @@ class Profile extends Admin_Controller {
         // Update admin
         if ($this->Admin_model->update($this->admin_id, $update_data)) {
             $this->session->set_flashdata('success', 'Profile updated successfully!');
+            if (isset($this->activity_log)) {
+                $log_snapshot = $update_data;
+                $pwd_changed = !empty($password);
+                unset($log_snapshot['password']);
+                $this->activity_log->crud('profile', 'update', 'admin_user', $this->admin_id, 'Own profile updated' . ($pwd_changed ? ' (password changed)' : ''), null, $log_snapshot, array('metadata' => array('password_changed' => $pwd_changed)));
+            }
             
             // Refresh session data
             $admin = $this->Admin_model->get_admin($this->admin_id);

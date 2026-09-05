@@ -101,6 +101,12 @@ class Users extends Admin_Controller {
                 if ($user_id && $this->input->post('groups')) {
                     $this->User_group_model->assign_groups_to_admin($user_id, $this->input->post('groups'));
                     $this->session->set_flashdata('success', 'Admin user created successfully');
+                    // Audit: log creation (strip credentials before snapshotting).
+                    $log_snapshot = $user_data;
+                    unset($log_snapshot['password']);
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->crud('users', 'create', 'admin_user', $user_id, 'Admin user created: ' . $user_data['name'] . ' (' . $user_data['username'] . ')', null, $log_snapshot);
+                    }
                     redirect('users');
                 } else {
                     $this->session->set_flashdata('error', 'Failed to create user');
@@ -214,6 +220,14 @@ class Users extends Admin_Controller {
                         $this->User_group_model->assign_groups_to_admin($id, $this->input->post('groups'));
                     }
                     
+                    // Audit: log update with before/after snapshots (credentials stripped).
+                    $log_old = array('name' => $user->name, 'username' => $user->username, 'email' => $user->email, 'status' => $user->status);
+                    $log_new = $user_data;
+                    unset($log_new['password']);
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->crud('users', 'update', 'admin_user', $id, 'Admin user updated: ' . $user_data['name'] . ' (' . $user_data['username'] . ')', $log_old, $log_new);
+                    }
+                    
                     $this->session->set_flashdata('success', 'User updated successfully');
                     redirect('users');
                 } else {
@@ -252,6 +266,9 @@ class Users extends Admin_Controller {
         
         if ($this->Admin_model->delete($id)) {
             $this->session->set_flashdata('success', 'User deleted successfully');
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('users', 'delete', 'admin_user', $id, 'Admin user deleted (ID: ' . $id . ')', array('id' => $id), null);
+            }
         } else {
             $this->session->set_flashdata('error', 'Failed to delete user');
         }
@@ -309,6 +326,9 @@ class Users extends Admin_Controller {
                 $message .= ' ' . $failed . ' user(s) could not be deleted.';
             }
             $this->session->set_flashdata('success', $message);
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('users', 'batch_delete', 'admin_user', null, 'Batch deleted ' . $deleted . ' admin user(s)' . ($skipped ? ', skipped ' . $skipped : '') . ($failed ? ', failed ' . $failed : ''), array('ids' => $user_ids), null);
+            }
         } else {
             $this->session->set_flashdata('error', 'No users were deleted. You cannot delete your own account.');
         }

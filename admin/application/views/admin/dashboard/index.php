@@ -61,6 +61,60 @@
     </div>
 </div>
 
+<?php if (!empty($recent_activity)): ?>
+<div class="nk-block">
+    <div class="card card-bordered">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-clock-history"></i> Recent Activity</span>
+            <a href="<?php echo base_url('activity_logs'); ?>" class="btn btn-sm btn-light">View All <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="card-body p-0">
+            <div class="mb-2 px-3 py-2 bg-light rounded d-flex flex-wrap gap-2">
+                <?php
+                $type_badge = array('page_view' => 'secondary', 'auth' => 'primary', 'crud' => 'success', 'api' => 'info', 'system' => 'warning', 'security' => 'danger');
+                $type_label = array('page_view' => 'Page Views', 'auth' => 'Auth', 'crud' => 'CRUD', 'api' => 'API', 'system' => 'System', 'security' => 'Security');
+                $act_summary = isset($activity_summary) ? $activity_summary : array('total' => 0, 'by_type' => array());
+                ?>
+                <span class="small text-muted">Last 7 days:</span>
+                <?php if (!empty($act_summary['by_type'])): ?>
+                    <?php foreach ($act_summary['by_type'] as $t => $count): ?>
+                        <span class="badge bg-<?php echo isset($type_badge[$t]) ? $type_badge[$t] : 'secondary'; ?>">
+                            <?php echo isset($type_label[$t]) ? $type_label[$t] : ucfirst($t); ?>: <?php echo (int) $count; ?>
+                        </span>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <span class="small text-muted">No activity recorded yet.</span>
+                <?php endif; ?>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Action</th>
+                            <th>Description</th>
+                            <th>Actor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($recent_activity as $log): ?>
+                        <tr>
+                            <td class="text-nowrap small"><?php echo htmlspecialchars(date('M j, H:i', strtotime($log->created_at)), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><span class="badge bg-<?php echo isset($type_badge[$log->log_type]) ? $type_badge[$log->log_type] : 'secondary'; ?>"><?php echo htmlspecialchars($log->log_type); ?></span></td>
+                            <td><code class="small"><?php echo htmlspecialchars($log->action); ?></code></td>
+                            <td class="small"><?php echo htmlspecialchars(mb_strimwidth((string) $log->description, 0, 70, '…'), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="small"><?php echo htmlspecialchars($log->actor_name ?: $log->actor_type); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <?php
 $status_totals = array('pending' => 0, 'confirmed' => 0, 'checked_in' => 0, 'checked_out' => 0, 'cancelled' => 0, 'completed' => 0);
 if (!empty($today_status_analytics) && is_array($today_status_analytics)) {

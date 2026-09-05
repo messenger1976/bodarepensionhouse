@@ -58,8 +58,12 @@ class Rooms extends Admin_Controller {
                     'status' => $this->input->post('status') ? $this->input->post('status') : 'active'
                 );
                 
-                if ($this->Room_model->create_room($room_data)) {
+                $room_id = $this->Room_model->create_room($room_data);
+                if ($room_id) {
                     $this->session->set_flashdata('success', 'Room added successfully');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->crud('rooms', 'create', 'room', $room_id, 'Room added: ' . $room_data['room_name'], null, $room_data);
+                    }
                     redirect('rooms');
                 } else {
                     $this->session->set_flashdata('error', 'Failed to add room');
@@ -108,6 +112,10 @@ class Rooms extends Admin_Controller {
                 
                 if ($this->Room_model->update_room($id, $room_data)) {
                     $this->session->set_flashdata('success', 'Room updated successfully');
+                    if (isset($this->activity_log)) {
+                        $old = array('id' => $data['room']->id, 'room_name' => $data['room']->room_name, 'room_code' => $data['room']->room_code, 'status' => $data['room']->status);
+                        $this->activity_log->crud('rooms', 'update', 'room', $id, 'Room updated: ' . $room_data['room_name'], $old, $room_data);
+                    }
                     redirect('rooms');
                 } else {
                     $this->session->set_flashdata('error', 'Failed to update room');
@@ -132,6 +140,9 @@ class Rooms extends Admin_Controller {
         
         if ($this->Room_model->delete_room($id)) {
             $this->session->set_flashdata('success', 'Room deleted successfully');
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('rooms', 'delete', 'room', $id, 'Room deleted (ID: ' . $id . ')', array('id' => $id), null);
+            }
         } else {
             $this->session->set_flashdata('error', 'Failed to delete room');
         }
@@ -222,6 +233,9 @@ class Rooms extends Admin_Controller {
         }
 
         $this->session->set_flashdata('success', 'Room duplicated successfully. You can update the copy below.');
+        if (isset($this->activity_log)) {
+            $this->activity_log->crud('rooms', 'duplicate', 'room', $new_room_id, 'Room duplicated: ' . $room->room_name . ' (new ID: ' . $new_room_id . ')', array('source_id' => $id, 'source_code' => $room->room_code), $room_data);
+        }
         redirect('rooms/edit/' . $new_room_id);
     }
     

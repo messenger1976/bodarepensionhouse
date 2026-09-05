@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Ensure URL helper is loaded before using base_url()
 if (!function_exists('base_url') && isset($this) && is_object($this) && method_exists($this, 'load')) {
     $this->load->helper('url');
@@ -3569,6 +3569,16 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                 <a href="<?php echo base_url('roles'); ?>" class="nk-menu-link <?php echo strpos($current_uri, 'roles') !== false ? 'active' : ''; ?>">
                     <span class="nk-menu-icon"><i class="bi bi-shield-check"></i></span>
                     <span class="nk-menu-text">Roles</span>
+                </a>
+            </div>
+            <?php endif; ?>
+
+            <!-- Activity Logs -->
+            <?php if ($is_super_admin || ($admin_id && $this->Admin_model->has_permission($admin_id, 'view_activity_logs'))): ?>
+            <div class="nk-menu-item">
+                <a href="<?php echo base_url('activity_logs'); ?>" class="nk-menu-link <?php echo strpos($current_uri, 'activity_logs') !== false ? 'active' : ''; ?>">
+                    <span class="nk-menu-icon"><i class="bi bi-clock-history"></i></span>
+                    <span class="nk-menu-text">Activity Logs</span>
                 </a>
             </div>
             <?php endif; ?>

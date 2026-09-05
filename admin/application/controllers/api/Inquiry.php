@@ -9,6 +9,7 @@ class Inquiry extends CI_Controller {
         $this->load->library('form_validation');
         $this->load->library('form_security');
         $this->load->library('api_auth');
+        $this->load->library('activity_log');
         $this->load->database();
         $this->load->helper('url');
         header('Content-Type: application/json');
@@ -217,6 +218,10 @@ class Inquiry extends CI_Controller {
             ));
 
             $this->sendInquiryEmails($inquiryid, $name, $email, $subject, $body);
+            
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('inquiries', 'create', 'inquiry', $inquiryid, 'Inquiry submitted by ' . $name . ' (' . $email . ')', null, array('subject' => $subject, 'name' => $name, 'email' => $email));
+            }
             
             echo json_encode(array(
                 'success' => TRUE,

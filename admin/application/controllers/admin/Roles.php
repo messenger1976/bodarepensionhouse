@@ -81,6 +81,9 @@ class Roles extends Admin_Controller {
                         $this->Role_model->assign_permissions_to_role($role_id, $this->input->post('permissions'));
                     }
                     $this->session->set_flashdata('success', 'Role created successfully');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->crud('roles', 'create', 'role', $role_id, 'Role created: ' . $role_data['name'], null, $role_data);
+                    }
                     redirect('roles');
                 } else {
                     $this->session->set_flashdata('error', 'Failed to create role. Please try again.');
@@ -141,6 +144,9 @@ class Roles extends Admin_Controller {
                     }
                     
                     $this->session->set_flashdata('success', 'Role updated successfully');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->crud('roles', 'update', 'role', $id, 'Role updated: ' . $role_data['name'], array('id' => $role->id, 'name' => $role->name, 'slug' => $role->slug, 'status' => $role->status), $role_data);
+                    }
                     redirect('roles');
                 }
             }
@@ -171,6 +177,9 @@ class Roles extends Admin_Controller {
         
         if ($this->Role_model->delete($id)) {
             $this->session->set_flashdata('success', 'Role deleted successfully');
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('roles', 'delete', 'role', $id, 'Role deleted (ID: ' . $id . ')', array('id' => $id), null);
+            }
         } else {
             $this->session->set_flashdata('error', 'Failed to delete role');
         }

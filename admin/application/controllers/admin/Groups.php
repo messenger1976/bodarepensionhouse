@@ -61,6 +61,9 @@ class Groups extends Admin_Controller {
                 if ($group_id && $this->input->post('roles')) {
                     $this->User_group_model->assign_roles_to_group($group_id, $this->input->post('roles'));
                     $this->session->set_flashdata('success', 'Group created successfully');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->crud('groups', 'create', 'user_group', $group_id, 'Group created: ' . $group_data['name'], null, $group_data);
+                    }
                     redirect('groups');
                 }
             }
@@ -110,6 +113,9 @@ class Groups extends Admin_Controller {
                     }
                     
                     $this->session->set_flashdata('success', 'Group updated successfully');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->crud('groups', 'update', 'user_group', $id, 'Group updated: ' . $group_data['name'], array('id' => $group->id, 'name' => $group->name, 'status' => $group->status), $group_data);
+                    }
                     redirect('groups');
                 }
             }
@@ -140,6 +146,9 @@ class Groups extends Admin_Controller {
         
         if ($this->User_group_model->delete($id)) {
             $this->session->set_flashdata('success', 'Group deleted successfully');
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('groups', 'delete', 'user_group', $id, 'Group deleted (ID: ' . $id . ')', array('id' => $id), null);
+            }
         } else {
             $this->session->set_flashdata('error', 'Failed to delete group');
         }

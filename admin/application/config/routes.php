@@ -133,6 +133,12 @@ $route['roles/add'] = 'admin/roles/add';
 $route['roles/edit/(:num)'] = 'admin/roles/edit/$1';
 $route['roles/delete/(:num)'] = 'admin/roles/delete/$1';
 
+// System Activity Logs routes
+$route['activity_logs'] = 'admin/activity_logs/index';
+$route['activity_logs/view/(:num)'] = 'admin/activity_logs/view/$1';
+$route['activity_logs/export'] = 'admin/activity_logs/export';
+$route['activity_logs/clear'] = 'admin/activity_logs/clear';
+
 // Module Generator routes
 $route['module_generator'] = 'admin/module_generator/index';
 $route['module_generator/generate'] = 'admin/module_generator/generate';
@@ -220,6 +226,7 @@ $route['api/push/unregister'] = 'api/push/unregister';
 $route['api/push/status'] = 'api/push/status';
 
 $route['cron/check_in_reminders'] = 'cron/check_in_reminders';
+$route['cron/purge_activity_logs'] = 'cron/purge_activity_logs';
 
 // Customer Dashboard routes
 $route['customer/dashboard'] = 'customer/dashboard/index';

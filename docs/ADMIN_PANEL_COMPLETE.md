@@ -39,6 +39,13 @@ A complete admin backend system with login, dashboard, and all booking managemen
    - Delete admin user
    - User status management
 
+6. **System Activity Logs (Audit Trail)**
+   - View & filter the activity log (page views, auth, CRUD, API, system, security events)
+   - View a single log entry with before/after value snapshots (JSON)
+   - Export the filtered log list to CSV
+   - Clear / purge log entries (delete permission)
+   - Configurable retention (default 90 days) auto-purged via cron
+
 ---
 
 ## 📁 Files Created
@@ -49,12 +56,20 @@ A complete admin backend system with login, dashboard, and all booking managemen
 - `admin/application/controllers/admin/Bookings.php` - Bookings management
 - `admin/application/controllers/admin/Rooms.php` - Rooms management
 - `admin/application/controllers/admin/Users.php` - Admin users management
+- `admin/application/controllers/admin/Activity_logs.php` - Activity logs (audit trail)
 
 ### Models
 - `admin/application/models/Admin_model.php` - Admin authentication & permission checks
 - `admin/application/models/Booking_model.php` - Booking operations
 - `admin/application/models/Room_model.php` - Room operations
 - `admin/application/models/User_model.php` - Customer user operations
+- `admin/application/models/Activity_log_model.php` - Activity log queries
+
+### Libraries
+- `admin/application/libraries/Activity_log.php` - Audit trail writer (log / page_view / crud / auth_event / purge / clear)
+
+### Config
+- `admin/application/config/activity_log.php` - Activity log settings (enabled, retention, ignore paths, length caps)
 
 ### Views
 - `admin/application/views/admin/auth/login.php` - Login page
@@ -71,6 +86,8 @@ A complete admin backend system with login, dashboard, and all booking managemen
 - `admin/application/views/admin/users/index.php` - Users list
 - `admin/application/views/admin/users/add.php` - Add user
 - `admin/application/views/admin/users/edit.php` - Edit user
+- `admin/application/views/admin/activity_logs/index.php` - Activity logs list & filters
+- `admin/application/views/admin/activity_logs/view.php` - Activity log detail
 
 ### Core Classes
 - `admin/application/core/Admin_Controller.php` - Base admin controller with permission methods
@@ -126,6 +143,13 @@ A complete admin backend system with login, dashboard, and all booking managemen
 - Activate/Deactivate users
 - Delete users (cannot delete own account)
 
+### System Activity Logs
+- Filterable / searchable activity log list (type, module, actor, status, severity, date range, keyword)
+- Detail view with before/after JSON snapshots and request metadata
+- CSV export of the current result set
+- Clear / purge log entries (with date cutoff) — requires `delete_activity_logs`
+- Automatic capture of admin & public page views, auth events, CRUD operations and API/system events
+
 ---
 
 ## 🎨 UI Features
@@ -155,6 +179,9 @@ All URLs are relative to: `http://localhost/bodarepensionhouse/admin/`
 - `/users` - Manage admin users
 - `/users/add` - Add new admin user
 - `/users/edit/{id}` - Edit admin user
+- `/activity_logs` - System activity logs (audit trail)
+- `/activity_logs/view/{id}` - View a single log entry
+- `/activity_logs/export` - Export activity logs to CSV
 
 ---
 
@@ -171,13 +198,18 @@ All URLs are relative to: `http://localhost/bodarepensionhouse/admin/`
 
 ## 📝 Permission System
 
-The admin panel includes a permission system that can be enabled:
+The admin panel uses an active role-based permission system:
 
-- Permission checks are available via `has_permission()` method
+- Permission checks via `has_permission()` method
 - Role checks via `has_role()` method
-- Requires permission via `require_permission()` method
+- Required permission via `require_permission()` method
+- The sidebar menu items are gated per permission (see `docs/PERMISSION_BASED_MENU.md`)
+- Super admin (admin_id = 1) is always allowed
 
-Currently, permission checks are commented out but can be enabled once the permission system tables are set up.
+Activity Logs permissions (seeded by `admin/sql/add_activity_logs_permission.sql`):
+- `view_activity_logs` - View the activity log list + detail
+- `export_activity_logs` - Export the log list to CSV
+- `delete_activity_logs` - Clear / purge log entries
 
 ---
 

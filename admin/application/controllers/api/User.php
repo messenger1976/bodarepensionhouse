@@ -10,6 +10,7 @@ class User extends CI_Controller {
         $this->load->model('Customer_model');
         $this->load->library('form_validation');
         $this->load->library('api_auth');
+        $this->load->library('activity_log');
         header('Content-Type: application/json');
     }
     
@@ -298,6 +299,10 @@ class User extends CI_Controller {
             $response_user['id_number'] = $updated_customer->id_number ? $updated_customer->id_number : '';
         }
         
+        if (isset($this->activity_log)) {
+            $this->activity_log->crud('profile', 'update', 'customer', $user_id, 'Customer profile updated', null, $response_user ?: array('user_id' => $user_id));
+        }
+
         echo json_encode([
             'success' => true,
             'message' => 'Your profile has been updated successfully!',
@@ -404,6 +409,10 @@ class User extends CI_Controller {
 
         // Password changed -> sign out every device except this one.
         $this->api_auth->revoke_user_tokens($user_id, isset($auth['token']) ? $auth['token'] : null);
+
+        if (isset($this->activity_log)) {
+            $this->activity_log->crud('profile', 'change_password', 'user', $user_id, 'Customer password changed', null, null);
+        }
 
         echo json_encode([
             'success' => true,

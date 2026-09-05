@@ -14,6 +14,7 @@ class Booking extends CI_Controller {
         $this->load->model('Booking_settings_model');
         $this->load->library('form_validation');
         $this->load->library('api_auth');
+        $this->load->library('activity_log');
         header('Content-Type: application/json');
     }
     
@@ -750,6 +751,10 @@ class Booking extends CI_Controller {
             }
         }
         
+        if (isset($this->activity_log)) {
+            $this->activity_log->crud('bookings', 'create', 'booking', $booking_id, 'Booking #' . ($booking->booking_number ?: $booking_id) . ' created via website (' . $total_rooms_count . ' room(s), ' . $payment_method . ')', null, array('booking_number' => $booking->booking_number, 'total_amount' => $total_amount, 'currency' => isset($booking->currency) ? $booking->currency : 'PHP'));
+        }
+
         echo json_encode([
             'success' => true,
             'message' => $response_message,
@@ -997,6 +1002,10 @@ class Booking extends CI_Controller {
             $this->output->set_status_header(500);
             echo json_encode(['success' => false, 'message' => 'Failed to cancel booking. Please try again.']);
             return;
+        }
+
+        if (isset($this->activity_log)) {
+            $this->activity_log->crud('bookings', 'cancel', 'booking', $booking_id, 'Booking #' . ($booking->booking_number ?: $booking_id) . ' cancelled by customer', array('status' => $booking->status), array('status' => 'cancelled'));
         }
 
         echo json_encode([

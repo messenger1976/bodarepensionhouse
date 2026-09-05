@@ -141,6 +141,9 @@ class Invoices extends Admin_Controller {
                         $this->Invoice_model->issue($invoice_id);
                     }
                     $this->session->set_flashdata('success', 'Invoice created successfully.');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->crud('invoices', 'create', 'invoice', $invoice_id, 'Invoice created for ' . ($invoice_data['guest_name'] ?: 'guest') . ($this->input->post('issue_now') ? ' and issued' : ''), null, $invoice_data);
+                    }
                     redirect('invoices/view/' . $invoice_id);
                 }
                 $this->session->set_flashdata('error', 'Failed to create invoice.');
@@ -218,6 +221,10 @@ class Invoices extends Admin_Controller {
                 $this->Invoice_model->recalculate_totals($id);
 
                 $this->session->set_flashdata('success', 'Invoice updated successfully.');
+                if (isset($this->activity_log)) {
+                    $old_iv = array('id' => $invoice->id, 'invoice_number' => $invoice->invoice_number, 'status' => $invoice->status, 'guest_name' => $invoice->guest_name, 'balance_due' => $invoice->balance_due);
+                    $this->activity_log->crud('invoices', 'update', 'invoice', $id, 'Invoice #' . $invoice->invoice_number . ' updated', $old_iv, $update);
+                }
                 redirect('invoices/view/' . $id);
             }
         }
@@ -250,6 +257,9 @@ class Invoices extends Admin_Controller {
                 ));
                 $this->Invoice_model->recalculate_totals($id);
                 $this->session->set_flashdata('success', 'Additional charge added.');
+                if (isset($this->activity_log)) {
+                    $this->activity_log->crud('invoices', 'add_charge', 'invoice', $id, 'Additional charge added to invoice #' . $invoice->invoice_number, null, array('description' => $this->input->post('description'), 'unit_price' => $this->input->post('unit_price')));
+                }
             }
         }
 
@@ -273,6 +283,9 @@ class Invoices extends Admin_Controller {
             log_message('error', 'Invoice issue push failed: ' . $e->getMessage());
         }
         $this->session->set_flashdata('success', 'Invoice issued.');
+        if (isset($this->activity_log)) {
+            $this->activity_log->crud('invoices', 'issue', 'invoice', $id, 'Invoice #' . ($invoice->invoice_number ?: $id) . ' issued', array('id' => $id, 'status' => 'draft'), array('status' => 'issued'));
+        }
         redirect('invoices/view/' . $id);
     }
 
@@ -285,6 +298,9 @@ class Invoices extends Admin_Controller {
         }
         $this->Invoice_model->void_invoice($id);
         $this->session->set_flashdata('success', 'Invoice voided.');
+        if (isset($this->activity_log)) {
+            $this->activity_log->crud('invoices', 'void', 'invoice', $id, 'Invoice #' . ($invoice->invoice_number ?: $id) . ' voided', array('id' => $id, 'status' => $invoice->status), array('status' => 'void'));
+        }
         redirect('invoices');
     }
 
@@ -292,6 +308,9 @@ class Invoices extends Admin_Controller {
         $this->require_permission('delete_invoices');
         if ($this->Invoice_model->delete($id)) {
             $this->session->set_flashdata('success', 'Invoice deleted.');
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('invoices', 'delete', 'invoice', $id, 'Invoice deleted (ID: ' . $id . ')', array('id' => $id), null);
+            }
         } else {
             $this->session->set_flashdata('error', 'Failed to delete invoice.');
         }
@@ -354,6 +373,9 @@ class Invoices extends Admin_Controller {
                 log_message('error', 'Invoice email push failed: ' . $e->getMessage());
             }
             $this->session->set_flashdata('success', 'Invoice emailed to ' . $invoice->guest_email . '.');
+            if (isset($this->activity_log)) {
+                $this->activity_log->log('system', 'invoices', 'send_email', 'Invoice #' . ($invoice->invoice_number ?: $id) . ' emailed to ' . $invoice->guest_email, array('entity_type' => 'invoice', 'entity_id' => $id, 'status' => 'success'));
+            }
         } else {
             $error = $this->billing_mail->get_last_error();
             $this->session->set_flashdata('error', 'Failed to send invoice email. ' . ($error ?: 'Check SMTP settings.'));

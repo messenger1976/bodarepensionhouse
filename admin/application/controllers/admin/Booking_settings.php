@@ -51,6 +51,11 @@ class Booking_settings extends Admin_Controller {
             
             if ($this->Booking_settings_model->update_settings($settings_data)) {
                 $this->session->set_flashdata('success', 'Booking settings updated successfully');
+                if (isset($this->activity_log)) {
+                    $snap = $settings_data;
+                    unset($snap['paymongo_secret_key'], $snap['paymongo_public_key'], $snap['paymongo_webhook_secret']);
+                    $this->activity_log->crud('booking_settings', 'update', 'settings', null, 'Booking settings updated', null, $snap);
+                }
                 redirect('booking_settings');
             } else {
                 $this->session->set_flashdata('error', 'Failed to update settings');

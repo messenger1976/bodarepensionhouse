@@ -27,6 +27,7 @@ class Admin_Controller extends MY_Controller {
         
         $this->load->library('session');
         $this->load->model('Admin_model');
+        $this->load->library('activity_log');
         
         // Check if user is logged in
         if (!$this->session->userdata('admin_logged_in')) {
@@ -82,6 +83,12 @@ class Admin_Controller extends MY_Controller {
                 'admin_logged_in' => TRUE
             );
             $this->session->set_userdata($session_data);
+        }
+        
+        // Record this authenticated admin page view (GET only, best-effort).
+        // CRUD / POST actions are logged explicitly by their controllers.
+        if (isset($this->activity_log) && $this->input->method() === 'get') {
+            $this->activity_log->page_view();
         }
     }
     

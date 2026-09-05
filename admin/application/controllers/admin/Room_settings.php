@@ -43,6 +43,9 @@ class Room_settings extends Admin_Controller {
             
             if ($this->Room_settings_model->update_settings($settings_data)) {
                 $this->session->set_flashdata('success', 'Room settings updated successfully');
+                if (isset($this->activity_log)) {
+                    $this->activity_log->crud('room_settings', 'update', 'settings', null, 'Room settings updated', null, $settings_data);
+                }
                 redirect('room_settings');
             } else {
                 $this->session->set_flashdata('error', 'Failed to update settings');

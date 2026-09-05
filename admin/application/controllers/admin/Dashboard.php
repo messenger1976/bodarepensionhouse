@@ -12,6 +12,7 @@ class Dashboard extends Admin_Controller {
         parent::__construct();
         $this->load->model('Booking_model');
         $this->load->model('Room_model');
+        $this->load->model('Activity_log_model');
     }
     
     public function index() {
@@ -52,6 +53,13 @@ class Dashboard extends Admin_Controller {
         $data['top_rooms_analytics'] = $this->Booking_model->get_top_rooms_analytics_by_range($range_info['start_date'], $range_info['end_date'], 6);
         $data['inventory_summary_today'] = $this->Booking_model->get_inventory_summary_for_date(date('Y-m-d'));
         $data['occupancy_forecast'] = $this->Booking_model->get_occupancy_forecast(30, date('Y-m-d'));
+
+        // System Activity Logs widget (guarded in case the table is not migrated yet).
+        $data['recent_activity'] = array();
+        if ($this->db->table_exists('activity_logs') && $this->has_permission('view_activity_logs')) {
+            $data['recent_activity'] = $this->Activity_log_model->recent(8);
+            $data['activity_summary'] = $this->Activity_log_model->summary_counts(7);
+        }
         
         $this->load->view('admin/layout/header', $data);
         $this->load->view('admin/dashboard/index', $data);

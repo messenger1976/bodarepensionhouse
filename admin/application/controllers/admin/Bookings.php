@@ -548,6 +548,11 @@ class Bookings extends Admin_Controller {
                             }
                         }
                         $this->session->set_flashdata('success', $success_msg);
+                        if (isset($this->activity_log) && isset($data['booking'])) {
+                            $old_b = array('id' => $data['booking']->id, 'booking_number' => $data['booking']->booking_number, 'guest_name' => $data['booking']->guest_name, 'guest_email' => $data['booking']->guest_email, 'status' => $data['booking']->status);
+                            $new_b = array('guest_name' => $this->input->post('guest_name'), 'guest_email' => $this->input->post('guest_email'), 'guest_phone' => $this->input->post('guest_phone'), 'check_in' => $this->input->post('check_in'), 'check_out' => $this->input->post('check_out'), 'status' => $this->input->post('status'), 'rooms' => $total_rooms_count);
+                            $this->activity_log->crud('bookings', 'update', 'booking', $id, 'Booking #' . ($data['booking']->booking_number ?: $id) . ' updated (' . $total_rooms_count . ' room(s))', $old_b, $new_b);
+                        }
                         redirect('bookings');
                     }
                 } else {
@@ -584,6 +589,9 @@ class Bookings extends Admin_Controller {
         // Attempt to delete
         if ($this->Booking_model->delete_booking($id)) {
             $this->session->set_flashdata('success', 'Booking #' . (isset($booking->booking_number) ? $booking->booking_number : str_pad($id, 6, '0', STR_PAD_LEFT)) . ' deleted successfully');
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('bookings', 'delete', 'booking', $id, 'Booking #' . ($booking->booking_number ?: $id) . ' deleted', array('id' => $booking->id, 'booking_number' => $booking->booking_number, 'guest_name' => $booking->guest_name), null);
+            }
         } else {
             // Get database error for debugging
             $error = $this->db->error();
@@ -641,6 +649,9 @@ class Bookings extends Admin_Controller {
 
         if ($this->Booking_model->set_booking_status($id, $new_status)) {
             $this->session->set_flashdata('success', $success_message);
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('bookings', 'status_change', 'booking', $id, 'Booking #' . ($booking->booking_number ?: $id) . ' status changed: ' . ucwords(str_replace('_', ' ', $booking->status)) . ' → ' . ucwords(str_replace('_', ' ', $new_status)), array('status' => $booking->status), array('status' => $new_status));
+            }
         } else {
             $this->session->set_flashdata('error', 'Failed to update booking status.');
         }
@@ -884,6 +895,9 @@ class Bookings extends Admin_Controller {
                             }
                         }
                         $this->session->set_flashdata('success', $success_msg);
+                        if (isset($this->activity_log)) {
+                            $this->activity_log->crud('bookings', 'create', 'booking', $booking_id, 'Booking #' . ($booking_data['booking_number'] ?: $booking_id) . ' created for ' . $booking_data['guest_name'] . ' (' . $booking_data['guest_email'] . ')', null, $booking_data);
+                        }
                         redirect('bookings');
                     }
                 } else {

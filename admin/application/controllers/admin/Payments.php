@@ -138,6 +138,9 @@ class Payments extends Admin_Controller {
 
         if ($fulfilled) {
             $this->session->set_flashdata('success', 'PayMongo payment confirmed and marked paid.');
+            if (isset($this->activity_log)) {
+                $this->activity_log->log('system', 'payments', 'sync_paymongo', 'PayMongo payment ' . ($payment->reference_number ?: ('#' . $payment->id)) . ' confirmed and marked paid', array('entity_type' => 'payment', 'entity_id' => $payment->id, 'status' => 'success'));
+            }
         } else {
             $this->session->set_flashdata('error', $this->paymongo->get_last_error() ?: 'Could not confirm a paid payment with PayMongo yet.');
         }
@@ -236,6 +239,9 @@ class Payments extends Admin_Controller {
                                     $this->Invoice_model->recalculate_totals($invoice_id_post);
                                 }
                                 $this->session->set_flashdata('success', 'Payment recorded successfully.');
+                                if (isset($this->activity_log)) {
+                                    $this->activity_log->crud('payments', 'create', 'payment', $payment_id, 'Payment of ₱' . number_format($amount, 2) . ' recorded (' . $payment_method . ')', null, $payment_data);
+                                }
                                 redirect($invoice_id_post ? 'invoices/view/' . $invoice_id_post : 'payments/view/' . $payment_id);
                             }
                             $this->session->set_flashdata('error', 'Failed to record payment.');
@@ -640,6 +646,9 @@ class Payments extends Admin_Controller {
                                 $this->Invoice_model->recalculate_totals($update['invoice_id']);
                             }
                             $this->session->set_flashdata('success', 'Payment updated.');
+                            if (isset($this->activity_log)) {
+                                $this->activity_log->crud('payments', 'update', 'payment', $id, 'Payment #' . $id . ' updated (' . $update['payment_method'] . ', ₱' . number_format($update['amount'], 2) . ')', array('id' => $payment->id, 'payment_status' => $payment->payment_status, 'amount' => $payment->amount), $update);
+                            }
                             redirect('payments/view/' . $id);
                         }
                         $this->session->set_flashdata('error', 'Failed to update payment.');
@@ -668,6 +677,9 @@ class Payments extends Admin_Controller {
                 $this->Invoice_model->recalculate_totals($invoice_id);
             }
             $this->session->set_flashdata('success', 'Payment deleted.');
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('payments', 'delete', 'payment', $id, 'Payment #' . $id . ' deleted (₱' . number_format($payment->amount, 2) . ')', array('id' => $payment->id, 'payment_status' => $payment->payment_status, 'amount' => $payment->amount), null);
+            }
         } else {
             $this->session->set_flashdata('error', 'Failed to delete payment.');
         }

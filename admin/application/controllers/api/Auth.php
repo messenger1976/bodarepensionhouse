@@ -18,6 +18,7 @@ class Auth extends CI_Controller {
         $this->load->model('Email_verification_model');
         $this->load->library('form_validation');
         $this->load->library('api_auth');
+        $this->load->library('activity_log');
         header('Content-Type: application/json');
     }
 
@@ -295,6 +296,17 @@ class Auth extends CI_Controller {
             ? 'An account for this email was already started but not yet activated. We emailed a NEW 6-digit verification code to ' . $this->mask_email($email) . ' - enter it to activate your account.'
             : 'Your account has been created. We emailed a 6-digit verification code to ' . $this->mask_email($email) . ' - enter it to activate your account.';
 
+        if (isset($this->activity_log)) {
+            $snap = $user_data;
+            unset($snap['password']);
+            $this->activity_log->auth_event('register', 'Customer account registered: ' . trim($data['first_name'] . ' ' . $data['last_name']) . ' (' . $email . ')' . ($resuming ? ' [resumed]' : ''), array(
+                'status'     => 'success',
+                'actor_type' => 'guest',
+                'actor_name' => $email,
+                'metadata'   => array('user_id' => $user_id, 'resumed' => $resuming),
+            ));
+        }
+
         echo json_encode([
             'success' => true,
             'requires_verification' => true,
@@ -365,6 +377,9 @@ class Auth extends CI_Controller {
         $user_exists = $this->User_model->get_user_by_email($email);
 
         if (!$user_exists) {
+            if (isset($this->activity_log)) {
+                $this->activity_log->auth_event('failed_login', 'Customer login failed: no account for ' . $email, array('status' => 'failed', 'severity' => 'warning', 'actor_type' => 'guest', 'actor_name' => $email));
+            }
             $this->output->set_status_header(401);
             echo json_encode([
                 'success' => false,
@@ -376,6 +391,9 @@ class Auth extends CI_Controller {
         // Check if user is active / email-confirmed
         if ($user_exists->status != 'active') {
             $pending_verification = isset($user_exists->email_verified) && (int) $user_exists->email_verified === 0;
+            if (isset($this->activity_log)) {
+                $this->activity_log->auth_event('failed_login', 'Customer login failed: account not active for ' . $email . ($pending_verification ? ' (pending verification)' : ''), array('status' => 'failed', 'severity' => 'warning', 'actor_type' => 'guest', 'actor_name' => $email));
+            }
             $this->output->set_status_header(401);
             echo json_encode([
                 'success' => false,
@@ -417,6 +435,19 @@ class Auth extends CI_Controller {
                 return;
             }
 
+            $actor_name = trim($user->first_name . ' ' . $user->last_name);
+            if ($actor_name === '') {
+                $actor_name = $user->email;
+            }
+            if (isset($this->activity_log)) {
+                $this->activity_log->auth_event('login', 'Customer logged in: ' . $actor_name . ' (' . $user->email . ')', array(
+                    'status'     => 'success',
+                    'actor_type' => 'customer',
+                    'actor_id'   => $user->id,
+                    'actor_name' => $actor_name,
+                ));
+            }
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Welcome back! You have successfully logged in.',
@@ -451,6 +482,9 @@ class Auth extends CI_Controller {
                 ]);
             } else {
                 // User exists and is active, but password is wrong
+                if (isset($this->activity_log)) {
+                    $this->activity_log->auth_event('failed_login', 'Customer login failed: wrong password for ' . $email, array('status' => 'failed', 'severity' => 'warning', 'actor_type' => 'guest', 'actor_name' => $email));
+                }
                 $this->output->set_status_header(401);
                 echo json_encode([
                     'success' => false,
@@ -469,11 +503,20 @@ class Auth extends CI_Controller {
         header('Access-Control-Allow-Credentials: true');
         header('Content-Type: application/json');
 
+        // Capture actor before clearing the session so the audit trail still
+        // records who logged out.
+        $logout_actor_id = (int) $this->session->userdata('user_id');
+        $logout_actor_name = $this->session->userdata('user_name');
+
         // Revoke the presented bearer token (idempotent).
         $this->api_auth->revoke_current_token();
 
         $this->session->unset_userdata(['user_logged_in', 'user_id', 'user_email', 'user_name']);
         $this->session->sess_destroy();
+
+        if (isset($this->activity_log)) {
+            $this->activity_log->auth_event('logout', 'Customer logged out' . ($logout_actor_name ? ': ' . $logout_actor_name : ''), array('status' => 'success', 'actor_type' => 'customer', 'actor_id' => $logout_actor_id, 'actor_name' => $logout_actor_name));
+        }
 
         echo json_encode([
             'success' => true,
@@ -567,6 +610,9 @@ class Auth extends CI_Controller {
             }
 
             if (!$account || (isset($account->status) && $account->status !== 'active')) {
+                if (isset($this->activity_log)) {
+                    $this->activity_log->auth_event('forgot_password', 'Customer password reset requested: ' . $email . ' (no active account)', array('status' => 'success', 'actor_type' => 'guest', 'actor_name' => $email, 'metadata' => array('email' => $email, 'sent' => false)));
+                }
                 echo json_encode([
                     'success' => true,
                     'message' => $neutral_message
@@ -618,6 +664,10 @@ class Auth extends CI_Controller {
             }
 
             log_message('info', 'Password reset email sent via account mailer.');
+
+            if (isset($this->activity_log)) {
+                $this->activity_log->auth_event('forgot_password', 'Customer password reset requested: ' . $email . ' (reset link sent)', array('status' => 'success', 'actor_type' => 'guest', 'actor_name' => $email, 'metadata' => array('email' => $email, 'sent' => true)));
+            }
 
             echo json_encode([
                 'success' => true,
@@ -788,6 +838,10 @@ class Auth extends CI_Controller {
         if ($saved) {
             // Mark token as used
             $this->Password_reset_model->mark_as_used($token);
+
+            if (isset($this->activity_log)) {
+                $this->activity_log->auth_event('reset_password', 'Customer password reset completed for: ' . $reset_token->email, array('status' => 'success', 'actor_type' => 'guest', 'actor_name' => $reset_token->email, 'metadata' => array('email' => $reset_token->email)));
+            }
 
             echo json_encode([
                 'success' => true,
@@ -1045,6 +1099,10 @@ class Auth extends CI_Controller {
                 'message' => 'Your account was activated but we could not start a sign-in session. Please log in manually.'
             ]);
             return;
+        }
+
+        if (isset($this->activity_log)) {
+            $this->activity_log->auth_event('activate', 'Customer account activated via OTP: ' . $fresh->email, array('status' => 'success', 'actor_type' => 'customer', 'actor_id' => $fresh->id, 'actor_name' => trim($fresh->first_name . ' ' . $fresh->last_name)));
         }
 
         echo json_encode([

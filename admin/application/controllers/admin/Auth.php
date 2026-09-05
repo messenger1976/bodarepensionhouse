@@ -7,6 +7,7 @@ class Auth extends CI_Controller {
         parent::__construct();
         $this->load->library('session');
         $this->load->model('Admin_model');
+        $this->load->library('activity_log');
         $this->load->helper('url');
         $this->load->helper('form');
     }
@@ -73,9 +74,28 @@ class Auth extends CI_Controller {
                     
                     log_message('debug', 'Login successful - Session verified for admin_id: ' . $admin_id . ' (username: ' . $admin_username . ', name: ' . $admin_name . ')');
                     
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->auth_event('login', 'Admin logged in: ' . $admin_name . ' (' . $admin_username . ')', array(
+                            'actor_type' => 'admin',
+                            'actor_id'   => $admin_id,
+                            'actor_name' => $admin_name,
+                            'status'     => 'success',
+                        ));
+                    }
+                    
                     redirect('dashboard');
                 } else {
                     $this->session->set_flashdata('error', 'Invalid username or password');
+                    
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->auth_event('failed_login', 'Failed admin login attempt for username: ' . $username, array(
+                            'actor_type' => 'guest',
+                            'actor_id'   => null,
+                            'actor_name' => $username,
+                            'status'     => 'failed',
+                            'severity'   => 'warning',
+                        ));
+                    }
                 }
             }
         }
@@ -103,8 +123,10 @@ class Auth extends CI_Controller {
                 $neutral = 'If an account exists with this email, a password reset link has been sent. Please check your inbox and spam folder.';
                 
                 $admin = $this->Admin_model->get_by_email($email);
+                $reset_sent = false;
                 
                 if ($admin && $admin->status === 'active') {
+                    $reset_sent = true;
                     $this->load->model('Admin_token_model');
                     $expires_at = date('Y-m-d H:i:s', strtotime('+1 hour'));
                     $token = $this->Admin_token_model->create_token($admin->id, Admin_token_model::TYPE_PASSWORD_RESET, $expires_at);
@@ -128,6 +150,15 @@ class Auth extends CI_Controller {
                             redirect('forgot-password');
                         }
                     }
+                }
+                
+                if (isset($this->activity_log)) {
+                    $this->activity_log->auth_event('forgot_password', 'Password reset requested for email: ' . $email . ($reset_sent ? ' — reset link sent' : ' — no active account'), array(
+                        'status'       => 'success',
+                        'actor_type'   => 'guest',
+                        'actor_name'   => $email,
+                        'metadata'     => array('email' => $email, 'reset_sent' => $reset_sent),
+                    ));
                 }
                 
                 $this->session->set_flashdata('success', $neutral);
@@ -168,6 +199,14 @@ class Auth extends CI_Controller {
                 if ($admin && $this->Admin_model->update_password($admin->id, $this->input->post('password'))) {
                     $this->Admin_token_model->mark_as_used($token);
                     $this->session->set_flashdata('success', 'Your password has been reset successfully. You can now login with your new password.');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->auth_event('reset_password', 'Admin password reset completed for: ' . ($admin->name ?: $admin->username), array(
+                            'status'     => 'success',
+                            'actor_type' => 'guest',
+                            'actor_name' => $admin->email,
+                            'metadata'   => array('admin_id' => $admin->id),
+                        ));
+                    }
                     redirect('login');
                 } else {
                     $this->session->set_flashdata('error', 'Unable to reset password. Please try again.');
@@ -238,8 +277,24 @@ class Auth extends CI_Controller {
                 
                 if ($this->Admin_model->username_exists($username)) {
                     $this->session->set_flashdata('error', 'This username is already taken. Please choose another one.');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->auth_event('register', 'Admin registration blocked: username already taken (' . $username . ')', array(
+                            'status'     => 'failed',
+                            'severity'   => 'warning',
+                            'actor_type' => 'guest',
+                            'actor_name' => $email,
+                        ));
+                    }
                 } elseif ($this->Admin_model->email_exists($email)) {
                     $this->session->set_flashdata('error', 'This email address is already registered.');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->auth_event('register', 'Admin registration blocked: email already registered (' . $email . ')', array(
+                            'status'     => 'failed',
+                            'severity'   => 'warning',
+                            'actor_type' => 'guest',
+                            'actor_name' => $email,
+                        ));
+                    }
                 } else {
                     // Create the account as inactive until the email is confirmed
                     $admin_id = $this->Admin_model->create(array(
@@ -268,6 +323,14 @@ class Auth extends CI_Controller {
                         
                         if ($token && $this->send_email($email, $subject, $message)) {
                             $this->session->set_flashdata('success', 'Your account has been created. Please check your email and click the activation link to activate your account before logging in.');
+                            if (isset($this->activity_log)) {
+                                $this->activity_log->auth_event('register', 'New admin account registered: ' . trim($this->input->post('name')) . ' (' . $email . ')', array(
+                                    'status'       => 'success',
+                                    'actor_type'   => 'guest',
+                                    'actor_name'   => $email,
+                                    'metadata'     => array('admin_id' => $admin_id),
+                                ));
+                            }
                             redirect('login');
                         } else {
                             // Roll back the account so the user can retry registration
@@ -337,6 +400,14 @@ class Auth extends CI_Controller {
         } else {
             $data['success'] = true;
             $data['message'] = 'Your account has been activated with the Staff role. You can now log in.';
+            if (isset($this->activity_log)) {
+                $this->activity_log->auth_event('activate', 'Admin account activated: ' . ($admin->name ?: $admin->username) . ' (' . $admin->email . ')', array(
+                    'status'     => 'success',
+                    'actor_type' => 'guest',
+                    'actor_name' => $admin->email,
+                    'metadata'   => array('admin_id' => $admin->id),
+                ));
+            }
         }
         
         $this->load->view('admin/auth/activation_result', $data);
@@ -416,6 +487,11 @@ class Auth extends CI_Controller {
     }
     
     public function logout() {
+        // Capture actor before clearing the session so the audit trail still
+        // records who logged out.
+        $actor_id = (int) $this->session->userdata('admin_id');
+        $actor_name = $this->session->userdata('admin_name') ?: $this->session->userdata('admin_username');
+
         // Get cookie settings from config
         $cookie_name = $this->config->item('sess_cookie_name') ?: 'bodare_admin_session';
         $cookie_path = $this->config->item('cookie_path') ?: '/';
@@ -456,6 +532,15 @@ class Auth extends CI_Controller {
         
         // Destroy the session (this also clears all session data)
         $this->session->sess_destroy();
+        
+        if (isset($this->activity_log)) {
+            $this->activity_log->auth_event('logout', 'Admin logged out' . ($actor_name ? ': ' . $actor_name : ''), array(
+                'status'     => 'success',
+                'actor_type' => 'admin',
+                'actor_id'   => $actor_id,
+                'actor_name' => $actor_name,
+            ));
+        }
         
         redirect('login');
     }

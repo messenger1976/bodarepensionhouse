@@ -90,6 +90,9 @@ class Events extends Admin_Controller {
                 $event_id = $this->Event_model->create($event_data);
                 if ($event_id) {
                     $this->session->set_flashdata('success', 'Event created successfully.');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->crud('events', 'create', 'event', $event_id, 'Event created: ' . $event_data['event_name'] . ' (' . $event_data['event_date'] . ')', null, $event_data);
+                    }
                     redirect('events/view/' . $event_id);
                 }
                 $this->session->set_flashdata('error', 'Failed to create event.');
@@ -139,6 +142,9 @@ class Events extends Admin_Controller {
 
                 if ($this->Event_model->update($id, $event_data)) {
                     $this->session->set_flashdata('success', 'Event updated successfully.');
+                    if (isset($this->activity_log)) {
+                        $this->activity_log->crud('events', 'update', 'event', $id, 'Event updated: ' . $event_data['event_name'], array('id' => $event->id, 'event_name' => $event->event_name, 'status' => $event->status), $event_data);
+                    }
                     redirect('events/view/' . $id);
                 }
                 $this->session->set_flashdata('error', 'Failed to update event.');
@@ -155,6 +161,9 @@ class Events extends Admin_Controller {
 
         if ($this->Event_model->delete($id)) {
             $this->session->set_flashdata('success', 'Event deleted.');
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('events', 'delete', 'event', $id, 'Event deleted (ID: ' . $id . ')', array('id' => $id), null);
+            }
         } else {
             $this->session->set_flashdata('error', 'Failed to delete event.');
         }
@@ -198,6 +207,9 @@ class Events extends Admin_Controller {
         if ($invoice_id) {
             $this->Invoice_model->issue($invoice_id);
             $this->session->set_flashdata('success', 'Event invoice created.');
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('events', 'create_invoice', 'invoice', $invoice_id, 'Invoice created and issued for event: ' . $event->event_name, null, array('event_id' => $event->id, 'invoice_id' => $invoice_id));
+            }
             redirect('invoices/view/' . $invoice_id);
         }
 

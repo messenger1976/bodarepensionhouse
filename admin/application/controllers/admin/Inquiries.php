@@ -197,6 +197,9 @@ class Inquiries extends Admin_Controller {
 
 		if ($sent) {
 			$this->session->set_flashdata('success', 'Reply sent successfully to ' . $inquiry->email);
+			if (isset($this->activity_log)) {
+				$this->activity_log->crud('inquiries', 'reply', 'inquiry', $inquiryid, 'Reply sent to inquiry #' . $inquiryid . ' (' . $inquiry->email . ')', array('status' => 'replied'), array('status' => 'replied'));
+			}
 		} else {
 			$error = $this->coop_mail->get_last_error();
 			$this->session->set_flashdata('error', 'Reply saved, but email could not be sent. ' . ($error ? $error : 'Check SMTP settings.'));
@@ -226,6 +229,9 @@ class Inquiries extends Admin_Controller {
 
 		if ($updated) {
 			$this->session->set_flashdata('success', 'Inquiry status updated.');
+			if (isset($this->activity_log)) {
+				$this->activity_log->crud('inquiries', 'update', 'inquiry', $inquiryid, 'Inquiry #' . $inquiryid . ' status updated to: ' . $status, null, array('status' => $status));
+			}
 		} else {
 			$this->session->set_flashdata('error', 'Could not update status.');
 		}
@@ -252,6 +258,9 @@ class Inquiries extends Admin_Controller {
 
 		if ($deleted) {
 			$this->session->set_flashdata('success', 'Inquiry deleted successfully.');
+			if (isset($this->activity_log)) {
+				$this->activity_log->crud('inquiries', 'delete', 'inquiry', $inquiryid, 'Inquiry #' . $inquiryid . ' deleted', array('id' => $inquiryid), null);
+			}
 		} else {
 			$this->session->set_flashdata('error', 'Could not delete inquiry.');
 		}
@@ -300,6 +309,9 @@ class Inquiries extends Admin_Controller {
 				return;
 			}
 			$this->session->set_flashdata('success', $result['imported'] . ' guest email reply(ies) imported for inquiries: #' . implode(', #', $ids) . '.');
+			if (isset($this->activity_log)) {
+				$this->activity_log->log('system', 'inquiries', 'import_replies', 'Imported ' . $result['imported'] . ' guest email reply(ies)', array('entity_type' => 'inquiry', 'metadata' => array('ids' => $ids)));
+			}
 		} else {
 			$this->session->set_flashdata('success', 'No new guest email replies found in the mailbox.');
 		}

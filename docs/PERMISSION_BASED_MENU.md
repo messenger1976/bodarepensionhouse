@@ -36,6 +36,15 @@ The sidebar menu now displays menu items based on user permissions. Only menu it
 - **Visibility**: Only admins with manage_roles permission
 - **Description**: Access to roles management
 
+### Activity Logs
+- **Permission Required**: `view_activity_logs` (super admin always sees it)
+- **Visibility**: Only admins with view_activity_logs permission
+- **Description**: System Activity Logs / Audit Trail module
+- **Related permissions**:
+  - `view_activity_logs` - View the log list and entry details
+  - `export_activity_logs` - Export the filtered log list to CSV
+  - `delete_activity_logs` - Clear / purge log entries
+
 ### Reports
 - **Permission Required**: `view_reports`
 - **Visibility**: Only admins with view_reports permission
@@ -81,6 +90,11 @@ This creates permissions like:
 - `view_users`, `add_users`, `edit_users`, `delete_users`
 - `manage_users`, `manage_groups`, `manage_roles`
 - `view_reports` - Access to reports module (Daily Sales Report)
+
+Activity Logs permissions (script: `admin/sql/add_activity_logs_permission.sql`):
+- `view_activity_logs` - View the activity log list and details
+- `export_activity_logs` - Export activity logs to CSV
+- `delete_activity_logs` - Clear / purge activity log entries
 
 ### Step 2: Assign Permissions to Roles
 
@@ -134,6 +148,7 @@ VALUES (ADMIN_ID, GROUP_ID);
 - `view_bookings`, `add_bookings`, `edit_bookings` - Manage bookings
 - `view_rooms`, `add_rooms`, `edit_rooms` - Manage rooms
 - `view_reports` - View daily sales reports
+- `view_activity_logs`, `export_activity_logs` - Read-only audit access (optional)
 - No access to Users, Groups, Roles
 
 ### Admin
@@ -141,11 +156,13 @@ VALUES (ADMIN_ID, GROUP_ID);
 - All add/edit permissions
 - `view_reports` - Access to all reports
 - `manage_groups`, `manage_roles` - Manage system settings
+- `view_activity_logs`, `export_activity_logs`, `delete_activity_logs` - Full audit trail access
 
 ### Super Admin
 - All permissions
 - Access to Module Generator
 - Full system access including all reports
+- Activity Logs menu is always visible (regardless of permission mapping)
 
 ## Customization
 
