@@ -3441,16 +3441,6 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             </div>
             <?php endif; ?>
 
-            <!-- Email/SMTP Settings -->
-            <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'manage_email_settings')): ?>
-            <div class="nk-menu-item">
-                <a href="<?php echo base_url('email_settings'); ?>" class="nk-menu-link <?php echo strpos($current_uri, 'email_settings') !== false ? 'active' : ''; ?>">
-                    <span class="nk-menu-icon"><i class="bi bi-mailbox"></i></span>
-                    <span class="nk-menu-text">Email/SMTP</span>
-                </a>
-            </div>
-            <?php endif; ?>
-            
             <!-- Customers/Guests -->
             <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'view_bookings')): ?>
             <div class="nk-menu-item">
@@ -3542,47 +3532,31 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                 </div>
             </div>
             <?php endif; ?>
-            
-            <!-- Users -->
-            <?php if ($admin_id && ($this->Admin_model->has_permission($admin_id, 'view_users') || $this->Admin_model->has_permission($admin_id, 'manage_users'))): ?>
-            <div class="nk-menu-item">
-                <a href="<?php echo base_url('users'); ?>" class="nk-menu-link <?php echo strpos($current_uri, 'users') !== false ? 'active' : ''; ?>">
-                    <span class="nk-menu-icon"><i class="bi bi-people"></i></span>
-                    <span class="nk-menu-text">Users</span>
-                </a>
-            </div>
-            <?php endif; ?>
-            
-            <!-- Groups -->
-            <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'manage_groups')): ?>
-            <div class="nk-menu-item">
-                <a href="<?php echo base_url('groups'); ?>" class="nk-menu-link <?php echo strpos($current_uri, 'groups') !== false ? 'active' : ''; ?>">
-                    <span class="nk-menu-icon"><i class="bi bi-people-fill"></i></span>
-                    <span class="nk-menu-text">Groups</span>
-                </a>
-            </div>
-            <?php endif; ?>
-            
-            <!-- Roles -->
-            <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'manage_roles')): ?>
-            <div class="nk-menu-item">
-                <a href="<?php echo base_url('roles'); ?>" class="nk-menu-link <?php echo strpos($current_uri, 'roles') !== false ? 'active' : ''; ?>">
-                    <span class="nk-menu-icon"><i class="bi bi-shield-check"></i></span>
-                    <span class="nk-menu-text">Roles</span>
-                </a>
-            </div>
-            <?php endif; ?>
 
             <!-- Admin tools -->
             <?php
             $has_admin_menu = $is_super_admin || ($admin_id && (
+                $this->Admin_model->has_permission($admin_id, 'view_users') ||
+                $this->Admin_model->has_permission($admin_id, 'manage_users') ||
+                $this->Admin_model->has_permission($admin_id, 'manage_groups') ||
+                $this->Admin_model->has_permission($admin_id, 'manage_roles') ||
+                $this->Admin_model->has_permission($admin_id, 'view_activity_logs') ||
+                $this->Admin_model->has_permission($admin_id, 'manage_email_settings') ||
                 $this->Admin_model->has_permission($admin_id, 'view_database_backup') ||
                 $this->Admin_model->has_permission($admin_id, 'create_database_backup') ||
                 $this->Admin_model->has_permission($admin_id, 'upload_database_backup') ||
                 $this->Admin_model->has_permission($admin_id, 'delete_database_backup') ||
                 $this->Admin_model->has_permission($admin_id, 'restore_database_backup')
             ));
-            $is_admin_menu_active = strpos($current_uri, 'database_backup') !== false;
+            $is_admin_menu_active = (
+                strpos($current_uri, 'users') !== false ||
+                strpos($current_uri, 'groups') !== false ||
+                strpos($current_uri, 'roles') !== false ||
+                strpos($current_uri, 'activity_logs') !== false ||
+                strpos($current_uri, 'email_settings') !== false ||
+                strpos($current_uri, 'database_backup') !== false ||
+                strpos($current_uri, 'module_generator') !== false
+            );
             ?>
             <?php if ($has_admin_menu): ?>
             <div class="nk-menu-item has-submenu <?php echo $is_admin_menu_active ? 'active' : ''; ?>">
@@ -3592,6 +3566,41 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                     <span class="nk-menu-toggle"><i class="bi bi-chevron-right"></i></span>
                 </a>
                 <div class="nk-menu-sub">
+                    <?php if ($admin_id && ($this->Admin_model->has_permission($admin_id, 'view_users') || $this->Admin_model->has_permission($admin_id, 'manage_users'))): ?>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('users'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'users') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-people me-2"></i> Users
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'manage_groups')): ?>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('groups'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'groups') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-people-fill me-2"></i> Groups
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'manage_roles')): ?>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('roles'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'roles') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-shield-check me-2"></i> Roles
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($is_super_admin || ($admin_id && $this->Admin_model->has_permission($admin_id, 'view_activity_logs'))): ?>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('activity_logs'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'activity_logs') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-clock-history me-2"></i> Activity Logs
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'manage_email_settings')): ?>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('email_settings'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'email_settings') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-mailbox me-2"></i> Email/SMTP
+                        </a>
+                    </div>
+                    <?php endif; ?>
                     <?php if ($is_super_admin || $this->Admin_model->has_permission($admin_id, 'view_database_backup')): ?>
                     <div class="nk-menu-sub-item">
                         <a href="<?php echo base_url('database_backup'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'database_backup') !== false ? 'active' : ''; ?>">
@@ -3599,28 +3608,14 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                         </a>
                     </div>
                     <?php endif; ?>
+                    <?php if ($is_super_admin): ?>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('module_generator'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'module_generator') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-magic me-2"></i> Module Generator
+                        </a>
+                    </div>
+                    <?php endif; ?>
                 </div>
-            </div>
-            <?php endif; ?>
-
-            <!-- Activity Logs -->
-            <?php if ($is_super_admin || ($admin_id && $this->Admin_model->has_permission($admin_id, 'view_activity_logs'))): ?>
-            <div class="nk-menu-item">
-                <a href="<?php echo base_url('activity_logs'); ?>" class="nk-menu-link <?php echo strpos($current_uri, 'activity_logs') !== false ? 'active' : ''; ?>">
-                    <span class="nk-menu-icon"><i class="bi bi-clock-history"></i></span>
-                    <span class="nk-menu-text">Activity Logs</span>
-                </a>
-            </div>
-            <?php endif; ?>
-            
-            <!-- Module Generator - super admin only -->
-            <?php if ($is_super_admin): ?>
-            <div class="nk-menu-item" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
-                <a href="<?php echo base_url('module_generator'); ?>" class="nk-menu-link <?php echo strpos($current_uri, 'module_generator') !== false ? 'active' : ''; ?>">
-                    <span class="nk-menu-icon"><i class="bi bi-magic"></i></span>
-                    <span class="nk-menu-text">Module Generator</span>
-                    <span class="nk-menu-badge">Super Admin</span>
-                </a>
             </div>
             <?php endif; ?>
             

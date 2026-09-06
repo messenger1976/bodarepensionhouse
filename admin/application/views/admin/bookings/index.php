@@ -55,12 +55,12 @@
 
     <div class="card card-bordered mob-desktop-table">
         <div class="card-inner">
-            <div class="table-responsive">
-        <table class="table table-hover">
+            <div class="table-responsive bookings-table-wrap">
+        <table class="table table-hover dt-fit-width" id="bookingsTable" style="width:100%">
             <thead>
                 <tr>
-                    <th>Booking Number</th>
-                    <th>Guest Name</th>
+                    <th>Booking #</th>
+                    <th>Guest</th>
                     <th>Email</th>
                     <th>Check-In</th>
                     <th>Check-Out</th>

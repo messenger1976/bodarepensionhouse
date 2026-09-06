@@ -298,10 +298,12 @@
                     
                     // Initialize DataTables with error handling
                     try {
+                        const fitWidth = $table.hasClass('dt-fit-width');
                         $table.DataTable({
                             pageLength: 10,
                             lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
                             order: [[defaultSortColumn, 'desc']],
+                            autoWidth: !fitWidth,
                             language: {
                                 search: "Search:",
                                 lengthMenu: "Show _MENU_ entries",
@@ -316,7 +318,8 @@
                                 },
                                 emptyTable: "No data available in table"
                             },
-                            responsive: true,
+                            responsive: !fitWidth,
+                            scrollX: false,
                             dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
                             drawCallback: function() {
                                 // Re-initialize Bootstrap tooltips after table redraw
