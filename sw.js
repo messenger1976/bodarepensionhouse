@@ -1,5 +1,5 @@
 // Service Worker for BODARE Pension House PWA
-const CACHE_NAME = 'bodare-pwa-v6';
+const CACHE_NAME = 'bodare-pwa-v7';
 const urlsToCache = [
   '/',
   '/index.php',
@@ -7,8 +7,6 @@ const urlsToCache = [
   '/style.css',
   '/app-shell.css',
   '/script.js',
-  '/img/logo.png',
-  '/img/main-logo.jpg',
   '/manifest.json'
 ];
 
@@ -70,8 +68,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Always fetch critical runtime scripts from network to avoid stale auth/API logic.
-  const criticalRuntimeFiles = ['/api-config.js', '/booking-api.js', '/script.js', '/native-bridge.js', '/app-shell.css'];
+  // Always fetch critical runtime scripts / brand assets from network to avoid stale UI.
+  const criticalRuntimeFiles = [
+    '/api-config.js',
+    '/booking-api.js',
+    '/script.js',
+    '/native-bridge.js',
+    '/app-shell.css',
+    '/img/logo.png',
+    '/img/main-logo.jpg'
+  ];
   if (criticalRuntimeFiles.some((file) => requestUrl.pathname.endsWith(file))) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))

@@ -28,7 +28,11 @@ $h = static function ($value) {
 <header class="header app-header pt-safe">
     <div class="app-header-inner">
         <a href="<?php echo $h($headerConfig['logo_href']); ?>" class="app-brand nav-logo">
-            <img src="img/logo.png" alt="<?php echo $h($headerConfig['logo_alt']); ?>" class="app-brand-logo logo-img">
+            <?php
+            $logoPath = __DIR__ . '/../img/logo.png';
+            $logoVer = is_file($logoPath) ? (string) filemtime($logoPath) : (string) time();
+            ?>
+            <img src="img/logo.png?v=<?php echo htmlspecialchars($logoVer, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo $h($headerConfig['logo_alt']); ?>" class="app-brand-logo logo-img">
             <div class="app-brand-text">
                 <p class="app-brand-name">BODARE Pension House</p>
                 <p class="app-brand-loc">
