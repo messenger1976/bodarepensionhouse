@@ -285,7 +285,9 @@
   <!-- Scripts -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = typeof bodareTodayYmd === 'function'
+        ? bodareTodayYmd()
+        : new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
       document.querySelectorAll('.checkin-input').forEach(el => el.value = today);
     });
 

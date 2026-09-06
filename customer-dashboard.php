@@ -1515,7 +1515,16 @@ if (typeof clearAuthToken === 'function') { clearAuthToken(); } else { localStor
 
         function formatInvoiceDate(value) {
             if (!value) return '—';
-            return new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            if (typeof bodareParseServerDate === 'function') {
+                const parsed = bodareParseServerDate(value);
+                if (parsed) {
+                    const hasTime = /[ T]\d{2}:\d{2}/.test(String(value));
+                    return parsed.toLocaleString('en-US', hasTime
+                        ? { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: window.BODARE_TIMEZONE || 'Asia/Manila' }
+                        : { year: 'numeric', month: 'long', day: 'numeric', timeZone: window.BODARE_TIMEZONE || 'Asia/Manila' });
+                }
+            }
+            return new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' });
         }
 
         function escapeHtml(text) {

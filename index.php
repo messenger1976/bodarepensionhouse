@@ -165,8 +165,7 @@ $h = static function ($value) {
             const bookingForm = document.querySelector('.booking-form');
 
             if (checkinInput && checkoutInput) {
-                const today = new Date();
-                const todayString = today.toISOString().split('T')[0];
+                const todayString = typeof bodareTodayYmd === 'function' ? bodareTodayYmd() : formatDateLocal(new Date());
                 checkinInput.setAttribute('min', todayString);
                 checkoutInput.setAttribute('min', todayString);
 
@@ -175,7 +174,7 @@ $h = static function ($value) {
                     const checkoutDate = new Date(checkoutInput.value);
                     const minCheckoutDate = new Date(checkinDate);
                     minCheckoutDate.setDate(minCheckoutDate.getDate() + 1);
-                    const minCheckoutString = minCheckoutDate.toISOString().split('T')[0];
+                    const minCheckoutString = formatDateLocal(minCheckoutDate);
                     checkoutInput.setAttribute('min', minCheckoutString);
                     if (checkoutInput.value && checkoutDate <= checkinDate) {
                         checkoutInput.value = '';

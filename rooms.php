@@ -202,12 +202,14 @@ include __DIR__ . '/includes/site-head.php';
             }
 
             function setDateBounds() {
-                const today = formatDateLocal(new Date());
+                const today = typeof bodareTodayYmd === 'function' ? bodareTodayYmd() : formatDateLocal(new Date());
                 startInput.min = today;
                 if (!endInput.min) {
                     const tomorrow = new Date();
                     tomorrow.setDate(tomorrow.getDate() + 1);
-                    endInput.min = formatDateLocal(tomorrow);
+                    endInput.min = typeof bodareTodayYmd === 'function'
+                        ? bodareTodayYmd(tomorrow)
+                        : formatDateLocal(tomorrow);
                 }
             }
 

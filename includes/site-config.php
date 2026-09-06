@@ -2,6 +2,8 @@
 /**
  * Shared site identity and URL helpers for public SEO markup.
  */
+require_once __DIR__ . '/timezone.php';
+
 if (!function_exists('bodare_site_config')) {
     function bodare_site_config()
     {
@@ -207,6 +209,11 @@ if (!function_exists('bodare_db')) {
 
         $charset = $config['char_set'] ?? 'utf8mb4';
         $connection->set_charset($charset);
+        if (function_exists('bodare_apply_mysql_timezone')) {
+            bodare_apply_mysql_timezone($connection);
+        } else {
+            @$connection->query("SET time_zone = '+08:00'");
+        }
         $mysqli = $connection;
         return $mysqli;
     }

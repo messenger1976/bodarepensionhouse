@@ -450,6 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
             right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
         },
         height: 'auto',
+        timeZone: 'Asia/Manila',
         editable: false,
         navLinks: true,
         dayMaxEvents: true,

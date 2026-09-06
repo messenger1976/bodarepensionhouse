@@ -292,8 +292,13 @@ function bodare_confirmation_date($dateString)
                     amountEl.textContent = 'Amount due: ' + formatPeso(payment.amount != null ? payment.amount : displayTotal);
                 }
                 if (expiryEl && payment.expires_at) {
-                    expiryEl.textContent = 'QR expires: ' + new Date(payment.expires_at.replace(' ', 'T')).toLocaleString();
-                    const expTs = Date.parse(payment.expires_at.replace(' ', 'T'));
+                    const expDate = typeof bodareParseServerDate === 'function'
+                        ? bodareParseServerDate(payment.expires_at)
+                        : new Date(payment.expires_at.replace(' ', 'T') + '+08:00');
+                    expiryEl.textContent = 'QR expires: ' + (expDate
+                        ? expDate.toLocaleString('en-US', { timeZone: window.BODARE_TIMEZONE || 'Asia/Manila' })
+                        : payment.expires_at);
+                    const expTs = expDate ? expDate.getTime() : Date.parse(payment.expires_at.replace(' ', 'T'));
                     if (regenBtn) {
                         regenBtn.style.display = (!expTs || expTs <= Date.now()) ? 'inline-block' : 'none';
                     }

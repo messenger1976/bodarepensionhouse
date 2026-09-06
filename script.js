@@ -658,7 +658,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Landing page scroll reveals and soft motion
     setupLandingPageMotion();
+
+    // Password fields: solid-circle mask + show/hide eye toggle
+    setupPasswordFields();
 });
+
+function setupPasswordFields(root = document) {
+    const inputs = root.querySelectorAll('input[type="password"]');
+    inputs.forEach((input) => {
+        if (input.closest('.password-field') || input.dataset.passwordEnhanced === '1') {
+            return;
+        }
+        input.dataset.passwordEnhanced = '1';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'password-field';
+
+        const parent = input.parentNode;
+        parent.insertBefore(wrap, input);
+        wrap.appendChild(input);
+
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'password-toggle';
+        toggle.setAttribute('aria-label', 'Show password');
+        toggle.setAttribute('aria-pressed', 'false');
+        toggle.innerHTML =
+            '<svg class="password-toggle-icon password-toggle-icon--show" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+            '<path fill="currentColor" d="M12 5c-5.5 0-9.5 4.5-10.7 6.2a1.2 1.2 0 0 0 0 1.6C2.5 14.5 6.5 19 12 19s9.5-4.5 10.7-6.2a1.2 1.2 0 0 0 0-1.6C21.5 9.5 17.5 5 12 5zm0 12c-3.9 0-7.1-3.1-8.4-5C4.9 10.1 8.1 7 12 7s7.1 3.1 8.4 5c-1.3 1.9-4.5 5-8.4 5zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>' +
+            '</svg>' +
+            '<svg class="password-toggle-icon password-toggle-icon--hide" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+            '<path fill="currentColor" d="M3.3 2.3 2 3.6l3.1 3.1C3.4 8.1 2.1 9.6 1.3 10.6a1.2 1.2 0 0 0 0 1.6C2.5 14.5 6.5 19 12 19c2 0 3.8-.6 5.3-1.5l3.1 3.1 1.3-1.3L3.3 2.3zM12 17c-3.9 0-7.1-3.1-8.4-5 .7-1 1.9-2.4 3.5-3.4l1.6 1.6A3 3 0 0 0 12 15c.4 0 .8-.1 1.1-.2l1.5 1.5c-.8.4-1.7.7-2.6.7zm8.4-5c-.4.6-1 1.3-1.7 2l1.4 1.4c1-.9 1.8-1.9 2.3-2.6a1.2 1.2 0 0 0 0-1.6C21.5 9.5 17.5 5 12 5c-1.1 0-2.1.2-3.1.5l1.6 1.6c.5-.1 1-.1 1.5-.1 3.9 0 7.1 3.1 8.4 5z"/>' +
+            '</svg>';
+
+        wrap.appendChild(toggle);
+
+        toggle.addEventListener('click', () => {
+            const revealing = input.type === 'password';
+            input.type = revealing ? 'text' : 'password';
+            wrap.classList.toggle('is-revealed', revealing);
+            toggle.setAttribute('aria-pressed', revealing ? 'true' : 'false');
+            toggle.setAttribute('aria-label', revealing ? 'Hide password' : 'Show password');
+            input.focus({ preventScroll: true });
+        });
+    });
+}
 
 function setupLandingPageMotion() {
     const landing = document.querySelector('.lp');
@@ -692,7 +736,51 @@ function setupLandingPageMotion() {
 
 // --- ROOM DETAIL PAGE FUNCTIONS ---
 
-// Helper function to format date in local timezone (YYYY-MM-DD)
+// --- Asia/Manila timezone helpers (transactions + “today”) ---
+window.BODARE_TIMEZONE = window.BODARE_TIMEZONE || 'Asia/Manila';
+
+function bodareTodayYmd(date) {
+    const d = date instanceof Date ? date : new Date();
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: window.BODARE_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(d);
+}
+
+/** Midnight Date for Manila's current calendar day (for past-date checks). */
+function bodareManilaTodayDate() {
+    const parts = bodareTodayYmd().split('-').map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+}
+
+function bodareParseServerDate(value) {
+    if (value == null || value === '') {
+        return null;
+    }
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value;
+    }
+    const raw = String(value).trim();
+    if (!raw) {
+        return null;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        const parts = raw.split('-');
+        return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 0, 0, 0, 0);
+    }
+    let normalized = raw.replace(' ', 'T');
+    const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(normalized);
+    if (!hasTz) {
+        normalized += '+08:00';
+    }
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+// Helper function to format date from local calendar components (YYYY-MM-DD)
+// Use this for booking date math — not toISOString() which shifts to UTC.
 function formatDateLocal(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -869,7 +957,7 @@ function setupBookingWidget() {
     }
 
     const hotelTimes = getHotelCheckTimes();
-    const today = new Date();
+    const today = bodareManilaTodayDate();
     const defaultCheckIn = withHotelTime(today, hotelTimes.checkIn.hour, hotelTimes.checkIn.minute);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1059,9 +1147,8 @@ function validateDates() {
     
     if (!checkinInput || !checkoutInput) return;
     
-    // Get today's date in local timezone (set to midnight local time)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Get today's date in Asia/Manila (set to midnight)
+    const today = bodareManilaTodayDate();
     
     const checkinDate = parseDateLocal(checkinInput.value);
     const checkoutDate = parseDateLocal(checkoutInput.value);
@@ -1240,8 +1327,7 @@ async function handleBookingSubmit(event) {
     
     const checkinDate = parseDateLocal(checkinInput.value);
     const checkoutDate = parseDateLocal(checkoutInput.value);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = bodareManilaTodayDate();
     
     if (!checkinDate || !checkoutDate) {
         alert('Please select valid check-in and check-out dates.');
@@ -1490,13 +1576,16 @@ function populateCheckoutPage() {
 }
 
 function formatDateDisplay(dateString) {
-    const date = parseDateLocal(dateString) || new Date(dateString);
+    const raw = String(dateString || '');
+    const hasTime = /[ T]\d{2}:\d{2}/.test(raw);
+    const date = hasTime
+        ? (bodareParseServerDate(dateString) || parseDateLocal(dateString) || new Date(dateString))
+        : (parseDateLocal(dateString) || bodareParseServerDate(dateString) || new Date(dateString));
     if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
         return dateString || '-';
     }
-    const hasTime = /[ T]\d{2}:\d{2}/.test(String(dateString || ''));
     const options = hasTime
-        ? { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }
+        ? { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: window.BODARE_TIMEZONE }
         : { year: 'numeric', month: 'short', day: 'numeric' };
     return date.toLocaleString('en-US', options);
 }
@@ -1555,9 +1644,21 @@ function showToast(message, type = 'info', options = {}) {
     icon.className = 'bodare-toast-icon';
     icon.textContent = type === 'success' ? '✓' : type === 'error' ? '!' : 'i';
 
+    const body = document.createElement('div');
+    body.className = 'bodare-toast-body';
+
     const text = document.createElement('span');
     text.className = 'bodare-toast-message';
     text.textContent = message;
+    body.appendChild(text);
+
+    if (options.actionHref && options.actionLabel) {
+        const action = document.createElement('a');
+        action.className = 'bodare-toast-action';
+        action.href = options.actionHref;
+        action.textContent = options.actionLabel;
+        body.appendChild(action);
+    }
 
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
@@ -1566,7 +1667,7 @@ function showToast(message, type = 'info', options = {}) {
     closeBtn.textContent = '×';
 
     toast.appendChild(icon);
-    toast.appendChild(text);
+    toast.appendChild(body);
     toast.appendChild(closeBtn);
     container.appendChild(toast);
 

@@ -118,6 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
         height: 'auto',
+        timeZone: 'Asia/Manila',
         editable: false,
         dayMaxEvents: true,
         events: [],
@@ -324,27 +325,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    function ymdFromDate(d) {
+        if (typeof bodareFormatDateLocal === 'function') return bodareFormatDateLocal(d);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return year + '-' + month + '-' + day;
+    }
+
     // Event listeners
     roomFilter.addEventListener('change', function() {
-        const startDate = dateRangeStart.value || calendar.view.activeStart.toISOString().split('T')[0];
-        const endDate = dateRangeEnd.value || calendar.view.activeEnd.toISOString().split('T')[0];
+        const startDate = dateRangeStart.value || ymdFromDate(calendar.view.activeStart);
+        const endDate = dateRangeEnd.value || ymdFromDate(calendar.view.activeEnd);
         loadAvailabilityData(startDate, endDate);
     });
     
     refreshBtn.addEventListener('click', function() {
-        const startDate = dateRangeStart.value || calendar.view.activeStart.toISOString().split('T')[0];
-        const endDate = dateRangeEnd.value || calendar.view.activeEnd.toISOString().split('T')[0];
+        const startDate = dateRangeStart.value || ymdFromDate(calendar.view.activeStart);
+        const endDate = dateRangeEnd.value || ymdFromDate(calendar.view.activeEnd);
         loadAvailabilityData(startDate, endDate);
     });
     
-    // Load initial data
-    const today = new Date();
-    const nextMonth = new Date(today);
+    // Load initial data (Asia/Manila “today”)
+    const today = typeof bodareTodayYmd === 'function' ? bodareTodayYmd() : ymdFromDate(new Date());
+    const nextMonth = new Date();
     nextMonth.setMonth(nextMonth.getMonth() + 2);
     
     loadAvailabilityData(
-        today.toISOString().split('T')[0],
-        nextMonth.toISOString().split('T')[0]
+        today,
+        ymdFromDate(nextMonth)
     );
 });
 </script>

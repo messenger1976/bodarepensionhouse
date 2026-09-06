@@ -1226,6 +1226,20 @@ html.app-html .form-group-contact textarea {
     background: #ecfdf5;
 }
 
+html.app-html .password-field {
+    width: 100%;
+}
+
+html.app-html .password-toggle {
+    color: #047857;
+}
+
+html.app-html .password-toggle:hover,
+html.app-html .password-toggle:focus-visible {
+    color: #065f46;
+    background: rgba(16, 185, 129, 0.12);
+}
+
 html.app-html .minimal-form .cta-button,
 html.app-html #login-form .cta-button,
 html.app-html #checkout-login-form #login-button,
@@ -1366,6 +1380,26 @@ html.app-html.checkout-is-guest .checkout-summary {
     font-size: 0.9rem;
     line-height: 1.45;
     font-weight: 600;
+}
+
+.bodare-toast-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.bodare-toast-action {
+    color: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.bodare-toast-action:hover {
+    opacity: 0.85;
 }
 
 .bodare-toast-close {

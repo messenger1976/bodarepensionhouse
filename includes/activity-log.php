@@ -12,6 +12,10 @@
  * the site header/footer render, or rely on the site-head.php hook.
  */
 
+if (!defined('BODARE_TIMEZONE')) {
+    require_once __DIR__ . '/timezone.php';
+}
+
 if (!function_exists('bodare_activity_log_enabled')) {
     /**
      * Whether activity logging is on for the public site.

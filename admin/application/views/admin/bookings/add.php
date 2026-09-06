@@ -506,8 +506,16 @@ document.addEventListener('DOMContentLoaded', function() {
         updateGuestRemoveButtons();
     }
     
-    // Set minimum date to today
-    const today = new Date().toISOString().split('T')[0];
+    // Set minimum date to today (Asia/Manila)
+    const today = typeof bodareTodayYmd === 'function' ? bodareTodayYmd() : (typeof bodareFormatDateLocal === 'function' ? bodareFormatDateLocal(new Date()) : new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }));
+    const ymdFromDate = function(d) {
+        if (typeof bodareFormatDateLocal === 'function') return bodareFormatDateLocal(d);
+        if (typeof formatDateLocal === 'function') return formatDateLocal(d);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return year + '-' + month + '-' + day;
+    };
     
     // Set min dates for initial room row
     const initialCheckIn = document.querySelector('.room-checkin');
@@ -543,7 +551,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tomorrow = firstCheckOut || (() => {
             const t = new Date(firstCheckIn);
             t.setDate(t.getDate() + 1);
-            return t.toISOString().split('T')[0];
+            return ymdFromDate(t);
         })();
         
         newRow.innerHTML = `
@@ -618,7 +626,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (newCheckOut.value && newCheckOut.value <= newCheckIn.value) {
                     const nextDay = new Date(newCheckIn.value);
                     nextDay.setDate(nextDay.getDate() + 1);
-                    newCheckOut.value = nextDay.toISOString().split('T')[0];
+                    newCheckOut.value = ymdFromDate(nextDay);
                     newCheckOut.setAttribute('min', newCheckIn.value);
                 }
                 calculateRoomSubtotal(newRow);
@@ -686,7 +694,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (checkOutInput.value && checkOutInput.value <= checkInInput.value) {
                     const nextDay = new Date(checkInInput.value);
                     nextDay.setDate(nextDay.getDate() + 1);
-                    checkOutInput.value = nextDay.toISOString().split('T')[0];
+                    checkOutInput.value = ymdFromDate(nextDay);
                 }
                 checkOutInput.setAttribute('min', checkInInput.value);
                 calculateRoomSubtotal(row);

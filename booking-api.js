@@ -1,6 +1,26 @@
 // Booking API Integration Functions
 // This file extends script.js with API connectivity
 
+// Disable + visually mask a form while an async submit is in flight
+function setFormProcessing(form, isProcessing) {
+    if (!form) return;
+
+    form.classList.toggle('is-processing', !!isProcessing);
+    form.setAttribute('aria-busy', isProcessing ? 'true' : 'false');
+
+    form.querySelectorAll('input, select, textarea, button').forEach((el) => {
+        if (isProcessing) {
+            if (el.dataset.wasDisabled === undefined) {
+                el.dataset.wasDisabled = el.disabled ? '1' : '0';
+            }
+            el.disabled = true;
+        } else {
+            el.disabled = el.dataset.wasDisabled === '1';
+            delete el.dataset.wasDisabled;
+        }
+    });
+}
+
 // Registration form handler
 function setupRegistrationForm() {
     const form = document.getElementById('registration-form');
@@ -14,8 +34,6 @@ function setupRegistrationForm() {
         
         const submitBtn = form.querySelector('button[type="submit"]');
         const originalText = submitBtn.textContent;
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Creating Account...';
         
         // Get form data
         const userData = {
@@ -41,24 +59,21 @@ function setupRegistrationForm() {
         if (!userData.first_name || !userData.last_name || !userData.email || 
             !userData.phone || !userData.address || !userData.password || !userData.confirm_password) {
             showMessage('Please complete all required fields to create your account.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
             return;
         }
         
         if (userData.password !== userData.confirm_password) {
             showMessage('The passwords you entered do not match. Please try again.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
             return;
         }
         
         if (userData.password.length < 6) {
             showMessage('Your password must be at least 6 characters long for security purposes.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
             return;
         }
+
+        setFormProcessing(form, true);
+        submitBtn.textContent = 'Creating Account...';
         
         try {
             const cartSnapshot = typeof getCartStorageSnapshot === 'function'
@@ -73,10 +88,6 @@ function setupRegistrationForm() {
                 if (response.requires_verification) {
                     const regEmail = userData.email ? userData.email.trim().toLowerCase() : '';
                     showMessage(response.message || 'Please check your email for the 6-digit verification code.', 'success');
-
-                    form.reset();
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
 
                     const params = new URLSearchParams();
                     if (regEmail) params.set('email', regEmail);
@@ -103,6 +114,8 @@ function setupRegistrationForm() {
                 
                 if (bookingDetails) {
                     // If booking exists, show customer info and payment on registration page
+                    setFormProcessing(form, false);
+                    submitBtn.textContent = originalText;
                     showCustomerInfo(response.user, userData);
                     checkAndShowBooking();
                 } else {
@@ -148,7 +161,7 @@ function setupRegistrationForm() {
             }
             
             showMessage(errorMessage, 'error');
-            submitBtn.disabled = false;
+            setFormProcessing(form, false);
             submitBtn.textContent = originalText;
         }
     });
@@ -1003,11 +1016,15 @@ function failCheckoutValidation(message, fieldId, submitBtn, originalText) {
 }
 
 // Message display helper
-function showMessage(message, type = 'info') {
-    const isCheckoutPage = !!document.getElementById('checkout-login-form');
+function showMessage(message, type = 'info', options = {}) {
+    const useToast = typeof showToast === 'function' && (
+        !!document.getElementById('checkout-login-form') ||
+        !!document.getElementById('registration-form') ||
+        !!document.getElementById('login-form')
+    );
 
-    if (isCheckoutPage && typeof showToast === 'function') {
-        showToast(message, type);
+    if (useToast) {
+        showToast(message, type, options);
         return;
     }
 

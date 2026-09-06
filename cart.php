@@ -197,6 +197,16 @@ include __DIR__ . '/includes/site-head.php';
         }
         
         function formatDateDisplay(dateString) {
+            if (typeof bodareParseServerDate === 'function' && /[ T]\d{2}:\d{2}/.test(String(dateString || ''))) {
+                const parsed = bodareParseServerDate(dateString);
+                if (parsed) {
+                    return parsed.toLocaleString('en-US', {
+                        year: 'numeric', month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit', hour12: true,
+                        timeZone: window.BODARE_TIMEZONE || 'Asia/Manila'
+                    });
+                }
+            }
             if (typeof parseDateLocal === 'function') {
                 const parsed = parseDateLocal(dateString);
                 if (parsed) {
@@ -207,7 +217,7 @@ include __DIR__ . '/includes/site-head.php';
                 }
             }
             const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Manila' });
         }
         
         function removeCartItem(cartId) {

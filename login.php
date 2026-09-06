@@ -138,8 +138,6 @@ include __DIR__ . '/includes/site-head.php';
                 
                 const submitBtn = form.querySelector('button[type="submit"]');
                 const originalText = submitBtn.textContent;
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Logging in...';
                 
                 const email = document.getElementById('login-email-input').value.trim().toLowerCase();
                 const password = document.getElementById('login-password-input').value;
@@ -147,10 +145,11 @@ include __DIR__ . '/includes/site-head.php';
                 // Basic validation
                 if (!email || !password) {
                     showMessage('Please enter both your email address and password to continue.', 'error');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
                     return;
                 }
+
+                setFormProcessing(form, true);
+                submitBtn.textContent = 'Logging in...';
                 
                 try {
                     const cartSnapshot = typeof getCartStorageSnapshot === 'function'
@@ -176,6 +175,9 @@ include __DIR__ . '/includes/site-head.php';
                         setTimeout(() => {
                             window.location.href = redirect;
                         }, 1000);
+                    } else {
+                        setFormProcessing(form, false);
+                        submitBtn.textContent = originalText;
                     }
                 } catch (error) {
                     // Handle API errors
@@ -185,17 +187,13 @@ include __DIR__ . '/includes/site-head.php';
                     // user to the code entry page (with the email pre-filled).
                     if (error.response && error.response.requires_activation) {
                         errorMessage = 'Your account isn\'t activated yet. A 6-digit verification code was sent to your email.';
-                        showMessage(errorMessage, 'error');
-                        const activationLink = document.createElement('a');
-                        activationLink.href = 'verify-account.php' + (email ? '?email=' + encodeURIComponent(email) : '');
-                        activationLink.textContent = 'Enter the verification code or resend it';
-                        activationLink.style.cssText = 'display:block;text-align:center;margin:0.75rem 0 0;color:#b2945b;font-weight:600;';
-                        const messageEl = document.querySelector('.api-message');
-                        if (messageEl && messageEl.parentElement) {
-                            messageEl.parentElement.insertBefore(activationLink, messageEl.nextSibling);
-                        }
-                        submitBtn.disabled = false;
+                        setFormProcessing(form, false);
                         submitBtn.textContent = originalText;
+                        showMessage(errorMessage, 'error', {
+                            duration: 10000,
+                            actionHref: 'verify-account.php' + (email ? '?email=' + encodeURIComponent(email) : ''),
+                            actionLabel: 'Enter the verification code or resend it'
+                        });
                         return;
                     }
 
@@ -212,14 +210,36 @@ include __DIR__ . '/includes/site-head.php';
                     }
                     
                     showMessage(errorMessage, 'error');
-                    submitBtn.disabled = false;
+                    setFormProcessing(form, false);
                     submitBtn.textContent = originalText;
                 }
             });
         });
+
+        function setFormProcessing(form, isProcessing) {
+            if (!form) return;
+            form.classList.toggle('is-processing', !!isProcessing);
+            form.setAttribute('aria-busy', isProcessing ? 'true' : 'false');
+            form.querySelectorAll('input, select, textarea, button').forEach((el) => {
+                if (isProcessing) {
+                    if (el.dataset.wasDisabled === undefined) {
+                        el.dataset.wasDisabled = el.disabled ? '1' : '0';
+                    }
+                    el.disabled = true;
+                } else {
+                    el.disabled = el.dataset.wasDisabled === '1';
+                    delete el.dataset.wasDisabled;
+                }
+            });
+        }
         
-        // Message display helper
-        function showMessage(message, type = 'info') {
+        // Message display helper — prefer shared toast when available
+        function showMessage(message, type = 'info', options = {}) {
+            if (typeof showToast === 'function') {
+                showToast(message, type, options);
+                return;
+            }
+
             const existing = document.querySelector('.api-message');
             if (existing) existing.remove();
             
@@ -240,7 +260,6 @@ include __DIR__ . '/includes/site-head.php';
             
             form.insertBefore(messageEl, form.firstChild);
             
-            // Auto remove after timeout
             const timeout = type === 'error' ? 8000 : 5000;
             setTimeout(() => {
                 messageEl.remove();

@@ -1643,6 +1643,121 @@ span.flatpickr-weekday {
     background: #3a4a7a;
 }
 
+/* Password fields: hard-circle mask + eye toggle */
+.password-field {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.password-field input[type="password"],
+.password-field input[type="text"] {
+    width: 100%;
+    padding-right: 2.85rem !important;
+}
+
+.password-field input[type="password"] {
+    -webkit-text-security: disc;
+    text-security: disc;
+    font-size: 1rem;
+}
+
+.password-field.is-revealed input[type="text"] {
+    -webkit-text-security: none;
+    text-security: none;
+    font-size: 1rem;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 0.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 0;
+    border-radius: 9999px;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    line-height: 0;
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+    color: var(--dark-blue, #1a2238);
+    outline: none;
+}
+
+.password-toggle-icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    display: block;
+}
+
+.password-toggle-icon--hide {
+    display: none;
+}
+
+.password-field.is-revealed .password-toggle-icon--show {
+    display: none;
+}
+
+.password-field.is-revealed .password-toggle-icon--hide {
+    display: block;
+}
+
+.minimal-form.is-processing .password-toggle {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+/* Mask form while Create Account / Login is processing */
+.minimal-form.is-processing {
+    position: relative;
+    cursor: wait;
+    pointer-events: none;
+}
+.minimal-form.is-processing::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 4px;
+    cursor: wait;
+}
+.minimal-form.is-processing::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 6;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin: -1.375rem 0 0 -1.375rem;
+    border: 3px solid rgba(26, 34, 56, 0.15);
+    border-top-color: var(--dark-blue, #1a2238);
+    border-radius: 50%;
+    animation: form-processing-spin 0.75s linear infinite;
+    box-sizing: border-box;
+}
+@keyframes form-processing-spin {
+    to { transform: rotate(360deg); }
+}
+.minimal-form.is-processing input,
+.minimal-form.is-processing select,
+.minimal-form.is-processing textarea,
+.minimal-form.is-processing button {
+    opacity: 0.65;
+    cursor: wait;
+}
+
 /* Style the "Already have an account?" link */
 .form-subtext {
     text-align: center;

@@ -100,6 +100,20 @@ switch (ENVIRONMENT)
 
 /*
  *---------------------------------------------------------------
+ * APPLICATION TIMEZONE (Asia/Manila)
+ *---------------------------------------------------------------
+ *
+ * All transaction timestamps and date displays use Philippine Time.
+ */
+	$bodareTimezoneFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'timezone.php';
+	if (is_file($bodareTimezoneFile)) {
+		require_once $bodareTimezoneFile;
+	} else {
+		date_default_timezone_set('Asia/Manila');
+	}
+
+/*
+ *---------------------------------------------------------------
  * SYSTEM DIRECTORY NAME
  *---------------------------------------------------------------
  *
