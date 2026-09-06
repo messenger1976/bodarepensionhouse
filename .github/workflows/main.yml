@@ -10,8 +10,16 @@ jobs:
     timeout-minutes: 60
     steps:
     - name: 🚚 Get latest code
-      uses: actions/checkout@v2
-    
+      uses: actions/checkout@v4
+
+    - name: 📦 Upload debug APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: bodare-pension-house-debug-apk
+        path: mobile/dist/bodare-pension-house-debug.apk
+        if-no-files-found: error
+        retention-days: 30
+
     - name: 📂 Sync files
       uses: SamKirkland/FTP-Deploy-Action@4.3.0
       with:
@@ -29,3 +37,9 @@ jobs:
           .git-ftp.log
           .htaccess
           .project
+          **/mobile/node_modules/**
+          **/mobile/android/**
+          **/mobile/ios/**
+          **/mobile/.tools/**
+          **/mobile/www/**
+          **/.github/**
