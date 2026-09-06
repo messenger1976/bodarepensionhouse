@@ -1577,6 +1577,32 @@ span.flatpickr-weekday {
     display: none;
 }
 
+.minimal-form .login-remember-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 1rem;
+    flex-direction: row;
+}
+
+.minimal-form .login-remember-row input[type="checkbox"] {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin: 0;
+    flex: 0 0 auto;
+    accent-color: #2563eb;
+    cursor: pointer;
+}
+
+.minimal-form .login-remember-row label {
+    display: inline !important;
+    margin: 0;
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: #555;
+    cursor: pointer;
+}
+
 .minimal-form .form-group-contact input {
     width: 100%;
     padding: 1rem 0.5rem;

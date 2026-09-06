@@ -41,9 +41,9 @@ include __DIR__ . '/includes/site-head.php';
                         <input type="password" id="login-password-input" placeholder="Enter your password" required autocomplete="current-password">
                     </div>
 
-                    <div class="form-group-contact" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; flex-direction: row;">
-                        <input type="checkbox" id="login-remember-input" checked style="width: auto; height: auto; margin: 0;">
-                        <label for="login-remember-input" style="margin: 0; font-weight: 400; font-size: 0.95rem; color: #555;">Keep me signed in on this device</label>
+                    <div class="form-group-contact login-remember-row">
+                        <input type="checkbox" id="login-remember-input" checked>
+                        <label for="login-remember-input">Remember Password</label>
                     </div>
                     
                     <button type="submit" class="cta-button" style="width: 100%;">Login</button>
