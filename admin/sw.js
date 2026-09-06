@@ -1,17 +1,16 @@
 /**
  * BODARE Admin service worker
- * - Precache static shell assets
+ * - Precache static shell assets (CSS/JS only — icons come network-first)
  * - Network-first for pages (never cache authenticated HTML)
  * - Skip API / poll endpoints
+ * Bump CACHE_NAME when branding / icons change.
  */
 'use strict';
 
-var CACHE_NAME = 'bodare-admin-shell-v3';
+var CACHE_NAME = 'bodare-admin-shell-v4';
 var SHELL_ASSETS = [
   './assets/css/admin-mobile.css',
   './assets/js/admin-mobile.js',
-  './assets/icons/admin-icon-192.png',
-  './assets/icons/admin-icon-512.png',
   './manifest.json'
 ];
 
@@ -66,6 +65,18 @@ self.addEventListener('fetch', function (event) {
           '<h1>Offline</h1><p>Admin requires a network connection.</p></body></html>',
           { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
         );
+      })
+    );
+    return;
+  }
+
+  // Manifest + icons: always prefer network so PWA splash/home icons update.
+  if (/manifest\.json/i.test(url) || /\/assets\/icons\//i.test(url)) {
+    event.respondWith(
+      fetch(req).catch(function () {
+        return caches.match(req).then(function (cached) {
+          return cached || new Response('', { status: 503 });
+        });
       })
     );
     return;

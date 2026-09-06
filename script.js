@@ -586,7 +586,11 @@ function setupServiceWorkerAutoUpdate() {
             return;
         }
         try {
-            const registration = await navigator.serviceWorker.register('/sw.js');
+            const basePath = (typeof window.BODARE_BASE_PATH === 'string' && window.BODARE_BASE_PATH)
+                ? window.BODARE_BASE_PATH
+                : '/';
+            const swPath = (basePath.endsWith('/') ? basePath : basePath + '/') + 'sw.js';
+            const registration = await navigator.serviceWorker.register(swPath, { scope: basePath });
 
             // Ask the SW to check for updates periodically.
             setInterval(() => {

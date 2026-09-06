@@ -20,8 +20,8 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="BODARE Admin">
     <meta name="mobile-web-app-capable" content="yes">
-    <link rel="manifest" href="<?php echo base_url('manifest.json'); ?>">
-    <link rel="apple-touch-icon" href="<?php echo base_url('assets/icons/admin-apple-touch-180.png'); ?>">
+    <link rel="manifest" href="<?php echo base_url('manifest.json'); ?>?v=<?php echo @filemtime(FCPATH . 'manifest.json') ?: time(); ?>">
+    <link rel="apple-touch-icon" href="<?php echo base_url('assets/icons/admin-apple-touch-180.png'); ?>?v=<?php echo @filemtime(FCPATH . 'assets/icons/admin-apple-touch-180.png') ?: time(); ?>">
     
     <!-- Dashlite CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">

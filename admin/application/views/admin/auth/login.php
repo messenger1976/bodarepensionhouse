@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#6576ff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <link rel="manifest" href="<?php echo isset($this) && function_exists('base_url') ? base_url('manifest.json') : 'manifest.json'; ?>">
-    <link rel="apple-touch-icon" href="<?php echo isset($this) && function_exists('base_url') ? base_url('assets/icons/admin-apple-touch-180.png') : 'assets/icons/admin-apple-touch-180.png'; ?>">
+    <link rel="manifest" href="<?php echo isset($this) && function_exists('base_url') ? base_url('manifest.json') : 'manifest.json'; ?>?v=<?php echo @filemtime(FCPATH . 'manifest.json') ?: time(); ?>">
+    <link rel="apple-touch-icon" href="<?php echo isset($this) && function_exists('base_url') ? base_url('assets/icons/admin-apple-touch-180.png') : 'assets/icons/admin-apple-touch-180.png'; ?>?v=<?php echo @filemtime(FCPATH . 'assets/icons/admin-apple-touch-180.png') ?: time(); ?>">
     <title>Admin Login - BODARE Pension House</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">

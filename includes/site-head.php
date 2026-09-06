@@ -117,11 +117,19 @@ if (!headers_sent()) {
     <meta name="geo.placename" content="Tagbilaran City">
     <meta name="author" content="<?php echo $h($site['legal_name']); ?>">
 
-    <link rel="manifest" href="manifest.json">
+    <?php
+    $imgDir = dirname(__DIR__) . '/img';
+    $pwaIconVer = is_file($imgDir . '/icon-512.png') ? (string) filemtime($imgDir . '/icon-512.png') : (string) time();
+    $manifestVer = is_file(dirname(__DIR__) . '/manifest.json') ? (string) filemtime(dirname(__DIR__) . '/manifest.json') : $pwaIconVer;
+    $appleTouchVer = is_file($imgDir . '/apple-touch-icon.png') ? (string) filemtime($imgDir . '/apple-touch-icon.png') : $pwaIconVer;
+    $favicon32Ver = is_file($imgDir . '/favicon-32.png') ? (string) filemtime($imgDir . '/favicon-32.png') : $pwaIconVer;
+    $favicon16Ver = is_file($imgDir . '/favicon-16.png') ? (string) filemtime($imgDir . '/favicon-16.png') : $pwaIconVer;
+    ?>
+    <link rel="manifest" href="manifest.json?v=<?php echo $h($manifestVer); ?>">
     <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png">
-    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png?v=<?php echo $h($favicon32Ver); ?>">
+    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16.png?v=<?php echo $h($favicon16Ver); ?>">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png?v=<?php echo $h($appleTouchVer); ?>">
     <link rel="shortcut icon" href="/favicon.ico">
 
     <link rel="stylesheet" href="style.css?v=<?php echo is_file(dirname(__DIR__) . '/style.css') ? filemtime(dirname(__DIR__) . '/style.css') : time(); ?>">
@@ -157,6 +165,7 @@ if (!headers_sent()) {
         window.BODARE_EXTRA_BED_PRICE = <?php echo json_encode((float) bodare_room_setting('extra_bed_price', 199)); ?>;
         window.BODARE_CHECK_IN_TIME = <?php echo json_encode((string) bodare_booking_setting('check_in_time', '14:00')); ?>;
         window.BODARE_CHECK_OUT_TIME = <?php echo json_encode((string) bodare_booking_setting('check_out_time', '12:00')); ?>;
+        window.BODARE_BASE_PATH = <?php echo json_encode(rtrim((string) ($site['base_path'] ?? ''), '/') . '/'); ?>;
         if (window.Capacitor) {
             document.documentElement.classList.add('is-capacitor');
         }

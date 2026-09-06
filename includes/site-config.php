@@ -47,6 +47,7 @@ if (!function_exists('bodare_site_config')) {
             'short_name' => 'BODARE',
             'legal_name' => 'Bodare and Community Multi-Purpose Cooperative',
             'tagline' => 'Comfortable and affordable lodging in the heart of Tagbilaran City, Bohol',
+            'base_path' => $basePath,
             'base_url' => $baseUrl,
             'default_og_image' => $baseUrl . '/img/og-default.jpg',
             'default_og_image_width' => 1200,

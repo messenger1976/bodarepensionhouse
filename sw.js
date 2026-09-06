@@ -1,5 +1,6 @@
 // Service Worker for BODARE Pension House PWA
-const CACHE_NAME = 'bodare-pwa-v7';
+// Bump CACHE_NAME whenever icons / splash branding change so old caches drop.
+const CACHE_NAME = 'bodare-pwa-v8';
 const urlsToCache = [
   '/',
   '/index.php',
@@ -69,14 +70,23 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Always fetch critical runtime scripts / brand assets from network to avoid stale UI.
+  // Includes PWA icons + manifest so splash / home-screen logos update after deploys.
   const criticalRuntimeFiles = [
     '/api-config.js',
     '/booking-api.js',
     '/script.js',
     '/native-bridge.js',
     '/app-shell.css',
+    '/manifest.json',
     '/img/logo.png',
-    '/img/main-logo.jpg'
+    '/img/logo-square.png',
+    '/img/main-logo.jpg',
+    '/img/icon-96.png',
+    '/img/icon-192.png',
+    '/img/icon-512.png',
+    '/img/apple-touch-icon.png',
+    '/img/favicon-16.png',
+    '/img/favicon-32.png'
   ];
   if (criticalRuntimeFiles.some((file) => requestUrl.pathname.endsWith(file))) {
     event.respondWith(
@@ -136,4 +146,3 @@ self.addEventListener('fetch', (event) => {
       .catch(() => fetch(event.request))
   );
 });
-
