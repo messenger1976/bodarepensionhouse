@@ -27,37 +27,37 @@ include __DIR__ . '/includes/site-head.php';
             <div class="amenities-grid">
                 
                 <div class="amenity-card">
-                    <span class="icon">ðŸ“¶</span>
+                    <span class="icon">📶</span>
                     <h3>High-Speed WiFi</h3>
                     <p>Stay connected with complimentary high-speed internet access available in all rooms and public areas.</p>
                 </div>
 
                 <div class="amenity-card">
-                    <span class="icon">ðŸ…¿ï¸</span>
+                    <span class="icon">🅿️</span>
                     <h3>Free Parking</h3>
                     <p>Enjoy the convenience of free, secured on-site parking for all our registered guests.</p>
                 </div>
 
                 <div class="amenity-card">
-                    <span class="icon">ðŸ›Žï¸</span>
+                    <span class="icon">🛎️</span>
                     <h3>24-Hour Front Desk</h3>
                     <p>Our team is available around the clock to assist with check-in, check-out, and any requests you may have.</p>
                 </div>
 
                 <div class="amenity-card">
-                    <span class="icon">â„ï¸</span>
+                    <span class="icon">❄️</span>
                     <h3>Air Conditioning</h3>
                     <p>All rooms are equipped with individually controlled air conditioning for your personal comfort.</p>
                 </div>
 
                 <div class="amenity-card">
-                    <span class="icon">ðŸ“º</span>
+                    <span class="icon">📺</span>
                     <h3>Cable Television</h3>
                     <p>Unwind with a wide selection of local and international channels on your in-room flat-screen TV.</p>
                 </div>
 
                 <div class="amenity-card">
-                    <span class="icon">ðŸš¿</span>
+                    <span class="icon">🚿</span>
                     <h3>Private Bathrooms</h3>
                     <p>Each room features a clean, private bathroom complete with hot and cold showers and essential toiletries.</p>
                 </div>

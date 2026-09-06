@@ -1,7 +1,7 @@
 <?php
 $pageSeo = [
     'title' => 'Photo Gallery | BODARE Pension House Tagbilaran',
-    'description' => 'Explore photos of rooms and spaces at BODARE Pension House in Tagbilaran City, Bohol â€” from dormitory lodging to executive suites.',
+    'description' => 'Explore photos of rooms and spaces at BODARE Pension House in Tagbilaran City, Bohol — from dormitory lodging to executive suites.',
     'canonical_path' => 'gallery.php',
     'og_image' => 'img/ambassador.jpg',
 ];

@@ -113,14 +113,14 @@
                                 $ps = isset($payment_status_map[$booking->id]) ? $payment_status_map[$booking->id] : null;
                                 if ($ps):
                                 ?>
-                                    <span class="badge bg-<?php echo $ps['badge']; ?>" title="Paid: â‚±<?php echo number_format($ps['amount_paid'], 2); ?> / Balance: â‚±<?php echo number_format($ps['balance'], 2); ?>">
+                                    <span class="badge bg-<?php echo $ps['badge']; ?>" title="Paid: ₱<?php echo number_format($ps['amount_paid'], 2); ?> / Balance: ₱<?php echo number_format($ps['balance'], 2); ?>">
                                         <?php echo htmlspecialchars($ps['display']); ?>
                                     </span>
                                 <?php else: ?>
                                     <span class="badge bg-secondary">No Invoice</span>
                                 <?php endif; ?>
                             </td>
-                            <td>â‚±<?php echo number_format($booking->total_amount, 2); ?></td>
+                            <td>₱<?php echo number_format($booking->total_amount, 2); ?></td>
                             <td>
                                 <a href="<?php echo base_url('bookings/' . $booking->id); ?>" class="btn btn-sm btn-primary" title="View">
                                     <i class="bi bi-eye"></i>

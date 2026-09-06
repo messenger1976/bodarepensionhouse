@@ -81,7 +81,7 @@ include __DIR__ . '/includes/site-head.php';
                                 <h2><?php echo htmlspecialchars($roomMeta['title'], ENT_QUOTES, 'UTF-8'); ?></h2>
                             </a>
                             <p class="room-details"><?php echo htmlspecialchars($roomMeta['description'], ENT_QUOTES, 'UTF-8'); ?></p>
-                            <p class="room-details"><strong>From â‚±<?php echo number_format($roomMeta['price']); ?></strong> <?php echo htmlspecialchars($roomMeta['price_unit'], ENT_QUOTES, 'UTF-8'); ?></p>
+                            <p class="room-details"><strong>From ₱<?php echo number_format($roomMeta['price']); ?></strong> <?php echo htmlspecialchars($roomMeta['price_unit'], ENT_QUOTES, 'UTF-8'); ?></p>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -259,9 +259,9 @@ include __DIR__ . '/includes/site-head.php';
                 }
 
                 const nights = nightCount(filter.checkIn, filter.checkOut);
-                const dates = `${formatPrettyDate(filter.checkIn)} â€“ ${formatPrettyDate(filter.checkOut)}`;
+                const dates = `${formatPrettyDate(filter.checkIn)} – ${formatPrettyDate(filter.checkOut)}`;
                 if (availableCount > 0) {
-                    summaryEl.innerHTML = `<strong>${availableCount}</strong> room type${availableCount === 1 ? '' : 's'} available for ${dates} Â· ${nights} night${nights === 1 ? '' : 's'} Â· ${filter.guests} pax/room`;
+                    summaryEl.innerHTML = `<strong>${availableCount}</strong> room type${availableCount === 1 ? '' : 's'} available for ${dates} · ${nights} night${nights === 1 ? '' : 's'} · ${filter.guests} pax/room`;
                 } else {
                     summaryEl.innerHTML = `No rooms available for ${dates} with ${filter.guests} pax/room. Try different dates or a smaller party.`;
                 }
@@ -316,7 +316,7 @@ include __DIR__ . '/includes/site-head.php';
                     const imagePath = resolveRoomImage(room, roomCode);
                     const isPerHead = /dormitory/i.test(`${room.room_type || ''} ${room.room_name || ''}`);
                     const priceLabel = room.price
-                        ? `â‚±${parseFloat(room.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${isPerHead ? 'per head' : 'per night'}`
+                        ? `₱${parseFloat(room.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${isPerHead ? 'per head' : 'per night'}`
                         : 'Price on request';
                     const capacityText = room.capacity
                         ? `Good for ${room.capacity} person${Number(room.capacity) > 1 ? 's' : ''}`

@@ -5,7 +5,7 @@ $pageSeo = [
     'canonical_path' => '',
     'include_business_schema' => true,
     'og_image' => 'img/og-default.jpg',
-    'og_image_alt' => 'BODARE Pension House â€” comfortable lodging in Tagbilaran City, Bohol',
+    'og_image_alt' => 'BODARE Pension House — comfortable lodging in Tagbilaran City, Bohol',
 ];
 include __DIR__ . '/includes/site-head.php';
 require_once __DIR__ . '/includes/site-config.php';
@@ -30,7 +30,7 @@ $h = static function ($value) {
     <section class="home-mobile-hero app-section">
         <div class="home-search-card">
             <div>
-                <span class="home-search-badge">Heart of Tagbilaran â€¢ Near ICM &amp; Terminal</span>
+                <span class="home-search-badge">Heart of Tagbilaran • Near ICM &amp; Terminal</span>
                 <h2>Clean, Safe &amp; Budget Lodging</h2>
                 <p class="lead">Your home in Tagbilaran City with aircon rooms &amp; parking. Minutes from ICM, City Hall, and Dao Bus Terminal.</p>
             </div>
@@ -126,12 +126,12 @@ $h = static function ($value) {
                     <a href="room-detail.php?room=<?php echo $h($roomMeta['code']); ?>" class="media">
                         <img src="<?php echo $h($roomMeta['image']); ?>" alt="<?php echo $h($roomMeta['title'] . ' at BODARE Pension House'); ?>">
                         <span class="badge-cap"><?php echo $h($roomMeta['capacity']); ?></span>
-                        <span class="badge-price">â‚±<?php echo number_format($roomMeta['price']); ?> <?php echo $h($roomMeta['price_unit']); ?></span>
+                        <span class="badge-price">₱<?php echo number_format($roomMeta['price']); ?> <?php echo $h($roomMeta['price_unit']); ?></span>
                     </a>
                     <div class="body">
                         <h3><?php echo $h($roomMeta['title']); ?></h3>
                         <p class="desc"><?php echo $h($roomMeta['description']); ?></p>
-                        <p class="text-[11px] text-gray-600 mb-3">Wifi Â· Television Â· Bathroom</p>
+                        <p class="text-[11px] text-gray-600 mb-3">Wifi · Television · Bathroom</p>
                         <a href="room-detail.php?room=<?php echo $h($roomMeta['code']); ?>" class="app-cta">Reserve Room</a>
                     </div>
                 </article>

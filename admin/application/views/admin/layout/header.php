@@ -2167,7 +2167,7 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
         }
         
         .breadcrumb-item + .breadcrumb-item::before {
-            content: "â€º";
+            content: "›";
             color: #cbd5e1;
             padding: 0 0.5rem;
         }
