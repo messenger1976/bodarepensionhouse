@@ -36,6 +36,7 @@ class Inquiries extends Admin_Controller {
 		$data['filter_date_to'] = $dateFilter['date_to'];
 		$data['date_query'] = $dateFilter['query'];
 		$data['counts'] = $this->getStatusCounts($dateFilter['date_from'], $dateFilter['date_to']);
+		$data['list_revision'] = $this->buildListRevision($data['inquiries'], $data['counts']);
 		$data['title'] = 'Manage Inquiries';
 		$data['can_delete'] = $this->has_permission('delete_inquiries');
 		$data['can_edit'] = $this->has_permission('edit_inquiries');
@@ -327,19 +328,100 @@ class Inquiries extends Admin_Controller {
 
 	public function poll() {
 		$imported = 0;
+		$importedIds = array();
 		if ($this->input->get('mail') === '1' && $this->shouldPollInboundMail()) {
 			$this->load->library('coop_imap');
 			$result = $this->coop_imap->import_inbound_replies();
 			$imported = (int) $result['imported'];
+			$importedIds = !empty($result['inquiry_ids']) ? array_values(array_map('intval', $result['inquiry_ids'])) : array();
 			$this->markInboundMailPolled();
+		}
+
+		$payload = array(
+			'count' => $this->getBadgeCount(),
+			'imported' => $imported,
+			'imported_ids' => $importedIds,
+		);
+
+		if ($this->input->get('list') === '1') {
+			$payload = array_merge($payload, $this->buildListPollPayload());
 		}
 
 		$this->output
 			->set_content_type('application/json')
-			->set_output(json_encode(array(
-				'count' => $this->getBadgeCount(),
-				'imported' => $imported,
-			)));
+			->set_output(json_encode($payload));
+	}
+
+	/**
+	 * Filtered inquiry rows + counts for live list refresh (AJAX).
+	 */
+	protected function buildListPollPayload() {
+		$status = $this->input->get('status');
+		$dateFilter = $this->resolveDateFilter();
+
+		$this->db->from('inquiry');
+		if (in_array($status, array('new', 'read', 'replied', 'closed', 'guest_replied'), TRUE)) {
+			$this->db->where('status', $status);
+		}
+		$this->applyDateFilter($dateFilter['date_from'], $dateFilter['date_to']);
+		$this->db->order_by('inquiryid', 'DESC');
+		$rows = $this->db->get()->result();
+
+		$counts = $this->getStatusCounts($dateFilter['date_from'], $dateFilter['date_to']);
+		$inquiries = array();
+
+		foreach ($rows as $row) {
+			$createdAt = !empty($row->created_at) ? $row->created_at : '';
+			$updatedAt = !empty($row->updated_at) ? $row->updated_at : $createdAt;
+
+			$inquiries[] = array(
+				'inquiryid' => (int) $row->inquiryid,
+				'name' => (string) $row->name,
+				'email' => (string) $row->email,
+				'subject' => (string) $row->subject,
+				'status' => (string) $row->status,
+				'created_at' => $createdAt,
+				'updated_at' => $updatedAt,
+				'cdate' => !empty($row->cdate) ? (string) $row->cdate : '',
+				'date_display' => !empty($row->created_at)
+					? date('M j, Y g:i A', strtotime($row->created_at))
+					: (string) $row->cdate,
+				'url' => base_url('inquiries/' . (int) $row->inquiryid),
+				'delete_url' => base_url('inquiries/delete/' . (int) $row->inquiryid),
+			);
+		}
+
+		$latestLabel = '—';
+		if (function_exists('getCreateDate')) {
+			$latestLabel = getCreateDate('inquiryid', 'inquiry');
+		}
+
+		return array(
+			'list' => TRUE,
+			'revision' => $this->buildListRevision($rows, $counts),
+			'counts' => $counts,
+			'latest_label' => $latestLabel,
+			'inquiries' => $inquiries,
+			'filter' => array(
+				'status' => (string) $status,
+				'range' => $dateFilter['range'],
+				'date_from' => $dateFilter['date_from'],
+				'date_to' => $dateFilter['date_to'],
+			),
+		);
+	}
+
+	protected function buildListRevision($rows, $counts) {
+		$revisionParts = array();
+		foreach ((array) $rows as $row) {
+			$row = (object) $row;
+			$createdAt = !empty($row->created_at) ? $row->created_at : '';
+			$updatedAt = !empty($row->updated_at) ? $row->updated_at : $createdAt;
+			$status = !empty($row->status) ? $row->status : '';
+			$inquiryid = isset($row->inquiryid) ? (int) $row->inquiryid : 0;
+			$revisionParts[] = $inquiryid . ':' . $status . ':' . $updatedAt;
+		}
+		return md5(implode('|', $revisionParts) . '|' . json_encode($counts));
 	}
 
 	protected function shouldPollInboundMail() {

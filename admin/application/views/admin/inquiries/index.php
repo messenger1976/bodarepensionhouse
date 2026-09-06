@@ -31,11 +31,22 @@ if (!empty($fetchParams)) {
     $fetchRedirect .= '?' . implode('&', $fetchParams);
 }
 ?>
-<div class="content-card">
+<div class="content-card"
+     id="inquiries-live-root"
+     data-live-list="1"
+     data-revision="<?php echo htmlspecialchars(isset($list_revision) ? $list_revision : '', ENT_QUOTES, 'UTF-8'); ?>"
+     data-status="<?php echo htmlspecialchars($filter_status, ENT_QUOTES, 'UTF-8'); ?>"
+     data-range="<?php echo htmlspecialchars($filter_range, ENT_QUOTES, 'UTF-8'); ?>"
+     data-date-from="<?php echo htmlspecialchars($filter_date_from, ENT_QUOTES, 'UTF-8'); ?>"
+     data-date-to="<?php echo htmlspecialchars($filter_date_to, ENT_QUOTES, 'UTF-8'); ?>"
+     data-can-delete="<?php echo $can_delete ? '1' : '0'; ?>"
+     data-can-edit="<?php echo $can_edit ? '1' : '0'; ?>">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
         <div>
-            <h5 class="mb-1"><i class="bi bi-envelope"></i> Contact Inquiries (<?php echo (int) $counts['all']; ?>)</h5>
-            <p class="text-muted mb-0 small">Latest inquiry on <?php echo getCreateDate('inquiryid', 'inquiry'); ?></p>
+            <h5 class="mb-1" id="inquiries-live-title"><i class="bi bi-envelope"></i> Contact Inquiries (<span id="inquiries-live-count"><?php echo (int) $counts['all']; ?></span>)</h5>
+            <p class="text-muted mb-0 small">Latest inquiry on <span id="inquiries-live-latest"><?php echo getCreateDate('inquiryid', 'inquiry'); ?></span>
+                <span id="inquiries-live-updated" class="ms-2 text-success" style="display:none;"></span>
+            </p>
         </div>
         <?php if ($can_edit): ?>
         <form action="<?php echo base_url('inquiries/fetchinbound'); ?>" method="post" class="m-0">
@@ -60,13 +71,13 @@ if (!empty($fetchParams)) {
         </div>
     <?php endif; ?>
 
-    <div class="mb-3 d-flex flex-wrap gap-1 mob-filter-chips">
-        <a href="<?php echo $buildStatusUrl(''); ?>" class="btn btn-sm <?php echo empty($filter_status) ? 'btn-primary' : 'btn-outline-primary'; ?>">All (<?php echo (int) $counts['all']; ?>)</a>
-        <a href="<?php echo $buildStatusUrl('new'); ?>" class="btn btn-sm <?php echo $filter_status === 'new' ? 'btn-danger' : 'btn-outline-danger'; ?>">New (<?php echo (int) $counts['new']; ?>)</a>
-        <a href="<?php echo $buildStatusUrl('guest_replied'); ?>" class="btn btn-sm <?php echo $filter_status === 'guest_replied' ? 'btn-primary' : 'btn-outline-primary'; ?>">Guest Replied (<?php echo (int) $counts['guest_replied']; ?>)</a>
-        <a href="<?php echo $buildStatusUrl('read'); ?>" class="btn btn-sm <?php echo $filter_status === 'read' ? 'btn-warning' : 'btn-outline-warning'; ?>">Read (<?php echo (int) $counts['read']; ?>)</a>
-        <a href="<?php echo $buildStatusUrl('replied'); ?>" class="btn btn-sm <?php echo $filter_status === 'replied' ? 'btn-success' : 'btn-outline-success'; ?>">Replied (<?php echo (int) $counts['replied']; ?>)</a>
-        <a href="<?php echo $buildStatusUrl('closed'); ?>" class="btn btn-sm <?php echo $filter_status === 'closed' ? 'btn-secondary' : 'btn-outline-secondary'; ?>">Closed (<?php echo (int) $counts['closed']; ?>)</a>
+    <div class="mb-3 d-flex flex-wrap gap-1 mob-filter-chips" id="inquiries-status-chips">
+        <a href="<?php echo $buildStatusUrl(''); ?>" class="btn btn-sm <?php echo empty($filter_status) ? 'btn-primary' : 'btn-outline-primary'; ?>" data-status="">All (<span data-count="all"><?php echo (int) $counts['all']; ?></span>)</a>
+        <a href="<?php echo $buildStatusUrl('new'); ?>" class="btn btn-sm <?php echo $filter_status === 'new' ? 'btn-danger' : 'btn-outline-danger'; ?>" data-status="new">New (<span data-count="new"><?php echo (int) $counts['new']; ?></span>)</a>
+        <a href="<?php echo $buildStatusUrl('guest_replied'); ?>" class="btn btn-sm <?php echo $filter_status === 'guest_replied' ? 'btn-primary' : 'btn-outline-primary'; ?>" data-status="guest_replied">Guest Replied (<span data-count="guest_replied"><?php echo (int) $counts['guest_replied']; ?></span>)</a>
+        <a href="<?php echo $buildStatusUrl('read'); ?>" class="btn btn-sm <?php echo $filter_status === 'read' ? 'btn-warning' : 'btn-outline-warning'; ?>" data-status="read">Read (<span data-count="read"><?php echo (int) $counts['read']; ?></span>)</a>
+        <a href="<?php echo $buildStatusUrl('replied'); ?>" class="btn btn-sm <?php echo $filter_status === 'replied' ? 'btn-success' : 'btn-outline-success'; ?>" data-status="replied">Replied (<span data-count="replied"><?php echo (int) $counts['replied']; ?></span>)</a>
+        <a href="<?php echo $buildStatusUrl('closed'); ?>" class="btn btn-sm <?php echo $filter_status === 'closed' ? 'btn-secondary' : 'btn-outline-secondary'; ?>" data-status="closed">Closed (<span data-count="closed"><?php echo (int) $counts['closed']; ?></span>)</a>
     </div>
 
     <form id="inquiry-date-filter" class="inquiry-date-filter row g-2 align-items-end mb-3" method="get" action="<?php echo base_url('inquiries'); ?>">
@@ -108,7 +119,7 @@ if (!empty($fetchParams)) {
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="inquiries-live-tbody">
                 <?php
                 $i = 0;
                 foreach ($inquiries as $row) {
@@ -139,7 +150,7 @@ if (!empty($fetchParams)) {
         </table>
     </div>
 
-    <div class="mob-card-list d-lg-none">
+    <div class="mob-card-list d-lg-none" id="inquiries-live-cards">
         <?php if (!empty($inquiries)): ?>
             <?php foreach ($inquiries as $row): ?>
                 <?php
@@ -198,5 +209,3 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-
-

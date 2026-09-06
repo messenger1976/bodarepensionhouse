@@ -343,7 +343,7 @@
     if ($poll_admin_id && method_exists($this->Admin_model, 'has_permission') && $this->Admin_model->has_permission($poll_admin_id, 'view_inquiries')):
     ?>
     <script>window.INQUIRY_POLL_URL = <?php echo json_encode(base_url('inquiries/poll')); ?>;</script>
-    <script src="<?php echo base_url('assets/js/inquiry-poll.js'); ?>"></script>
+    <script src="<?php echo base_url('assets/js/inquiry-poll.js'); ?>?v=<?php echo @filemtime(FCPATH . 'assets/js/inquiry-poll.js') ?: time(); ?>"></script>
     <?php endif; ?>
     <script src="<?php echo base_url('assets/js/admin-mobile.js'); ?>?v=<?php echo time(); ?>"></script>
     <script>
