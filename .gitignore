@@ -31,6 +31,11 @@ yarn-error.log*
 admin/application/cache/*
 !admin/application/cache/.gitkeep
 
+# Database backup vault (never commit dumps)
+admin/application/backups/*
+!admin/application/backups/.htaccess
+!admin/application/backups/index.html
+
 # Uploads (if any)
 uploads/
 tmp/

@@ -3573,6 +3573,36 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             </div>
             <?php endif; ?>
 
+            <!-- Admin tools -->
+            <?php
+            $has_admin_menu = $is_super_admin || ($admin_id && (
+                $this->Admin_model->has_permission($admin_id, 'view_database_backup') ||
+                $this->Admin_model->has_permission($admin_id, 'create_database_backup') ||
+                $this->Admin_model->has_permission($admin_id, 'upload_database_backup') ||
+                $this->Admin_model->has_permission($admin_id, 'delete_database_backup') ||
+                $this->Admin_model->has_permission($admin_id, 'restore_database_backup')
+            ));
+            $is_admin_menu_active = strpos($current_uri, 'database_backup') !== false;
+            ?>
+            <?php if ($has_admin_menu): ?>
+            <div class="nk-menu-item has-submenu <?php echo $is_admin_menu_active ? 'active' : ''; ?>">
+                <a href="#" class="nk-menu-link <?php echo $is_admin_menu_active ? 'active' : ''; ?>" onclick="event.preventDefault(); this.closest('.nk-menu-item').classList.toggle('active');">
+                    <span class="nk-menu-icon"><i class="bi bi-gear"></i></span>
+                    <span class="nk-menu-text">Admin</span>
+                    <span class="nk-menu-toggle"><i class="bi bi-chevron-right"></i></span>
+                </a>
+                <div class="nk-menu-sub">
+                    <?php if ($is_super_admin || $this->Admin_model->has_permission($admin_id, 'view_database_backup')): ?>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('database_backup'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'database_backup') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-database-down me-2"></i> Backup Database
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- Activity Logs -->
             <?php if ($is_super_admin || ($admin_id && $this->Admin_model->has_permission($admin_id, 'view_activity_logs'))): ?>
             <div class="nk-menu-item">

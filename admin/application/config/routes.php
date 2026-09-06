@@ -140,6 +140,14 @@ $route['activity_logs/view/(:num)'] = 'admin/activity_logs/view/$1';
 $route['activity_logs/export'] = 'admin/activity_logs/export';
 $route['activity_logs/clear'] = 'admin/activity_logs/clear';
 
+// Database Backup tool routes
+$route['database_backup'] = 'admin/database_backup/index';
+$route['database_backup/create'] = 'admin/database_backup/create';
+$route['database_backup/upload'] = 'admin/database_backup/upload';
+$route['database_backup/download/(:any)'] = 'admin/database_backup/download/$1';
+$route['database_backup/delete/(:any)'] = 'admin/database_backup/delete/$1';
+$route['database_backup/restore/(:any)'] = 'admin/database_backup/restore/$1';
+
 // Module Generator routes
 $route['module_generator'] = 'admin/module_generator/index';
 $route['module_generator/generate'] = 'admin/module_generator/generate';
