@@ -1700,3 +1700,25 @@ html.app-html .site-footer.site-footer--minimal .footer-bottom {
 html.app-html .site-footer.site-footer--minimal .footer-bottom p {
     margin: 0;
 }
+
+html.app-html .site-footer.site-footer--minimal .footer-minimal-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.35rem 1.1rem;
+    margin: 0 0 0.85rem;
+    padding: 0;
+}
+
+html.app-html .site-footer.site-footer--minimal .footer-minimal-links a {
+    color: #a7f3d0;
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+html.app-html .site-footer.site-footer--minimal .footer-minimal-links a:hover,
+html.app-html .site-footer.site-footer--minimal .footer-minimal-links a:focus {
+    color: #ecfdf5;
+    text-decoration: underline;
+}

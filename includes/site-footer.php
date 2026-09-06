@@ -1,6 +1,8 @@
 <?php
 $defaultFooterConfig = [
     'variant' => 'full',
+    // Optional links for the minimal footer (login, forgot password, etc.)
+    'links' => [],
 ];
 
 $footerConfig = isset($footerConfig) && is_array($footerConfig)
@@ -21,6 +23,18 @@ $tabActive = static function ($files) use ($scriptName) {
 <footer id="contact" class="site-footer hidden md:block<?php echo ($footerConfig['variant'] === 'minimal') ? ' site-footer--minimal' : ''; ?>">
     <div class="container">
         <?php if ($footerConfig['variant'] === 'minimal'): ?>
+            <?php if (!empty($footerConfig['links']) && is_array($footerConfig['links'])): ?>
+                <nav class="footer-minimal-links" aria-label="Footer">
+                    <?php foreach ($footerConfig['links'] as $link): ?>
+                        <?php
+                        if (empty($link['href']) || empty($link['label'])) {
+                            continue;
+                        }
+                        ?>
+                        <a href="<?php echo htmlspecialchars($link['href'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($link['label'], ENT_QUOTES, 'UTF-8'); ?></a>
+                    <?php endforeach; ?>
+                </nav>
+            <?php endif; ?>
             <div class="footer-bottom">
                 <p>&copy; 2026 Bodare and Community Multi-Purpose Cooperative. All Rights Reserved.</p>
             </div>
@@ -47,6 +61,8 @@ $tabActive = static function ($files) use ($scriptName) {
                         <li><a href="amenities.php">Amenities</a></li>
                         <li><a href="gallery.php">Gallery</a></li>
                         <li><a href="contact.php">Contact</a></li>
+                        <li><a href="login.php">Login</a></li>
+                        <li><a href="forgot-password.php">Forgot Password</a></li>
                         <li><a href="admin/login">Portal Admin</a></li>
                     </ul>
                 </div>

@@ -50,10 +50,7 @@ include __DIR__ . '/includes/site-head.php';
         </div>
     </main>
 
-    <?php
-    $footerConfig = ['variant' => 'minimal'];
-    include __DIR__ . '/includes/site-footer.php';
-?>
+    <?php include __DIR__ . '/includes/site-footer.php'; ?>
     
     <script src="api-config.js?v=<?php echo @filemtime(__DIR__ . '/api-config.js') ?: time(); ?>"></script>
     <script src="booking-api.js?v=<?php echo @filemtime(__DIR__ . '/booking-api.js') ?: time(); ?>"></script>
