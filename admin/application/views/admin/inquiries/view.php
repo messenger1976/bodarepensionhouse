@@ -11,6 +11,11 @@ elseif ($inquiry->status === 'replied') $badge = 'success';
 elseif ($inquiry->status === 'closed') $badge = 'info';
 ?>
 <style>
+    .inquiry-reply-body {
+        white-space: normal;
+        line-height: 1.55;
+        word-break: break-word;
+    }
     .inquiry-reply-body p { margin: 0 0 10px; }
     .inquiry-reply-body p:last-child { margin-bottom: 0; }
     .inquiry-reply-body ul,

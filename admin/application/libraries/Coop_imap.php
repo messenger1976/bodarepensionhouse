@@ -13,6 +13,7 @@ class Coop_imap {
     public function __construct() {
         $this->CI =& get_instance();
         $this->CI->load->database();
+        $this->CI->load->helper('inquiry');
         $this->CI->load->library('coop_mail');
     }
 
@@ -343,8 +344,19 @@ class Coop_imap {
         $body = preg_replace("/\n{3,}/", "\n\n", $body);
         $body = trim($body);
 
-        if (stripos($body, '<html') !== FALSE || stripos($body, '<body') !== FALSE) {
+        $looksLikeHtml = (stripos($body, '<html') !== FALSE
+            || stripos($body, '<body') !== FALSE
+            || preg_match('/<\s*(p|br|div|span|table|html|body)\b/i', $body));
+
+        if ($looksLikeHtml) {
+            // Preserve paragraph/line structure before stripping tags.
+            $body = preg_replace('/<\s*br\s*\/?\s*>/i', "\n", $body);
+            $body = preg_replace('/<\s*\/\s*p\s*>/i', "\n\n", $body);
+            $body = preg_replace('/<\s*\/\s*div\s*>/i', "\n", $body);
+            $body = preg_replace('/<\s*\/\s*tr\s*>/i', "\n", $body);
+            $body = preg_replace('/<\s*\/\s*li\s*>/i', "\n", $body);
             $body = html_entity_decode(strip_tags($body), ENT_QUOTES, 'UTF-8');
+            $body = preg_replace("/[ \t]+/", ' ', $body);
             $body = preg_replace("/\n{3,}/", "\n\n", trim($body));
         }
 
@@ -353,26 +365,26 @@ class Coop_imap {
     }
 
     protected function strip_quoted_reply($body) {
+        if (function_exists('strip_inquiry_quoted_reply')) {
+            return strip_inquiry_quoted_reply($body);
+        }
+
         $body = trim((string) $body);
         if ($body === '') {
             return $body;
         }
 
-        $patterns = array(
-            "/\n+On .+wrote:\s*\n.*/is",
-            "/\n+-----\s*Original Message\s*-----[\s\S]*/i",
-            "/\n+From:\s*BODARE[\s\S]*/i",
-            "/\n+_{5,}[\s\S]*/",
-        );
-
-        foreach ($patterns as $pattern) {
-            $cleaned = preg_replace($pattern, '', $body);
-            if (is_string($cleaned) && trim($cleaned) !== '') {
-                $body = trim($cleaned);
+        if (preg_match('/(?:^|\n)\s*On .+? wrote:\s*/is', $body, $matches, PREG_OFFSET_CAPTURE)) {
+            $cutAt = (int) $matches[0][1];
+            if ($cutAt > 0) {
+                $candidate = trim(substr($body, 0, $cutAt));
+                if ($candidate !== '') {
+                    return $candidate;
+                }
             }
         }
 
-        return trim($body);
+        return $body;
     }
 
     protected function import_message_attachments($connection, $uid, $replyid, $inquiryid) {

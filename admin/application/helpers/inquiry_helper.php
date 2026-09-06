@@ -32,6 +32,58 @@ if (!function_exists('sanitize_inquiry_html')) {
     }
 }
 
+if (!function_exists('strip_inquiry_quoted_reply')) {
+
+    /**
+     * Remove quoted thread history from guest email replies (Gmail/Yahoo/Outlook).
+     */
+    function strip_inquiry_quoted_reply($body) {
+        $body = trim((string) $body);
+        if ($body === '') {
+            return $body;
+        }
+
+        $cutPatterns = array(
+            // Gmail / Yahoo: "On Sunday, ... <email@domain> wrote:"
+            '/(?:^|\n)\s*On .+? wrote:\s*/is',
+            // Same header mid-line when newlines were collapsed to spaces
+            '/\s+On (?:Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?),.+? wrote:\s*/is',
+            '/(?:^|\n)\s*-----\s*Original Message\s*-----/i',
+            '/(?:^|\n)\s*From:\s*BODARE[\s\S]*/i',
+            '/(?:^|\n)\s*_{5,}/',
+            '/(?:^|\n)\s*-{5,}\s*Forwarded message\s*-{5,}/i',
+        );
+
+        foreach ($cutPatterns as $pattern) {
+            if (preg_match($pattern, $body, $matches, PREG_OFFSET_CAPTURE)) {
+                $cutAt = (int) $matches[0][1];
+                if ($cutAt > 0) {
+                    $candidate = trim(substr($body, 0, $cutAt));
+                    if ($candidate !== '') {
+                        $body = $candidate;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return trim($body);
+    }
+}
+
+if (!function_exists('inquiry_body_has_html_markup')) {
+
+    /**
+     * True only for real HTML markup — not angle-bracket email addresses like <user@host>.
+     */
+    function inquiry_body_has_html_markup($body) {
+        return (bool) preg_match(
+            '/<\s*(p|br|div|span|strong|b|em|i|u|ul|ol|li|a|h[1-6]|blockquote|table|tr|td|th|html|body|img|hr)\b/i',
+            (string) $body
+        );
+    }
+}
+
 if (!function_exists('format_inquiry_reply_body')) {
 
     function format_inquiry_reply_body($body, $isInbound = FALSE) {
@@ -41,17 +93,16 @@ if (!function_exists('format_inquiry_reply_body')) {
         }
 
         if ($isInbound) {
-            $body = preg_replace("/\n+On .+wrote:\s*\n.*/is", '', $body);
-            $body = preg_replace("/\n+-----\s*Original Message\s*-----[\s\S]*/i", '', $body);
-            $body = preg_replace("/\n+From:\s*BODARE[\s\S]*/i", '', $body);
-            $body = trim($body);
+            $body = strip_inquiry_quoted_reply($body);
         }
 
-        if (strip_tags($body) !== $body) {
+        // Angle-bracket emails (e.g. <guest@yahoo.com>) must not take the HTML path —
+        // otherwise newlines are never converted and the browser collapses them.
+        if (inquiry_body_has_html_markup($body)) {
             return sanitize_inquiry_html($body);
         }
 
-        return nl2br(htmlspecialchars($body, ENT_QUOTES, 'UTF-8'));
+        return nl2br(htmlspecialchars($body, ENT_QUOTES, 'UTF-8'), FALSE);
     }
 }
 
