@@ -416,7 +416,7 @@ if (is_dir($sessions_path) && is_writable($sessions_path)) {
 }
 $config['sess_match_ip'] = FALSE;
 $config['sess_time_to_update'] = 300;
-$config['sess_regenerate_destroy'] = TRUE; // Destroy old session when regenerating
+$config['sess_regenerate_destroy'] = FALSE; // Keep session data when rotating the session ID
 */
 
 // Use CodeIgniter 3 session configuration
@@ -438,7 +438,10 @@ if (is_dir($sessions_path) && is_writable($sessions_path)) {
 }
 $config['sess_match_ip'] = FALSE;
 $config['sess_time_to_update'] = 300;
-$config['sess_regenerate_destroy'] = TRUE; // Destroy old session when regenerating
+// FALSE: rotating the session ID must not wipe login userdata (CI default intent).
+// TRUE was logging admins out on auto-regenerate (~every 5 minutes) and racing with
+// concurrent inquiries/poll requests that lock session files on Windows.
+$config['sess_regenerate_destroy'] = FALSE;
 
 /*
 |--------------------------------------------------------------------------

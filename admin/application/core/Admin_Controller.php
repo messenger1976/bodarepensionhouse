@@ -86,8 +86,11 @@ class Admin_Controller extends MY_Controller {
         }
         
         // Record this authenticated admin page view (GET only, best-effort).
+        // Skip high-frequency AJAX polls so they do not thrash session files / activity logs.
         // CRUD / POST actions are logged explicitly by their controllers.
-        if (isset($this->activity_log) && $this->input->method() === 'get') {
+        $uri = $this->uri->uri_string();
+        $is_poll = (strpos($uri, 'inquiries/poll') !== false);
+        if (!$is_poll && isset($this->activity_log) && $this->input->method() === 'get') {
             $this->activity_log->page_view();
         }
     }

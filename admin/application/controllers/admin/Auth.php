@@ -49,9 +49,9 @@ class Auth extends CI_Controller {
                     // Clear any existing admin session data first
                     $this->session->unset_userdata(array('admin_id', 'admin_username', 'admin_name', 'admin_logged_in'));
                     
-                    // Regenerate session ID to prevent session fixation and ensure clean session
-                    // sess_regenerate with TRUE parameter destroys old session data
-                    $this->session->sess_regenerate(TRUE);
+                    // Rotate session ID to prevent fixation, but do NOT destroy data
+                    // (destroy=true races with concurrent AJAX polls locking session files on Windows).
+                    $this->session->sess_regenerate(FALSE);
                     
                     // Set new session data with the logged-in admin's information
                     $session_data = array(
@@ -84,6 +84,14 @@ class Auth extends CI_Controller {
                             'actor_name' => $admin_name,
                             'status'     => 'success',
                         ));
+                    }
+                    
+                    // Ensure the new session cookie/file is flushed before the redirect
+                    // (avoids losing admin_logged_in when another tab holds a session lock).
+                    if (method_exists($this->session, 'sess_write')) {
+                        $this->session->sess_write();
+                    } elseif (function_exists('session_write_close')) {
+                        session_write_close();
                     }
                     
                     redirect('dashboard');
