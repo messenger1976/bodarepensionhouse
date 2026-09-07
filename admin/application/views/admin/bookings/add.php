@@ -120,13 +120,17 @@
             if (strlen($add_co_time) > 5) {
                 $add_co_time = substr($add_co_time, 0, 5);
             }
+            $add_ci_date = set_value('check_in', date('Y-m-d'));
+            $add_co_date = set_value('check_out', date('Y-m-d', strtotime('+1 day')));
+            $add_ci_dt = $add_ci_date . 'T' . $add_ci_time;
+            $add_co_dt = $add_co_date . 'T' . $add_co_time;
             ?>
             
             <div id="rooms-container">
                 <!-- Room selection rows will be added here dynamically -->
                 <div class="room-row mb-3 p-3 border rounded" data-room-index="0">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-2">
+                        <div class="col-12 col-lg-2">
                             <label class="form-label small fw-bold">Select Room *</label>
                             <select class="form-select room-select" name="room_selections[0][room_id]" data-index="0" required>
                                 <option value="">-- Choose a room --</option>
@@ -137,47 +141,39 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-12 col-md-6 col-lg-3">
                             <label class="form-label small fw-bold">Check-In *</label>
-                            <div class="row g-1">
-                                <div class="col-7">
-                                    <input type="date" class="form-control room-checkin" name="room_selections[0][check_in]" data-index="0" required title="Check-in date">
-                                </div>
-                                <div class="col-5">
-                                    <input type="time" class="form-control room-checkin-time" id="check_in_time" name="check_in_time"
-                                        value="<?php echo htmlspecialchars($add_ci_time); ?>" required title="Check-in time">
-                                </div>
-                            </div>
+                            <input type="datetime-local" class="form-control room-checkin-dt" required
+                                value="<?php echo htmlspecialchars($add_ci_dt, ENT_QUOTES, 'UTF-8'); ?>"
+                                title="Check-in date and time">
+                            <input type="hidden" class="room-checkin" name="room_selections[0][check_in]" value="<?php echo htmlspecialchars($add_ci_date, ENT_QUOTES, 'UTF-8'); ?>" data-index="0">
+                            <input type="hidden" class="room-checkin-time" id="check_in_time" name="check_in_time" value="<?php echo htmlspecialchars($add_ci_time, ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-12 col-md-6 col-lg-3">
                             <label class="form-label small fw-bold">Check-Out *</label>
-                            <div class="row g-1">
-                                <div class="col-7">
-                                    <input type="date" class="form-control room-checkout" name="room_selections[0][check_out]" data-index="0" required title="Check-out date">
-                                </div>
-                                <div class="col-5">
-                                    <input type="time" class="form-control room-checkout-time" id="check_out_time" name="check_out_time"
-                                        value="<?php echo htmlspecialchars($add_co_time); ?>" required title="Check-out time">
-                                </div>
-                            </div>
+                            <input type="datetime-local" class="form-control room-checkout-dt" required
+                                value="<?php echo htmlspecialchars($add_co_dt, ENT_QUOTES, 'UTF-8'); ?>"
+                                title="Check-out date and time">
+                            <input type="hidden" class="room-checkout" name="room_selections[0][check_out]" value="<?php echo htmlspecialchars($add_co_date, ENT_QUOTES, 'UTF-8'); ?>" data-index="0">
+                            <input type="hidden" class="room-checkout-time" id="check_out_time" name="check_out_time" value="<?php echo htmlspecialchars($add_co_time, ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
-                        <div class="col-md-1">
+                        <div class="col-6 col-sm-3 col-md-3 col-lg-1">
                             <label class="form-label small fw-bold">Guests</label>
                             <input type="number" class="form-control room-guests" name="room_selections[0][guests]" value="1" min="1" data-index="0" required>
                         </div>
-                        <div class="col-md-1">
+                        <div class="col-6 col-sm-3 col-md-3 col-lg-1">
                             <label class="form-label small fw-bold">Qty</label>
                             <input type="number" class="form-control room-quantity" name="room_selections[0][quantity]" value="1" min="1" data-index="0" required>
                         </div>
-                        <div class="col-md-1">
+                        <div class="col-6 col-sm-3 col-md-3 col-lg-1">
                             <label class="form-label small fw-bold">Price/Night</label>
                             <input type="text" class="form-control room-price-display" readonly value="₱0.00" style="font-size: 0.85rem;">
                         </div>
-                        <div class="col">
+                        <div class="col-6 col-sm-3 col-md-3 col-lg">
                             <label class="form-label small fw-bold">Subtotal</label>
-                            <div class="d-flex gap-1">
+                            <div class="d-flex gap-1 align-items-center">
                                 <input type="text" class="form-control room-subtotal" readonly value="₱0.00" style="font-weight: bold; font-size: 0.85rem;">
-                                <button type="button" class="btn btn-sm btn-danger remove-room-btn" style="display: none;">
+                                <button type="button" class="btn btn-sm btn-danger remove-room-btn" style="display: none;" title="Remove room">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
@@ -233,14 +229,14 @@
     <!-- Guests Names List -->
     <div class="card mb-3 shadow-sm">
         <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                 <h6 class="card-title mb-0"><i class="bi bi-people text-success"></i> Guests Names List</h6>
                 <button type="button" class="btn btn-sm btn-outline-primary" id="add-guest-row-btn">
                     <i class="bi bi-plus-circle"></i> Add Row
                 </button>
             </div>
             <div class="table-responsive">
-                <table class="table table-bordered align-middle mb-0" id="guest-names-table">
+                <table class="table table-bordered align-middle mb-0 no-datatables" id="guest-names-table">
                     <thead class="table-light">
                         <tr>
                             <th style="min-width: 180px;">Full Name</th>
@@ -253,15 +249,15 @@
                     </thead>
                     <tbody id="guest-names-body">
                         <tr class="guest-name-row" data-guest-index="0">
-                            <td>
+                            <td data-label="Full Name">
                                 <input type="text" class="form-control form-control-sm guest-full-name"
                                     name="guest_names[0][full_name]" placeholder="Full name">
                             </td>
-                            <td>
+                            <td data-label="Age">
                                 <input type="number" class="form-control form-control-sm guest-age"
                                     name="guest_names[0][age]" min="0" max="120" placeholder="Age">
                             </td>
-                            <td>
+                            <td data-label="Gender">
                                 <select class="form-select form-select-sm guest-gender" name="guest_names[0][gender]">
                                     <option value="">--</option>
                                     <option value="Male">Male</option>
@@ -269,17 +265,17 @@
                                     <option value="Other">Other</option>
                                 </select>
                             </td>
-                            <td>
+                            <td data-label="Date of Birth">
                                 <input type="date" class="form-control form-control-sm guest-dob"
                                     name="guest_names[0][date_of_birth]">
                             </td>
-                            <td>
+                            <td data-label="Contact No.">
                                 <input type="text" class="form-control form-control-sm guest-contact"
                                     name="guest_names[0][contact_no]" placeholder="Contact no.">
                             </td>
-                            <td class="text-center">
+                            <td data-label="Action" class="text-center">
                                 <button type="button" class="btn btn-sm btn-outline-danger remove-guest-row-btn" title="Remove">
-                                    <i class="bi bi-trash"></i>
+                                    <i class="bi bi-trash"></i> <span class="d-md-none ms-1">Remove Guest</span>
                                 </button>
                             </td>
                         </tr>
@@ -370,12 +366,48 @@ document.addEventListener('DOMContentLoaded', function() {
     const defaultCheckInTime = <?php echo json_encode($add_ci_time); ?>;
     const defaultCheckOutTime = <?php echo json_encode($add_co_time); ?>;
 
+    function toDatetimeLocal(dateStr, timeStr) {
+        if (!dateStr) return '';
+        const t = (timeStr || '00:00').toString().substring(0, 5);
+        return dateStr + 'T' + t;
+    }
+
+    function splitDatetimeLocal(value) {
+        if (!value || String(value).indexOf('T') === -1) {
+            return { date: '', time: '' };
+        }
+        const parts = String(value).split('T');
+        return {
+            date: parts[0] || '',
+            time: (parts[1] || '').substring(0, 5)
+        };
+    }
+
+    function applyDatetimeToHidden(row) {
+        if (!row) return;
+        const ciDt = row.querySelector('.room-checkin-dt');
+        const coDt = row.querySelector('.room-checkout-dt');
+        const ci = row.querySelector('.room-checkin');
+        const co = row.querySelector('.room-checkout');
+        const ciT = row.querySelector('.room-checkin-time');
+        const coT = row.querySelector('.room-checkout-time');
+        if (ciDt && ci) {
+            const s = splitDatetimeLocal(ciDt.value);
+            ci.value = s.date;
+            if (ciT && s.time) ciT.value = s.time;
+        }
+        if (coDt && co) {
+            const s2 = splitDatetimeLocal(coDt.value);
+            co.value = s2.date;
+            if (coT && s2.time) coT.value = s2.time;
+        }
+    }
+
     // Keep booking-level time field names on the first room row only
     function syncBookingTimeFieldNames() {
         document.querySelectorAll('.room-checkin-time, .room-checkout-time').forEach(function(el) {
             el.removeAttribute('name');
             el.removeAttribute('id');
-            el.required = false;
         });
         const firstRow = document.querySelector('.room-row');
         if (!firstRow) return;
@@ -384,23 +416,30 @@ document.addEventListener('DOMContentLoaded', function() {
         if (ci) {
             ci.name = 'check_in_time';
             ci.id = 'check_in_time';
-            ci.required = true;
         }
         if (co) {
             co.name = 'check_out_time';
             co.id = 'check_out_time';
-            co.required = true;
         }
     }
 
-    function syncBookingTimesFrom(source) {
-        if (!source) return;
-        const isCheckIn = source.classList.contains('room-checkin-time');
-        const selector = isCheckIn ? '.room-checkin-time' : '.room-checkout-time';
-        document.querySelectorAll(selector).forEach(function(el) {
-            if (el !== source) {
-                el.value = source.value;
+    function syncBookingTimesFrom(sourceDt, isCheckIn) {
+        if (!sourceDt || !sourceDt.value) return;
+        const parts = splitDatetimeLocal(sourceDt.value);
+        if (!parts.time) return;
+        const dtSelector = isCheckIn ? '.room-checkin-dt' : '.room-checkout-dt';
+        const hiddenTimeSelector = isCheckIn ? '.room-checkin-time' : '.room-checkout-time';
+        document.querySelectorAll(dtSelector).forEach(function(el) {
+            if (el === sourceDt) return;
+            const existing = splitDatetimeLocal(el.value);
+            const datePart = existing.date || parts.date;
+            if (datePart) {
+                el.value = toDatetimeLocal(datePart, parts.time);
             }
+            applyDatetimeToHidden(el.closest('.room-row'));
+        });
+        document.querySelectorAll(hiddenTimeSelector).forEach(function(el) {
+            el.value = parts.time;
         });
     }
 
@@ -450,15 +489,15 @@ document.addEventListener('DOMContentLoaded', function() {
         tr.className = 'guest-name-row';
         tr.setAttribute('data-guest-index', index);
         tr.innerHTML = `
-            <td>
+            <td data-label="Full Name">
                 <input type="text" class="form-control form-control-sm guest-full-name"
                     name="guest_names[${index}][full_name]" placeholder="Full name">
             </td>
-            <td>
+            <td data-label="Age">
                 <input type="number" class="form-control form-control-sm guest-age"
                     name="guest_names[${index}][age]" min="0" max="120" placeholder="Age">
             </td>
-            <td>
+            <td data-label="Gender">
                 <select class="form-select form-select-sm guest-gender" name="guest_names[${index}][gender]">
                     <option value="">--</option>
                     <option value="Male">Male</option>
@@ -466,17 +505,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     <option value="Other">Other</option>
                 </select>
             </td>
-            <td>
+            <td data-label="Date of Birth">
                 <input type="date" class="form-control form-control-sm guest-dob"
                     name="guest_names[${index}][date_of_birth]">
             </td>
-            <td>
+            <td data-label="Contact No.">
                 <input type="text" class="form-control form-control-sm guest-contact"
                     name="guest_names[${index}][contact_no]" placeholder="Contact no.">
             </td>
-            <td class="text-center">
+            <td data-label="Action" class="text-center">
                 <button type="button" class="btn btn-sm btn-outline-danger remove-guest-row-btn" title="Remove">
-                    <i class="bi bi-trash"></i>
+                    <i class="bi bi-trash"></i> <span class="d-md-none ms-1">Remove Guest</span>
                 </button>
             </td>
         `;
@@ -517,11 +556,10 @@ document.addEventListener('DOMContentLoaded', function() {
         return year + '-' + month + '-' + day;
     };
     
-    // Set min dates for initial room row
-    const initialCheckIn = document.querySelector('.room-checkin');
-    const initialCheckOut = document.querySelector('.room-checkout');
-    if (initialCheckIn) initialCheckIn.setAttribute('min', today);
-    if (initialCheckOut) initialCheckOut.setAttribute('min', today);
+    // Set min on datetime-local controls
+    document.querySelectorAll('.room-checkin-dt, .room-checkout-dt').forEach(function(el) {
+        el.setAttribute('min', today + 'T00:00');
+    });
     
     // Update remove button visibility
     function updateRemoveButtons() {
@@ -540,10 +578,11 @@ document.addEventListener('DOMContentLoaded', function() {
     addRoomBtn.addEventListener('click', function() {
         roomIndex++;
         const newRow = document.createElement('div');
-        newRow.className = 'room-row mb-3 p-3 border rounded';
+        newRow.className = 'room-row mb-3 p-3 border rounded shadow-sm bg-white';
         newRow.setAttribute('data-room-index', roomIndex);
         
         // Get dates/times from first room row or use defaults
+        document.querySelectorAll('.room-row').forEach(applyDatetimeToHidden);
         const firstCheckIn = document.querySelector('.room-checkin')?.value || today;
         const firstCheckOut = document.querySelector('.room-checkout')?.value || '';
         const firstCheckInTime = document.querySelector('.room-checkin-time')?.value || defaultCheckInTime;
@@ -556,7 +595,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         newRow.innerHTML = `
             <div class="row g-3 align-items-end">
-                <div class="col-md-2">
+                <div class="col-12 col-lg-2">
                     <label class="form-label small fw-bold">Select Room *</label>
                     <select class="form-select room-select" name="room_selections[${roomIndex}][room_id]" data-index="${roomIndex}" required>
                         <option value="">-- Choose a room --</option>
@@ -567,45 +606,35 @@ document.addEventListener('DOMContentLoaded', function() {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-12 col-md-6 col-lg-3">
                     <label class="form-label small fw-bold">Check-In *</label>
-                    <div class="row g-1">
-                        <div class="col-7">
-                            <input type="date" class="form-control room-checkin" name="room_selections[${roomIndex}][check_in]" value="${firstCheckIn}" data-index="${roomIndex}" min="${today}" required title="Check-in date">
-                        </div>
-                        <div class="col-5">
-                            <input type="time" class="form-control room-checkin-time" value="${firstCheckInTime}" title="Check-in time">
-                        </div>
-                    </div>
+                    <input type="datetime-local" class="form-control room-checkin-dt" value="${toDatetimeLocal(firstCheckIn, firstCheckInTime)}" required title="Check-in date and time">
+                    <input type="hidden" class="room-checkin" name="room_selections[${roomIndex}][check_in]" value="${firstCheckIn}" data-index="${roomIndex}">
+                    <input type="hidden" class="room-checkin-time" value="${firstCheckInTime}">
                 </div>
-                <div class="col-md-3">
+                <div class="col-12 col-md-6 col-lg-3">
                     <label class="form-label small fw-bold">Check-Out *</label>
-                    <div class="row g-1">
-                        <div class="col-7">
-                            <input type="date" class="form-control room-checkout" name="room_selections[${roomIndex}][check_out]" value="${tomorrow}" data-index="${roomIndex}" min="${today}" required title="Check-out date">
-                        </div>
-                        <div class="col-5">
-                            <input type="time" class="form-control room-checkout-time" value="${firstCheckOutTime}" title="Check-out time">
-                        </div>
-                    </div>
+                    <input type="datetime-local" class="form-control room-checkout-dt" value="${toDatetimeLocal(tomorrow, firstCheckOutTime)}" required title="Check-out date and time">
+                    <input type="hidden" class="room-checkout" name="room_selections[${roomIndex}][check_out]" value="${tomorrow}" data-index="${roomIndex}">
+                    <input type="hidden" class="room-checkout-time" value="${firstCheckOutTime}">
                 </div>
-                <div class="col-md-1">
+                <div class="col-6 col-sm-3 col-md-3 col-lg-1">
                     <label class="form-label small fw-bold">Guests</label>
                     <input type="number" class="form-control room-guests" name="room_selections[${roomIndex}][guests]" value="1" min="1" data-index="${roomIndex}" required>
                 </div>
-                <div class="col-md-1">
+                <div class="col-6 col-sm-3 col-md-3 col-lg-1">
                     <label class="form-label small fw-bold">Qty</label>
                     <input type="number" class="form-control room-quantity" name="room_selections[${roomIndex}][quantity]" value="1" min="1" data-index="${roomIndex}" required>
                 </div>
-                <div class="col-md-1">
+                <div class="col-6 col-sm-3 col-md-3 col-lg-1">
                     <label class="form-label small fw-bold">Price/Night</label>
                     <input type="text" class="form-control room-price-display" readonly value="₱0.00" style="font-size: 0.85rem;">
                 </div>
-                <div class="col">
+                <div class="col-6 col-sm-3 col-md-3 col-lg">
                     <label class="form-label small fw-bold">Subtotal</label>
-                    <div class="d-flex gap-1">
+                    <div class="d-flex gap-1 align-items-center">
                         <input type="text" class="form-control room-subtotal" readonly value="₱0.00" style="font-weight: bold; font-size: 0.85rem;">
-                        <button type="button" class="btn btn-sm btn-danger remove-room-btn">
+                        <button type="button" class="btn btn-sm btn-danger remove-room-btn" title="Remove room">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
@@ -617,27 +646,9 @@ document.addEventListener('DOMContentLoaded', function() {
         updateRemoveButtons();
         syncBookingTimeFieldNames();
         attachRoomRowEvents(newRow);
-        
-        // Set up date validation for new row
-        const newCheckIn = newRow.querySelector('.room-checkin');
-        const newCheckOut = newRow.querySelector('.room-checkout');
-        if (newCheckIn && newCheckOut) {
-            newCheckIn.addEventListener('change', function() {
-                if (newCheckOut.value && newCheckOut.value <= newCheckIn.value) {
-                    const nextDay = new Date(newCheckIn.value);
-                    nextDay.setDate(nextDay.getDate() + 1);
-                    newCheckOut.value = ymdFromDate(nextDay);
-                    newCheckOut.setAttribute('min', newCheckIn.value);
-                }
-                calculateRoomSubtotal(newRow);
-                calculateTotals();
-            });
-            newCheckOut.addEventListener('change', function() {
-                newCheckOut.setAttribute('min', newCheckIn.value);
-                calculateRoomSubtotal(newRow);
-                calculateTotals();
-            });
-        }
+        applyDatetimeToHidden(newRow);
+        calculateRoomSubtotal(newRow);
+        calculateTotals();
     });
     
     // Remove room row
@@ -656,22 +667,50 @@ document.addEventListener('DOMContentLoaded', function() {
         const roomSelect = row.querySelector('.room-select');
         const quantityInput = row.querySelector('.room-quantity');
         const guestsInput = row.querySelector('.room-guests');
+        const checkInDt = row.querySelector('.room-checkin-dt');
+        const checkOutDt = row.querySelector('.room-checkout-dt');
         const checkInInput = row.querySelector('.room-checkin');
         const checkOutInput = row.querySelector('.room-checkout');
-        const checkInTimeInput = row.querySelector('.room-checkin-time');
         const checkOutTimeInput = row.querySelector('.room-checkout-time');
-        const priceDisplay = row.querySelector('.room-price-display');
-        const subtotalDisplay = row.querySelector('.room-subtotal');
 
-        if (checkInTimeInput) {
-            checkInTimeInput.addEventListener('change', function() {
-                syncBookingTimesFrom(checkInTimeInput);
-            });
+        function handleCheckInChange() {
+            applyDatetimeToHidden(row);
+            syncBookingTimesFrom(checkInDt, true);
+            if (checkInInput && checkOutInput && checkOutInput.value && checkOutInput.value <= checkInInput.value) {
+                const nextDay = new Date(checkInInput.value + 'T12:00:00');
+                nextDay.setDate(nextDay.getDate() + 1);
+                const newDate = ymdFromDate(nextDay);
+                const coTime = (checkOutTimeInput && checkOutTimeInput.value) || defaultCheckOutTime;
+                checkOutInput.value = newDate;
+                if (checkOutDt) checkOutDt.value = toDatetimeLocal(newDate, coTime);
+                applyDatetimeToHidden(row);
+            }
+            if (checkInDt && checkOutDt && checkInDt.value) {
+                const ciParts = splitDatetimeLocal(checkInDt.value);
+                if (ciParts.date) checkOutDt.min = ciParts.date + 'T00:00';
+            }
+            calculateRoomSubtotal(row);
+            calculateTotals();
         }
-        if (checkOutTimeInput) {
-            checkOutTimeInput.addEventListener('change', function() {
-                syncBookingTimesFrom(checkOutTimeInput);
-            });
+
+        function handleCheckOutChange() {
+            applyDatetimeToHidden(row);
+            syncBookingTimesFrom(checkOutDt, false);
+            if (checkInDt && checkOutDt && checkInDt.value) {
+                const ciParts = splitDatetimeLocal(checkInDt.value);
+                if (ciParts.date) checkOutDt.min = ciParts.date + 'T00:00';
+            }
+            calculateRoomSubtotal(row);
+            calculateTotals();
+        }
+
+        if (checkInDt) {
+            checkInDt.addEventListener('change', handleCheckInChange);
+            checkInDt.addEventListener('input', handleCheckInChange);
+        }
+        if (checkOutDt) {
+            checkOutDt.addEventListener('change', handleCheckOutChange);
+            checkOutDt.addEventListener('input', handleCheckOutChange);
         }
         
         roomSelect.addEventListener('change', function() {
@@ -688,25 +727,8 @@ document.addEventListener('DOMContentLoaded', function() {
             calculateRoomSubtotal(row);
             calculateTotals();
         });
-        
-        if (checkInInput && checkOutInput) {
-            checkInInput.addEventListener('change', function() {
-                if (checkOutInput.value && checkOutInput.value <= checkInInput.value) {
-                    const nextDay = new Date(checkInInput.value);
-                    nextDay.setDate(nextDay.getDate() + 1);
-                    checkOutInput.value = ymdFromDate(nextDay);
-                }
-                checkOutInput.setAttribute('min', checkInInput.value);
-                calculateRoomSubtotal(row);
-                calculateTotals();
-            });
-            
-            checkOutInput.addEventListener('change', function() {
-                checkOutInput.setAttribute('min', checkInInput.value);
-                calculateRoomSubtotal(row);
-                calculateTotals();
-            });
-        }
+
+        applyDatetimeToHidden(row);
     }
     
     // Calculate subtotal for a single room row
@@ -825,8 +847,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Attach events to initial room row
-    document.querySelectorAll('.room-row').forEach(row => attachRoomRowEvents(row));
+    document.querySelectorAll('.room-row').forEach(function(row) {
+        attachRoomRowEvents(row);
+        applyDatetimeToHidden(row);
+    });
     syncBookingTimeFieldNames();
+
+    const bookingForm = document.getElementById('booking-form');
+    if (bookingForm) {
+        bookingForm.addEventListener('submit', function() {
+            document.querySelectorAll('.room-row').forEach(applyDatetimeToHidden);
+            syncBookingTimeFieldNames();
+        });
+    }
     
     // Customer selection handler
     const customerSelect = document.getElementById('customer_id');

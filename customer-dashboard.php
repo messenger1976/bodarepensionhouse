@@ -235,7 +235,6 @@ include __DIR__ . '/includes/site-head.php';
     </main>
 
     <?php
-    $footerConfig = ['variant' => 'minimal'];
     include __DIR__ . '/includes/site-footer.php';
 ?>
     

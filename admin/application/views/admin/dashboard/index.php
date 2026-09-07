@@ -64,7 +64,7 @@
 <?php if (!empty($can_view_activity_logs)): ?>
 <div class="nk-block">
     <div class="card card-bordered">
-        <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-clock-history"></i> Recent Activity</span>
             <a href="<?php echo base_url('activity_logs'); ?>" class="btn btn-sm btn-light">View All <i class="bi bi-arrow-right"></i></a>
         </div>
@@ -87,7 +87,7 @@
                 <?php endif; ?>
             </div>
             <?php if (!empty($recent_activity)): ?>
-            <div class="table-responsive">
+            <div class="table-responsive mob-desktop-table">
                 <table class="table table-sm table-hover mb-0">
                     <thead>
                         <tr>
@@ -110,6 +110,34 @@
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+            </div>
+            <div class="mob-card-list d-lg-none px-3 pb-3">
+                <?php foreach ($recent_activity as $log): ?>
+                    <?php
+                    $log_href = base_url('activity_logs/view/' . (int) $log->id);
+                    $log_desc = mb_strimwidth((string) $log->description, 0, 90, '…');
+                    $log_actor = $log->actor_name ?: $log->actor_type;
+                    $log_badge = isset($type_badge[$log->log_type]) ? $type_badge[$log->log_type] : 'secondary';
+                    ?>
+                    <a href="<?php echo $log_href; ?>" class="mob-list-card text-decoration-none d-block" style="color: inherit;">
+                        <div class="mob-list-card-header">
+                            <div class="min-w-0 flex-grow-1">
+                                <div class="mob-list-card-title"><?php echo htmlspecialchars($log_desc, ENT_QUOTES, 'UTF-8'); ?></div>
+                                <div class="mob-list-card-meta">
+                                    <i class="bi bi-person"></i>
+                                    <?php echo htmlspecialchars($log_actor, ENT_QUOTES, 'UTF-8'); ?>
+                                    &middot;
+                                    <code class="small"><?php echo htmlspecialchars($log->action, ENT_QUOTES, 'UTF-8'); ?></code>
+                                </div>
+                            </div>
+                            <span class="badge bg-<?php echo $log_badge; ?>"><?php echo htmlspecialchars($log->log_type, ENT_QUOTES, 'UTF-8'); ?></span>
+                        </div>
+                        <div class="mob-list-card-meta mb-0">
+                            <i class="bi bi-clock"></i>
+                            <?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($log->created_at)), ENT_QUOTES, 'UTF-8'); ?>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
             </div>
             <?php else: ?>
             <div class="px-3 py-4 text-center text-muted small">No recent activity to show.</div>
@@ -327,7 +355,7 @@ $inventory_summary_today = isset($inventory_summary_today) && is_array($inventor
                     <i class="bi bi-door-open"></i> Room Availability (Today)
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
+                    <div class="table-responsive mob-desktop-table">
                         <table class="table table-sm table-hover">
                             <thead>
                                 <tr>
@@ -363,6 +391,31 @@ $inventory_summary_today = isset($inventory_summary_today) && is_array($inventor
                             </tbody>
                         </table>
                     </div>
+                    <div class="mob-card-list d-lg-none">
+                        <?php if (!empty($room_availability_today)): ?>
+                            <?php foreach ($room_availability_today as $room_avail): ?>
+                                <div class="mob-list-card">
+                                    <div class="mob-list-card-header">
+                                        <div class="mob-list-card-title"><?php echo htmlspecialchars($room_avail['room_name'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <span class="badge bg-<?php echo $room_avail['remaining'] > 0 ? 'success' : 'danger'; ?>">
+                                            <?php echo (int) $room_avail['remaining']; ?> left
+                                        </span>
+                                    </div>
+                                    <div class="mob-list-card-meta mb-0 d-flex flex-wrap gap-3">
+                                        <span><i class="bi bi-door-closed"></i> Available: <strong><?php echo (int) $room_avail['available']; ?></strong></span>
+                                        <span>
+                                            <i class="bi bi-bookmark-check"></i> Booked:
+                                            <span class="badge bg-<?php echo $room_avail['booked'] > 0 ? 'warning' : 'secondary'; ?>">
+                                                <?php echo (int) $room_avail['booked']; ?>
+                                            </span>
+                                        </span>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="mob-list-card text-muted text-center">No rooms available</div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
             <div class="card card-bordered">
@@ -370,7 +423,7 @@ $inventory_summary_today = isset($inventory_summary_today) && is_array($inventor
                     <i class="bi bi-list-ul"></i> Recent Bookings
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
+                    <div class="table-responsive mob-desktop-table">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
@@ -417,6 +470,49 @@ $inventory_summary_today = isset($inventory_summary_today) && is_array($inventor
                                 <?php endif; ?>
                             </tbody>
                         </table>
+                    </div>
+                    <div class="mob-card-list d-lg-none">
+                        <?php if (!empty($recent_bookings)): ?>
+                            <?php foreach (array_slice($recent_bookings, 0, 10) as $booking): ?>
+                                <?php
+                                $badge_class = 'secondary';
+                                if ($booking->status == 'confirmed') $badge_class = 'success';
+                                if ($booking->status == 'checked_in') $badge_class = 'info';
+                                if ($booking->status == 'checked_out' || $booking->status == 'completed') $badge_class = 'primary';
+                                if ($booking->status == 'cancelled') $badge_class = 'danger';
+                                if ($booking->status == 'pending') $badge_class = 'warning';
+                                $booking_id_label = isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT);
+                                $check_in_date = date('M d, Y', strtotime(isset($booking->earliest_checkin) ? $booking->earliest_checkin : $booking->check_in));
+                                $check_out_date = date('M d, Y', strtotime(isset($booking->latest_checkout) ? $booking->latest_checkout : $booking->check_out));
+                                $booking_href = base_url('bookings/' . $booking->id);
+                                ?>
+                                <div class="mob-list-card">
+                                    <div class="mob-list-card-header">
+                                        <div class="min-w-0 flex-grow-1">
+                                            <div class="mob-list-card-title">#<?php echo htmlspecialchars($booking_id_label, ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="mob-list-card-meta"><?php echo htmlspecialchars($booking->guest_name, ENT_QUOTES, 'UTF-8'); ?></div>
+                                        </div>
+                                        <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucwords(str_replace('_', ' ', $booking->status)); ?></span>
+                                    </div>
+                                    <div class="mob-list-card-meta">
+                                        <i class="bi bi-box-arrow-in-right"></i> In: <?php echo $check_in_date; ?>
+                                    </div>
+                                    <div class="mob-list-card-meta">
+                                        <i class="bi bi-box-arrow-right"></i> Out: <?php echo $check_out_date; ?>
+                                    </div>
+                                    <div class="mob-list-card-meta">
+                                        <i class="bi bi-cash"></i> <strong>₱<?php echo number_format($booking->total_amount, 2); ?></strong>
+                                    </div>
+                                    <div class="mob-list-card-actions">
+                                        <a href="<?php echo $booking_href; ?>" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="mob-list-card text-muted text-center">No bookings found</div>
+                        <?php endif; ?>
                     </div>
                     <div class="mt-3">
                         <a href="<?php echo base_url('bookings'); ?>" class="btn btn-primary">View All Bookings</a>

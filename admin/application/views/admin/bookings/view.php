@@ -1,7 +1,7 @@
-<div class="content-card">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="content-card booking-detail-page">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h5 class="mb-0"><i class="bi bi-eye"></i> Booking Details</h5>
-        <div>
+        <div class="booking-detail-actions">
             <a href="<?php echo base_url('bookings'); ?>" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Back to List
             </a>
@@ -58,7 +58,7 @@
     <div class="row">
         <div class="col-md-6">
             <h6 class="text-muted mb-3">Guest Information</h6>
-            <table class="table table-bordered">
+            <table class="table table-bordered mob-kv-table">
                 <tr>
                     <th width="40%">Name:</th>
                     <td><?php echo htmlspecialchars($booking->guest_name); ?></td>
@@ -105,7 +105,7 @@
         </div>
         <div class="col-md-6">
             <h6 class="text-muted mb-3">Booking Information</h6>
-            <table class="table table-bordered">
+            <table class="table table-bordered mob-kv-table">
                 <tr>
                     <th width="40%">Booking Number:</th>
                     <td>#<?php echo isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT); ?></td>
@@ -225,7 +225,7 @@
     <?php if (!empty($booking_guests)): ?>
     <div class="mt-4">
         <h6 class="text-muted mb-3"><i class="bi bi-people"></i> Guests Names List</h6>
-        <div class="table-responsive">
+        <div class="table-responsive mob-desktop-table">
             <table class="table table-bordered table-sm">
                 <thead class="table-light">
                     <tr>
@@ -251,13 +251,37 @@
                 </tbody>
             </table>
         </div>
+        <div class="mob-card-list d-lg-none">
+            <?php foreach ($booking_guests as $index => $guest): ?>
+                <div class="mob-list-card">
+                    <div class="mob-list-card-header">
+                        <div class="mob-list-card-title"><?php echo htmlspecialchars($guest->full_name, ENT_QUOTES, 'UTF-8'); ?></div>
+                        <span class="badge bg-secondary">#<?php echo $index + 1; ?></span>
+                    </div>
+                    <div class="mob-list-card-meta">
+                        <i class="bi bi-person"></i>
+                        Age: <?php echo $guest->age !== null && $guest->age !== '' ? (int) $guest->age : '—'; ?>
+                        &middot;
+                        <?php echo !empty($guest->gender) ? htmlspecialchars($guest->gender, ENT_QUOTES, 'UTF-8') : '—'; ?>
+                    </div>
+                    <div class="mob-list-card-meta">
+                        <i class="bi bi-calendar"></i>
+                        DOB: <?php echo !empty($guest->date_of_birth) ? date('M d, Y', strtotime($guest->date_of_birth)) : '—'; ?>
+                    </div>
+                    <div class="mob-list-card-meta mb-0">
+                        <i class="bi bi-telephone"></i>
+                        <?php echo !empty($guest->contact_no) ? '—' : htmlspecialchars($guest->contact_no, ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
     <?php endif; ?>
 
     <?php if (!empty($booking_invoices)): ?>
     <div class="mt-4">
         <h6 class="text-muted mb-3"><i class="bi bi-receipt"></i> Linked Invoices</h6>
-        <div class="table-responsive">
+        <div class="table-responsive mob-desktop-table">
             <table class="table table-sm table-bordered">
                 <thead class="table-light">
                     <tr>
@@ -290,6 +314,34 @@
                 </tbody>
             </table>
         </div>
+        <div class="mob-card-list d-lg-none">
+            <?php foreach ($booking_invoices as $inv): ?>
+                <?php
+                $inv_badge = 'secondary';
+                if ($inv->status === 'paid') $inv_badge = 'success';
+                elseif ($inv->status === 'partial') $inv_badge = 'warning';
+                elseif ($inv->status === 'issued' || $inv->status === 'overdue') $inv_badge = 'danger';
+                elseif ($inv->status === 'draft') $inv_badge = 'secondary';
+                ?>
+                <div class="mob-list-card">
+                    <div class="mob-list-card-header">
+                        <div class="mob-list-card-title"><?php echo htmlspecialchars($inv->invoice_number, ENT_QUOTES, 'UTF-8'); ?></div>
+                        <span class="badge bg-<?php echo $inv_badge; ?>"><?php echo ucfirst($inv->status); ?></span>
+                    </div>
+                    <div class="mob-list-card-meta">
+                        <i class="bi bi-cash"></i> Total: <strong>₱<?php echo number_format($inv->total_amount, 2); ?></strong>
+                    </div>
+                    <div class="mob-list-card-meta">
+                        <i class="bi bi-wallet2"></i> Balance: ₱<?php echo number_format($inv->balance_due, 2); ?>
+                    </div>
+                    <div class="mob-list-card-actions">
+                        <a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </div>
     <?php endif; ?>
     
@@ -305,7 +357,7 @@
     <?php if (isset($booking_items) && !empty($booking_items)): ?>
         <div class="mt-4">
             <h6 class="text-muted mb-3">Room Details (Itemized) - <?php echo count($booking_items); ?> item(s)</h6>
-            <div class="table-responsive">
+            <div class="table-responsive mob-desktop-table">
                 <table class="table table-bordered table-hover" id="booking-items-table">
                     <thead>
                         <tr>
@@ -378,6 +430,71 @@
                         </tr>
                     </tfoot>
                 </table>
+            </div>
+            <div class="mob-card-list d-lg-none">
+                <?php
+                $rooms_items_subtotal = 0;
+                if (!empty($booking_items)) {
+                    foreach ($booking_items as $item) {
+                        $rooms_items_subtotal += (float) $item->subtotal;
+                    }
+                }
+                $view_extra_services = array();
+                if (!empty($booking->extra_services)) {
+                    $decoded = json_decode($booking->extra_services, true);
+                    if (is_array($decoded)) {
+                        $view_extra_services = $decoded;
+                    }
+                }
+                ?>
+                <?php foreach ($booking_items as $index => $item): ?>
+                    <?php
+                    $badge_class = 'secondary';
+                    if ($item->status == 'confirmed') $badge_class = 'success';
+                    if ($item->status == 'checked_in') $badge_class = 'info';
+                    if ($item->status == 'checked_out' || $item->status == 'completed') $badge_class = 'primary';
+                    if ($item->status == 'cancelled') $badge_class = 'danger';
+                    if ($item->status == 'pending') $badge_class = 'warning';
+                    ?>
+                    <div class="mob-list-card">
+                        <div class="mob-list-card-header">
+                            <div class="min-w-0 flex-grow-1">
+                                <div class="mob-list-card-title"><?php echo htmlspecialchars($item->room_name, ENT_QUOTES, 'UTF-8'); ?></div>
+                                <div class="mob-list-card-meta">Item #<?php echo $index + 1; ?> · <?php echo (int) $item->nights; ?> night(s) · <?php echo (int) $booking->guests; ?> guest(s)</div>
+                            </div>
+                            <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucwords(str_replace('_', ' ', $item->status)); ?></span>
+                        </div>
+                        <div class="mob-list-card-meta">
+                            <i class="bi bi-box-arrow-in-right"></i> In: <?php echo date('M d, Y', strtotime($item->check_in)); ?>
+                        </div>
+                        <div class="mob-list-card-meta">
+                            <i class="bi bi-box-arrow-right"></i> Out: <?php echo date('M d, Y', strtotime($item->check_out)); ?>
+                        </div>
+                        <div class="mob-list-card-meta">
+                            <i class="bi bi-tag"></i> ₱<?php echo number_format($item->price_per_night, 2); ?>/night
+                        </div>
+                        <div class="mob-list-card-meta mb-0">
+                            <i class="bi bi-cash"></i> Subtotal: <strong>₱<?php echo number_format($item->subtotal, 2); ?></strong>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                <div class="mob-list-card bg-light">
+                    <div class="mob-list-card-meta d-flex justify-content-between">
+                        <span>Rooms Subtotal</span>
+                        <strong>₱<?php echo number_format($rooms_items_subtotal, 2); ?></strong>
+                    </div>
+                    <?php foreach ($view_extra_services as $service): ?>
+                        <?php if (empty($service['name'])) continue; ?>
+                        <div class="mob-list-card-meta d-flex justify-content-between">
+                            <span><?php echo htmlspecialchars($service['name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                            <span>₱<?php echo number_format(isset($service['cost']) ? (float) $service['cost'] : 0, 2); ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                    <div class="mob-list-card-meta mb-0 d-flex justify-content-between pt-2 border-top mt-2">
+                        <strong>Total Amount</strong>
+                        <strong>₱<?php echo number_format($booking->total_amount, 2); ?></strong>
+                    </div>
+                </div>
             </div>
         </div>
     <?php else: ?>

@@ -195,6 +195,183 @@
         width: 100%;
     }
 
+    /* Booking detail action toolbar */
+    .booking-detail-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .booking-detail-actions .btn {
+        flex: 1 1 calc(50% - 0.5rem);
+        min-width: 0;
+        width: auto !important;
+        font-size: 0.8125rem;
+        padding: 0.5rem 0.625rem;
+        white-space: nowrap;
+    }
+
+    /* Key-value detail tables (Guest / Booking info) */
+    .mob-kv-table {
+        width: 100%;
+        min-width: 0 !important;
+        table-layout: fixed;
+        margin-bottom: 1rem;
+    }
+
+    .mob-kv-table th,
+    .mob-kv-table td {
+        white-space: normal !important;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        vertical-align: top;
+        font-size: 0.8125rem;
+        padding: 0.625rem 0.75rem;
+    }
+
+    .mob-kv-table th {
+        width: 36%;
+        color: #64748b;
+        font-weight: 600;
+        background: #f8fafc;
+    }
+
+    .mob-kv-table td .ms-2 {
+        display: block;
+        margin-left: 0 !important;
+        margin-top: 0.25rem;
+    }
+
+    .booking-detail-page .table-responsive {
+        margin-bottom: 0;
+    }
+
+    /* ── Booking edit / add form elements ── */
+    .booking-header-section {
+        padding: 1rem !important;
+    }
+
+    .room-row {
+        background-color: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 0.875rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    #guest-names-table,
+    #guest-names-table thead,
+    #guest-names-table tbody,
+    #guest-names-table tr.guest-name-row,
+    #guest-names-table tr.guest-name-row > td {
+        display: block;
+    }
+
+    #guest-names-table thead {
+        display: none !important;
+    }
+
+    #guest-names-table {
+        border: none !important;
+    }
+
+    #guest-names-table tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        width: 100%;
+    }
+
+    #guest-names-table tr.guest-name-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        background: #ffffff;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 0.75rem;
+        padding: 0.875rem;
+        margin-bottom: 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    #guest-names-table tr.guest-name-row > td {
+        border: none !important;
+        padding: 0 !important;
+        min-width: 0;
+    }
+
+    #guest-names-table tr.guest-name-row > td[data-label="Full Name"] {
+        flex: 1 1 100%;
+        width: 100% !important;
+    }
+
+    #guest-names-table tr.guest-name-row > td[data-label="Age"] {
+        flex: 1 1 calc(50% - 0.25rem);
+        width: calc(50% - 0.25rem) !important;
+    }
+
+    #guest-names-table tr.guest-name-row > td[data-label="Gender"] {
+        flex: 1 1 calc(50% - 0.25rem);
+        width: calc(50% - 0.25rem) !important;
+    }
+
+    #guest-names-table tr.guest-name-row > td[data-label="Date of Birth"] {
+        flex: 1 1 100%;
+        width: 100% !important;
+    }
+
+    #guest-names-table tr.guest-name-row > td[data-label="Contact No."] {
+        flex: 1 1 100%;
+        width: 100% !important;
+    }
+
+    #guest-names-table tr.guest-name-row > td[data-label="Action"] {
+        flex: 1 1 100%;
+        width: 100% !important;
+        padding-top: 0.5rem !important;
+        margin-top: 0.25rem;
+        border-top: 1px dashed #e2e8f0 !important;
+        text-align: right;
+    }
+
+    #guest-names-table tr.guest-name-row > td[data-label="Action"] .remove-guest-row-btn {
+        width: 100%;
+        padding: 0.45rem;
+        font-size: 0.8125rem;
+    }
+
+    #guest-names-table tr.guest-name-row > td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #64748b;
+        margin-bottom: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    #guest-names-table tr.guest-name-row > td[data-label="Action"]::before {
+        display: none;
+    }
+
+    body.dark-mode #guest-names-table tr.guest-name-row {
+        background: #0f172a;
+        border-color: #334155 !important;
+    }
+
+    body.dark-mode #guest-names-table tr.guest-name-row > td[data-label]::before {
+        color: #94a3b8;
+    }
+
+    body.dark-mode #guest-names-table tr.guest-name-row > td[data-label="Action"] {
+        border-top-color: #334155 !important;
+    }
+
     /* ── Cards & grids ── */
     .card-header,
     .card-header.d-flex {

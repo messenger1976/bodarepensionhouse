@@ -19,17 +19,27 @@
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="col-md-4">
-            <label class="form-label">Event Date *</label>
-            <input type="date" name="event_date" class="form-control" required value="<?php echo set_value('event_date', $event->event_date); ?>">
+        <?php
+        $edit_ev_date = set_value('event_date', $event->event_date);
+        $edit_ev_start = set_value('start_time', $event->start_time);
+        $edit_ev_end = set_value('end_time', $event->end_time);
+        if ($edit_ev_start && strlen($edit_ev_start) > 5) $edit_ev_start = substr($edit_ev_start, 0, 5);
+        if ($edit_ev_end && strlen($edit_ev_end) > 5) $edit_ev_end = substr($edit_ev_end, 0, 5);
+        $edit_start_dt = ($edit_ev_date && $edit_ev_start) ? ($edit_ev_date . 'T' . $edit_ev_start) : ($edit_ev_date ? $edit_ev_date . 'T00:00' : '');
+        $edit_end_dt = ($edit_ev_date && $edit_ev_end) ? ($edit_ev_date . 'T' . $edit_ev_end) : '';
+        ?>
+        <div class="col-md-6">
+            <label class="form-label">Start *</label>
+            <input type="datetime-local" id="event_start_dt" class="form-control" required
+                value="<?php echo htmlspecialchars($edit_start_dt, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="event_date" id="event_date" value="<?php echo htmlspecialchars($edit_ev_date, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="start_time" id="start_time" value="<?php echo htmlspecialchars($edit_ev_start ? $edit_ev_start : '', ENT_QUOTES, 'UTF-8'); ?>">
         </div>
-        <div class="col-md-4">
-            <label class="form-label">Start Time</label>
-            <input type="time" name="start_time" class="form-control" value="<?php echo set_value('start_time', $event->start_time); ?>">
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">End Time</label>
-            <input type="time" name="end_time" class="form-control" value="<?php echo set_value('end_time', $event->end_time); ?>">
+        <div class="col-md-6">
+            <label class="form-label">End</label>
+            <input type="datetime-local" id="event_end_dt" class="form-control"
+                value="<?php echo htmlspecialchars($edit_end_dt, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="end_time" id="end_time" value="<?php echo htmlspecialchars($edit_ev_end ? $edit_ev_end : '', ENT_QUOTES, 'UTF-8'); ?>">
         </div>
         <div class="col-md-6">
             <label class="form-label">Venue</label>
@@ -83,3 +93,52 @@
         </div>
     </form>
 </div>
+<script>
+(function () {
+    function splitDt(value) {
+        if (!value || String(value).indexOf('T') === -1) return { date: '', time: '' };
+        var parts = String(value).split('T');
+        return { date: parts[0] || '', time: (parts[1] || '').substring(0, 5) };
+    }
+    function syncEventDatetimes() {
+        var startEl = document.getElementById('event_start_dt');
+        var endEl = document.getElementById('event_end_dt');
+        var dateEl = document.getElementById('event_date');
+        var startTimeEl = document.getElementById('start_time');
+        var endTimeEl = document.getElementById('end_time');
+        if (!startEl || !dateEl || !startTimeEl) return;
+        var start = splitDt(startEl.value);
+        dateEl.value = start.date;
+        startTimeEl.value = start.time;
+        if (endEl && endTimeEl) {
+            var end = splitDt(endEl.value);
+            endTimeEl.value = end.time || '';
+            if (start.date && endEl.value && end.date && end.date !== start.date) {
+                endEl.value = start.date + 'T' + (end.time || '00:00');
+                endTimeEl.value = end.time || '';
+            }
+        }
+    }
+    var form = document.querySelector('form');
+    var startEl = document.getElementById('event_start_dt');
+    var endEl = document.getElementById('event_end_dt');
+    if (startEl) {
+        startEl.addEventListener('change', function () {
+            syncEventDatetimes();
+            if (endEl && startEl.value) {
+                var start = splitDt(startEl.value);
+                var end = splitDt(endEl.value);
+                if (!endEl.value) {
+                    endEl.value = start.date + 'T' + (start.time || '00:00');
+                } else if (start.date) {
+                    endEl.value = start.date + 'T' + (end.time || start.time || '00:00');
+                }
+                syncEventDatetimes();
+            }
+        });
+    }
+    if (endEl) endEl.addEventListener('change', syncEventDatetimes);
+    if (form) form.addEventListener('submit', syncEventDatetimes);
+    syncEventDatetimes();
+})();
+</script>
