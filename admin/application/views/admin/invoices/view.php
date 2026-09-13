@@ -16,6 +16,12 @@
             <?php if (!empty($can_edit)): ?>
             <a href="<?php echo base_url('invoices/edit/' . $invoice->id); ?>" class="btn btn-warning"><i class="bi bi-pencil"></i> Edit</a>
             <?php endif; ?>
+            <?php if (!empty($can_delete) && $invoice->status !== 'void'): ?>
+            <a href="<?php echo base_url('invoices/void/' . $invoice->id); ?>" class="btn btn-outline-dark" onclick="return confirm('Void invoice <?php echo htmlspecialchars($invoice->invoice_number); ?>? It is kept for records but marked void.');"><i class="bi bi-slash-circle"></i> Void</a>
+            <?php endif; ?>
+            <?php if (!empty($can_delete)): ?>
+            <a href="<?php echo base_url('invoices/delete/' . $invoice->id); ?>" class="btn btn-danger" onclick="return confirm('Permanently delete invoice <?php echo htmlspecialchars($invoice->invoice_number); ?>? This cannot be undone. If it has payments, void it instead.');"><i class="bi bi-trash"></i> Delete</a>
+            <?php endif; ?>
         </div>
     </div>
 

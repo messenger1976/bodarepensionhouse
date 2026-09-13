@@ -205,6 +205,27 @@ WHERE r.slug IN ('admin', 'manager')
     WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
 
+-- Delete (void/remove) invoices and payments is restricted to admin users only.
+-- Grant to the Admin role; Super Admin already has it via the block above.
+INSERT INTO `role_permissions` (`role_id`, `permission_id`)
+SELECT r.id, p.id
+FROM `roles` r
+CROSS JOIN `permissions` p
+WHERE r.slug = 'admin'
+  AND p.slug IN ('delete_invoices', 'delete_payments')
+  AND NOT EXISTS (
+    SELECT 1 FROM `role_permissions` rp
+    WHERE rp.role_id = r.id AND rp.permission_id = p.id
+  );
+
+-- Revoke delete permissions from any non-admin role (e.g. billing_manager) that was
+-- previously granted them, so deletion stays admin-only.
+DELETE rp FROM `role_permissions` rp
+JOIN `roles` r ON r.id = rp.role_id
+JOIN `permissions` p ON p.id = rp.permission_id
+WHERE p.slug IN ('delete_invoices', 'delete_payments')
+  AND r.slug NOT IN ('super_admin', 'admin');
+
 -- Staff: view-only billing access
 INSERT INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id
@@ -229,15 +250,15 @@ ON DUPLICATE KEY UPDATE
   `description` = VALUES(`description`),
   `status` = VALUES(`status`);
 
--- Billing Manager: all billing + event permissions
+-- Billing Manager: full billing + event permissions except delete (admin-only)
 INSERT INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.id, p.id
 FROM `roles` r
 CROSS JOIN `permissions` p
 WHERE r.slug = 'billing_manager'
   AND p.slug IN (
-    'view_invoices', 'add_invoices', 'edit_invoices', 'delete_invoices',
-    'view_payments', 'add_payments', 'edit_payments', 'delete_payments',
+    'view_invoices', 'add_invoices', 'edit_invoices',
+    'view_payments', 'add_payments', 'edit_payments',
     'view_events', 'add_events', 'edit_events', 'delete_events'
   )
   AND NOT EXISTS (

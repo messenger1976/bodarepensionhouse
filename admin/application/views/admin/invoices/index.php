@@ -74,6 +74,9 @@
                         <a href="<?php echo base_url('invoices/edit/' . $inv->id); ?>" class="btn btn-sm btn-warning" title="Edit"><i class="bi bi-pencil"></i></a>
                         <?php endif; ?>
                         <a href="<?php echo base_url('invoices/print/' . $inv->id); ?>" class="btn btn-sm btn-secondary" target="_blank" title="Print"><i class="bi bi-printer"></i></a>
+                        <?php if (!empty($can_delete)): ?>
+                        <a href="<?php echo base_url('invoices/delete/' . $inv->id); ?>" class="btn btn-sm btn-danger" title="Delete" onclick="return confirm('Delete invoice <?php echo htmlspecialchars($inv->invoice_number); ?>? This cannot be undone. If it has payments, void it instead.');"><i class="bi bi-trash"></i></a>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; else: ?>
@@ -112,6 +115,9 @@
                 <a href="<?php echo base_url('invoices/edit/' . $inv->id); ?>" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
                 <?php endif; ?>
                 <a href="<?php echo base_url('invoices/print/' . $inv->id); ?>" class="btn btn-sm btn-secondary" target="_blank"><i class="bi bi-printer"></i></a>
+                <?php if (!empty($can_delete)): ?>
+                <a href="<?php echo base_url('invoices/delete/' . $inv->id); ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete invoice <?php echo htmlspecialchars($inv->invoice_number); ?>? This cannot be undone.');"><i class="bi bi-trash"></i> Delete</a>
+                <?php endif; ?>
             </div>
         </div>
         <?php endforeach; else: ?>

@@ -306,10 +306,29 @@ class Invoices extends Admin_Controller {
 
     public function delete($id) {
         $this->require_permission('delete_invoices');
+
+        $invoice = $this->Invoice_model->get($id);
+        if (!$invoice) {
+            show_404();
+            return;
+        }
+
+        // Keep the payment ledger intact: an invoice with recorded payments must be voided, not deleted.
+        $payments = $this->Payment_model->get_by_invoice($id);
+        if (!empty($payments)) {
+            $this->session->set_flashdata(
+                'error',
+                'Invoice ' . $invoice->invoice_number . ' has ' . count($payments)
+                . ' payment record(s) and cannot be deleted. Void it instead to preserve the payment history.'
+            );
+            redirect('invoices/view/' . (int) $id);
+            return;
+        }
+
         if ($this->Invoice_model->delete($id)) {
             $this->session->set_flashdata('success', 'Invoice deleted.');
             if (isset($this->activity_log)) {
-                $this->activity_log->crud('invoices', 'delete', 'invoice', $id, 'Invoice deleted (ID: ' . $id . ')', array('id' => $id), null);
+                $this->activity_log->crud('invoices', 'delete', 'invoice', $id, 'Invoice #' . ($invoice->invoice_number ?: $id) . ' deleted', array('id' => $id, 'invoice_number' => $invoice->invoice_number, 'status' => $invoice->status), null);
             }
         } else {
             $this->session->set_flashdata('error', 'Failed to delete invoice.');

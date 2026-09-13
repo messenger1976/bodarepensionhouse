@@ -16,6 +16,9 @@ $method = $payment->payment_method;
             <?php if (!empty($can_edit)): ?>
             <a href="<?php echo base_url('payments/edit/' . $payment->id); ?>" class="btn btn-warning"><i class="bi bi-pencil"></i> Edit</a>
             <?php endif; ?>
+            <?php if (!empty($can_delete)): ?>
+            <a href="<?php echo base_url('payments/delete/' . $payment->id); ?>" class="btn btn-danger" onclick="return confirm('Permanently delete payment #<?php echo (int) $payment->id; ?>? The invoice balance will be recalculated. This cannot be undone.');"><i class="bi bi-trash"></i> Delete</a>
+            <?php endif; ?>
             <?php
             $is_paymongo_pending = ($payment->payment_status === 'pending')
                 && in_array($payment->payment_method, array('qrph', 'gcash', 'card'), true);
