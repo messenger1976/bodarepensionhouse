@@ -607,6 +607,61 @@ class Bookings extends Admin_Controller {
     }
 
     /**
+     * Delete multiple bookings (bulk action from the bookings list).
+     */
+    public function batch_delete() {
+        $this->require_permission('delete_bookings');
+
+        if ($this->input->method() !== 'post') {
+            redirect('bookings');
+            return;
+        }
+
+        $booking_ids = $this->input->post('booking_ids');
+        if (empty($booking_ids) || !is_array($booking_ids)) {
+            $this->session->set_flashdata('error', 'No bookings selected for deletion.');
+            redirect('bookings');
+            return;
+        }
+
+        $deleted = 0;
+        $failed = 0;
+        $skipped = 0;
+
+        foreach (array_unique($booking_ids) as $id) {
+            $id = (int) $id;
+            if ($id <= 0 || !$this->Booking_model->get_booking($id)) {
+                $skipped++;
+                continue;
+            }
+
+            if ($this->Booking_model->delete_booking($id)) {
+                $deleted++;
+            } else {
+                $failed++;
+            }
+        }
+
+        if ($deleted > 0) {
+            $message = $deleted . ' booking(s) deleted successfully.';
+            if ($skipped > 0) {
+                $message .= ' ' . $skipped . ' skipped.';
+            }
+            if ($failed > 0) {
+                $message .= ' ' . $failed . ' could not be deleted.';
+            }
+            $this->session->set_flashdata('success', $message);
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('bookings', 'batch_delete', 'booking', null, 'Batch deleted ' . $deleted . ' booking(s)' . ($skipped ? ', skipped ' . $skipped : '') . ($failed ? ', failed ' . $failed : ''), array('ids' => $booking_ids), null);
+            }
+        } else {
+            $this->session->set_flashdata('error', 'No bookings were deleted.');
+        }
+
+        redirect('bookings');
+    }
+
+    /**
      * Mark booking as checked in (guest arrived / in-house).
      */
     public function check_in($id) {

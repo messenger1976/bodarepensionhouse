@@ -73,6 +73,7 @@ $route['bookings/edit/(:num)'] = 'admin/bookings/edit/$1';
 $route['bookings/check_in/(:num)'] = 'admin/bookings/check_in/$1';
 $route['bookings/check_out/(:num)'] = 'admin/bookings/check_out/$1';
 $route['bookings/delete/(:num)'] = 'admin/bookings/delete/$1';
+$route['bookings/batch_delete'] = 'admin/bookings/batch_delete';
 $route['booking_settings'] = 'admin/booking_settings/index';
 
 // Hotel Calendar (room stays + events)
@@ -171,6 +172,7 @@ $route['invoices/print/(:num)'] = 'admin/invoices/print_invoice/$1';
 $route['invoices/issue/(:num)'] = 'admin/invoices/issue/$1';
 $route['invoices/void/(:num)'] = 'admin/invoices/void/$1';
 $route['invoices/delete/(:num)'] = 'admin/invoices/delete/$1';
+$route['invoices/batch_delete'] = 'admin/invoices/batch_delete';
 $route['invoices/add_charge/(:num)'] = 'admin/invoices/add_charge/$1';
 $route['invoices/from_booking/(:num)'] = 'admin/invoices/from_booking/$1';
 $route['invoices/send_email/(:num)'] = 'admin/invoices/send_email/$1';
@@ -181,6 +183,7 @@ $route['payments/view/(:num)'] = 'admin/payments/view/$1';
 $route['payments/sync_paymongo/(:num)'] = 'admin/payments/sync_paymongo/$1';
 $route['payments/edit/(:num)'] = 'admin/payments/edit/$1';
 $route['payments/delete/(:num)'] = 'admin/payments/delete/$1';
+$route['payments/batch_delete'] = 'admin/payments/batch_delete';
 
 $route['events'] = 'admin/events/index';
 $route['events/add'] = 'admin/events/add';

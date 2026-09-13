@@ -11,6 +11,13 @@
                 <div class="toggle-wrap nk-block-tools-toggle">
                     <div class="toggle-expand-content" data-content="pageMenu">
                         <ul class="nk-block-tools g-3">
+                            <?php if (isset($can_delete) && $can_delete): ?>
+                            <li>
+                                <button type="submit" form="bookings-batch-form" id="batch-delete-bookings-btn" class="btn btn-danger" disabled>
+                                    <i class="bi bi-trash"></i> <span>Delete Selected<span data-bd-count></span></span>
+                                </button>
+                            </li>
+                            <?php endif; ?>
                             <?php if (isset($can_add) && $can_add): ?>
                             <li>
                                 <a href="<?php echo base_url('booking_settings'); ?>" class="btn btn-outline-light">
@@ -53,12 +60,18 @@
         </div>
     </div>
 
+    <form id="bookings-batch-form" method="post" action="<?php echo base_url('bookings/batch_delete'); ?>">
     <div class="card card-bordered mob-desktop-table">
         <div class="card-inner">
             <div class="table-responsive bookings-table-wrap">
         <table class="table table-hover dt-fit-width" id="bookingsTable" style="width:100%">
             <thead>
                 <tr>
+                    <?php if (isset($can_delete) && $can_delete): ?>
+                    <th style="width: 42px;">
+                        <input type="checkbox" class="form-check-input" data-bd-select-all="bookings-batch-form" title="Select all">
+                    </th>
+                    <?php endif; ?>
                     <th>Booking #</th>
                     <th>Guest</th>
                     <th>Email</th>
@@ -76,6 +89,11 @@
                 <?php if (!empty($bookings)): ?>
                     <?php foreach ($bookings as $booking): ?>
                         <tr>
+                            <?php if (isset($can_delete) && $can_delete): ?>
+                            <td>
+                                <input type="checkbox" class="form-check-input booking-select-checkbox" name="booking_ids[]" value="<?php echo (int) $booking->id; ?>">
+                            </td>
+                            <?php endif; ?>
                             <td>#<?php echo isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT); ?></td>
                             <td><?php echo htmlspecialchars($booking->guest_name); ?></td>
                             <td><?php echo htmlspecialchars($booking->guest_email); ?></td>
@@ -140,7 +158,7 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="11" class="text-center text-muted">No bookings found</td>
+                        <td colspan="<?php echo (isset($can_delete) && $can_delete) ? '12' : '11'; ?>" class="text-center text-muted">No bookings found</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -150,6 +168,12 @@
     </div>
 
     <div class="mob-card-list d-lg-none">
+        <?php if (!empty($bookings) && isset($can_delete) && $can_delete): ?>
+        <div class="d-flex align-items-center gap-2 mb-2 px-1">
+            <input type="checkbox" class="form-check-input" id="bookings-mobile-select-all" data-bd-select-all="bookings-batch-form" title="Select all">
+            <label class="form-check-label small text-muted" for="bookings-mobile-select-all">Select all</label>
+        </div>
+        <?php endif; ?>
         <?php if (!empty($bookings)): ?>
             <?php foreach ($bookings as $booking): ?>
                 <?php
@@ -164,6 +188,9 @@
                 ?>
                 <div class="mob-list-card">
                     <div class="mob-list-card-header">
+                        <?php if (isset($can_delete) && $can_delete): ?>
+                        <input type="checkbox" class="form-check-input booking-select-checkbox me-2" name="booking_ids[]" value="<?php echo (int) $booking->id; ?>" aria-label="Select booking">
+                        <?php endif; ?>
                         <div>
                             <div class="mob-list-card-title">#<?php echo $booking_num; ?> &middot; <?php echo htmlspecialchars($booking->guest_name); ?></div>
                             <div class="mob-list-card-meta"><?php echo htmlspecialchars($booking->guest_email); ?></div>
@@ -207,6 +234,18 @@
             <div class="mob-list-card text-center text-muted py-4">No bookings found</div>
         <?php endif; ?>
     </div>
+    </form>
+
+    <?php
+    if (!empty($can_delete)) {
+        $this->load->view('admin/layout/batch_delete', array(
+            'bd_form_id' => 'bookings-batch-form',
+            'bd_checkbox_class' => 'booking-select-checkbox',
+            'bd_button_id' => 'batch-delete-bookings-btn',
+            'bd_label' => 'booking'
+        ));
+    }
+    ?>
 </div>
 
 

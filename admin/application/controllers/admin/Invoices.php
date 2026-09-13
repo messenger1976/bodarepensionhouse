@@ -336,6 +336,67 @@ class Invoices extends Admin_Controller {
         redirect('invoices');
     }
 
+    /**
+     * Delete multiple invoices. Invoices that have recorded payments are skipped
+     * (they must be voided instead) so the payment ledger stays intact.
+     */
+    public function batch_delete() {
+        $this->require_permission('delete_invoices');
+
+        if ($this->input->method() !== 'post') {
+            redirect('invoices');
+            return;
+        }
+
+        $invoice_ids = $this->input->post('invoice_ids');
+        if (empty($invoice_ids) || !is_array($invoice_ids)) {
+            $this->session->set_flashdata('error', 'No invoices selected for deletion.');
+            redirect('invoices');
+            return;
+        }
+
+        $deleted = 0;
+        $skipped = 0;
+        $failed = 0;
+
+        foreach (array_unique($invoice_ids) as $id) {
+            $id = (int) $id;
+            if ($id <= 0 || !$this->Invoice_model->get($id)) {
+                $skipped++;
+                continue;
+            }
+
+            if (!empty($this->Payment_model->get_by_invoice($id))) {
+                $skipped++;
+                continue;
+            }
+
+            if ($this->Invoice_model->delete($id)) {
+                $deleted++;
+            } else {
+                $failed++;
+            }
+        }
+
+        if ($deleted > 0) {
+            $message = $deleted . ' invoice(s) deleted successfully.';
+            if ($skipped > 0) {
+                $message .= ' ' . $skipped . ' skipped (invoices with payments must be voided instead).';
+            }
+            if ($failed > 0) {
+                $message .= ' ' . $failed . ' could not be deleted.';
+            }
+            $this->session->set_flashdata('success', $message);
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('invoices', 'batch_delete', 'invoice', null, 'Batch deleted ' . $deleted . ' invoice(s)' . ($skipped ? ', skipped ' . $skipped : '') . ($failed ? ', failed ' . $failed : ''), array('ids' => $invoice_ids), null);
+            }
+        } else {
+            $this->session->set_flashdata('error', 'No invoices were deleted. Invoices with payments must be voided instead.');
+        }
+
+        redirect('invoices');
+    }
+
     public function from_booking($booking_id) {
         $this->require_permission('add_invoices');
 

@@ -7,6 +7,8 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="<?php echo base_url('assets/js/timezone.js'); ?>?v=<?php echo @filemtime(FCPATH . 'assets/js/timezone.js') ?: time(); ?>"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 (delete / confirm prompts) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
     <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
@@ -126,112 +128,89 @@
             modal.show();
         }
         
-        // Helper function for delete confirmations with callback
-        function confirmDelete(message, onConfirm, onCancel) {
-            showConfirmModal({
-                title: 'Confirm Delete',
-                message: message || 'Are you sure you want to delete this item? This action cannot be undone.',
-                confirmText: 'Delete',
-                cancelText: 'Cancel',
-                confirmClass: 'btn-danger',
-                icon: 'bi-trash',
-                iconClass: 'modal-icon-danger',
-                onConfirm: onConfirm,
-                onCancel: onCancel
+        /**
+         * SweetAlert2 confirmation helper. Returns Promise<boolean>.
+         * Falls back to the native confirm() when SweetAlert is unavailable.
+         */
+        function swalConfirm(message, options) {
+            options = options || {};
+            if (typeof Swal === 'undefined') {
+                return Promise.resolve(window.confirm(message));
+            }
+            return Swal.fire({
+                title: options.title || 'Confirm Action',
+                text: message,
+                icon: options.icon || 'warning',
+                showCancelButton: true,
+                confirmButtonText: options.confirmText || 'Confirm',
+                cancelButtonText: options.cancelText || 'Cancel',
+                confirmButtonColor: options.confirmColor || '#dc3545',
+                cancelButtonColor: '#6c757d',
+                reverseButtons: true,
+                focusCancel: options.focusCancel !== false
+            }).then(function(result) {
+                return !!(result && result.isConfirmed);
             });
         }
-        
-        // Enhanced confirm function that works with onclick handlers
-        // Note: This creates a custom confirm that works better with modern modals
-        function dashliteConfirm(message, title) {
-            let confirmed = false;
-            const modalId = 'dashliteConfirm_' + Date.now();
-            
-            const modalHtml = `
-                <div class="modal fade" id="${modalId}" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-                    <div class="modal-dialog modal-dialog-centered modal-sm">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">${title || 'Confirm'}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body modal-confirm">
-                                <div class="modal-icon modal-icon-warning">
-                                    <i class="bi bi-exclamation-triangle"></i>
-                                </div>
-                                <p>${message}</p>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary cancel-btn" data-bs-dismiss="modal">
-                                    <i class="bi bi-x-circle"></i> Cancel
-                                </button>
-                                <button type="button" class="btn btn-primary confirm-btn">
-                                    <i class="bi bi-check-circle"></i> Confirm
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            const modalElement = document.getElementById(modalId);
-            const modal = new bootstrap.Modal(modalElement, { backdrop: 'static', keyboard: false });
-            
-            return new Promise((resolve) => {
-                modalElement.querySelector('.confirm-btn').addEventListener('click', function() {
-                    confirmed = true;
-                    modal.hide();
-                    resolve(true);
-                });
-                
-                modalElement.querySelector('.cancel-btn').addEventListener('click', function() {
-                    confirmed = false;
-                    modal.hide();
-                    resolve(false);
-                });
-                
-                modalElement.addEventListener('hidden.bs.modal', function() {
-                    this.remove();
-                    if (!confirmed) {
-                        resolve(false);
-                    }
-                });
-                
-                modal.show();
+
+        // Helper function for delete confirmations with callback (SweetAlert2)
+        function confirmDelete(message, onConfirm, onCancel) {
+            swalConfirm(message || 'Are you sure you want to delete this item? This action cannot be undone.', {
+                title: 'Confirm Delete',
+                confirmText: 'Delete'
+            }).then(function(confirmed) {
+                if (confirmed) {
+                    if (typeof onConfirm === 'function') { onConfirm(); }
+                } else if (typeof onCancel === 'function') {
+                    onCancel();
+                }
             });
+        }
+
+        // Confirm helper used for inline confirm() links. Returns Promise<boolean>.
+        function dashliteConfirm(message, title) {
+            return swalConfirm(message, { title: title || 'Confirm Action' });
         }
         
         // Make functions globally available
         window.showConfirmModal = showConfirmModal;
         window.confirmDelete = confirmDelete;
         window.dashliteConfirm = dashliteConfirm;
+        window.swalConfirm = swalConfirm;
         
-        // Replace inline confirm calls with Dashlite modals
-        document.addEventListener('DOMContentLoaded', function() {
-            // Find all links with onclick confirm
-            document.querySelectorAll('a[onclick*="confirm("]').forEach(function(link) {
-                const originalOnclick = link.getAttribute('onclick');
-                if (originalOnclick && originalOnclick.includes('confirm(')) {
-                    // Extract the message from confirm
-                    const match = originalOnclick.match(/confirm\(['"]([^'"]+)['"]\)/);
-                    if (match) {
-                        const message = match[1];
-                        link.removeAttribute('onclick');
-                        link.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            const href = this.getAttribute('href');
-                            
-                            dashliteConfirm(message, 'Confirm Action').then(function(result) {
-                                if (result) {
-                                    window.location.href = href;
-                                }
-                            });
-                        });
-                    }
+        // Replace inline confirm() links with SweetAlert2. Uses event delegation so
+        // rows rendered later (e.g. DataTables pagination) are covered too.
+        document.addEventListener('click', function(e) {
+            var link = e.target && e.target.closest ? e.target.closest('a[onclick]') : null;
+            if (!link) {
+                return;
+            }
+
+            var originalOnclick = link.getAttribute('onclick') || '';
+            if (originalOnclick.indexOf('confirm(') === -1) {
+                return;
+            }
+
+            var match = originalOnclick.match(/confirm\(\s*(?:'([^']*)'|"([^"]*)")\s*\)/);
+            if (!match) {
+                return;
+            }
+
+            var message = (match[1] !== undefined ? match[1] : match[2]) || 'Are you sure you want to proceed?';
+            var href = link.getAttribute('href');
+
+            // Cancel the inline onclick + navigation, then ask via SweetAlert.
+            e.preventDefault();
+            e.stopPropagation();
+
+            dashliteConfirm(message, 'Confirm Action').then(function(confirmed) {
+                if (confirmed && href && href !== '#') {
+                    window.location.href = href;
                 }
             });
-            
+        }, true);
+
+        document.addEventListener('DOMContentLoaded', function() {
             // Initialize DataTables on all tables with pagination
             if (typeof $.fn.DataTable !== 'undefined') {
                 // Initialize on all tables that are inside table-responsive or card-inner

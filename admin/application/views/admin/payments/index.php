@@ -1,8 +1,17 @@
 <div class="content-card">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Payment Records</h5>
-        <?php if (!empty($can_add)): ?>
-        <a href="<?php echo base_url('payments/add'); ?>" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Record Payment</a>
+        <?php if (!empty($can_add) || !empty($can_delete)): ?>
+        <div class="d-flex gap-2">
+            <?php if (!empty($can_delete)): ?>
+            <button type="submit" form="payments-batch-form" id="batch-delete-payments-btn" class="btn btn-danger" disabled>
+                <i class="bi bi-trash"></i> <span>Delete Selected<span data-bd-count></span></span>
+            </button>
+            <?php endif; ?>
+            <?php if (!empty($can_add)): ?>
+            <a href="<?php echo base_url('payments/add'); ?>" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Record Payment</a>
+            <?php endif; ?>
+        </div>
         <?php endif; ?>
     </div>
 
@@ -10,10 +19,16 @@
         <div class="alert alert-success alert-dismissible fade show"><?php echo $this->session->flashdata('success'); ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     <?php endif; ?>
 
+    <form id="payments-batch-form" method="post" action="<?php echo base_url('payments/batch_delete'); ?>">
     <div class="table-responsive mob-desktop-table">
         <table class="table table-hover">
             <thead>
                 <tr>
+                    <?php if (!empty($can_delete)): ?>
+                    <th style="width: 42px;">
+                        <input type="checkbox" class="form-check-input" data-bd-select-all="payments-batch-form" title="Select all">
+                    </th>
+                    <?php endif; ?>
                     <th>ID</th>
                     <th>Date</th>
                     <th>Guest / Booking</th>
@@ -27,6 +42,11 @@
             <tbody>
                 <?php if (!empty($payments)): foreach ($payments as $p): ?>
                 <tr>
+                    <?php if (!empty($can_delete)): ?>
+                    <td>
+                        <input type="checkbox" class="form-check-input payment-select-checkbox" name="payment_ids[]" value="<?php echo (int) $p->id; ?>">
+                    </td>
+                    <?php endif; ?>
                     <td>#<?php echo $p->id; ?></td>
                     <td><?php echo $p->payment_date ? date('M d, Y', strtotime($p->payment_date)) : '—'; ?></td>
                     <td>
@@ -48,16 +68,25 @@
                     </td>
                 </tr>
                 <?php endforeach; else: ?>
-                <tr><td colspan="8" class="text-center text-muted">No payments recorded yet</td></tr>
+                <tr><td colspan="<?php echo !empty($can_delete) ? '9' : '8'; ?>" class="text-center text-muted">No payments recorded yet</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
 
     <div class="mob-card-list d-lg-none">
+        <?php if (!empty($payments) && !empty($can_delete)): ?>
+        <div class="d-flex align-items-center gap-2 mb-2 px-1">
+            <input type="checkbox" class="form-check-input" id="payments-mobile-select-all" data-bd-select-all="payments-batch-form" title="Select all">
+            <label class="form-check-label small text-muted" for="payments-mobile-select-all">Select all</label>
+        </div>
+        <?php endif; ?>
         <?php if (!empty($payments)): foreach ($payments as $p): ?>
         <div class="mob-list-card">
             <div class="mob-list-card-header">
+                <?php if (!empty($can_delete)): ?>
+                <input type="checkbox" class="form-check-input payment-select-checkbox me-2" name="payment_ids[]" value="<?php echo (int) $p->id; ?>" aria-label="Select payment">
+                <?php endif; ?>
                 <div class="mob-list-card-title">Payment #<?php echo (int) $p->id; ?></div>
                 <span class="badge bg-<?php echo $p->payment_status === 'paid' ? 'success' : ($p->payment_status === 'failed' ? 'danger' : 'warning'); ?>"><?php echo ucfirst($p->payment_status); ?></span>
             </div>
@@ -82,4 +111,16 @@
         <div class="mob-list-card text-muted text-center">No payments recorded yet</div>
         <?php endif; ?>
     </div>
+    </form>
+
+    <?php
+    if (!empty($can_delete)) {
+        $this->load->view('admin/layout/batch_delete', array(
+            'bd_form_id' => 'payments-batch-form',
+            'bd_checkbox_class' => 'payment-select-checkbox',
+            'bd_button_id' => 'batch-delete-payments-btn',
+            'bd_label' => 'payment'
+        ));
+    }
+    ?>
 </div>

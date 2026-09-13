@@ -685,4 +685,73 @@ class Payments extends Admin_Controller {
         }
         redirect('payments');
     }
+
+    /**
+     * Delete multiple payments and recalculate the totals of affected invoices.
+     */
+    public function batch_delete() {
+        $this->require_permission('delete_payments');
+
+        if ($this->input->method() !== 'post') {
+            redirect('payments');
+            return;
+        }
+
+        $payment_ids = $this->input->post('payment_ids');
+        if (empty($payment_ids) || !is_array($payment_ids)) {
+            $this->session->set_flashdata('error', 'No payments selected for deletion.');
+            redirect('payments');
+            return;
+        }
+
+        $deleted = 0;
+        $failed = 0;
+        $skipped = 0;
+        $invoice_ids = array();
+
+        foreach (array_unique($payment_ids) as $id) {
+            $id = (int) $id;
+            if ($id <= 0) {
+                $skipped++;
+                continue;
+            }
+
+            $payment = $this->Payment_model->get($id);
+            if (!$payment) {
+                $skipped++;
+                continue;
+            }
+
+            if ($this->Payment_model->delete($id)) {
+                $deleted++;
+                if (!empty($payment->invoice_id)) {
+                    $invoice_ids[(int) $payment->invoice_id] = (int) $payment->invoice_id;
+                }
+            } else {
+                $failed++;
+            }
+        }
+
+        foreach ($invoice_ids as $invoice_id) {
+            $this->Invoice_model->recalculate_totals($invoice_id);
+        }
+
+        if ($deleted > 0) {
+            $message = $deleted . ' payment(s) deleted successfully.';
+            if ($skipped > 0) {
+                $message .= ' ' . $skipped . ' skipped.';
+            }
+            if ($failed > 0) {
+                $message .= ' ' . $failed . ' could not be deleted.';
+            }
+            $this->session->set_flashdata('success', $message);
+            if (isset($this->activity_log)) {
+                $this->activity_log->crud('payments', 'batch_delete', 'payment', null, 'Batch deleted ' . $deleted . ' payment(s)' . ($skipped ? ', skipped ' . $skipped : '') . ($failed ? ', failed ' . $failed : ''), array('ids' => $payment_ids), null);
+            }
+        } else {
+            $this->session->set_flashdata('error', 'No payments were deleted.');
+        }
+
+        redirect('payments');
+    }
 }
