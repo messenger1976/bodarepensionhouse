@@ -93,7 +93,7 @@ class Push_notify {
         }
         $sent = $fcm->send_to_user($user_id, $title, $body, $data);
         if (!$sent) {
-            log_message('debug', 'Push_notify failed: ' . $fcm->get_last_error());
+            log_message('error', 'Push_notify failed for user ' . $user_id . ': ' . $fcm->get_last_error());
         }
         return (bool) $sent;
     }

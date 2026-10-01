@@ -250,7 +250,12 @@ class Fcm_service {
             ]);
             $response = curl_exec($ch);
             if ($response === false) {
-                $this->last_error = 'FCM request failed: ' . curl_error($ch);
+                $this->last_error = sprintf(
+                    'FCM request to %s failed: curl errno %d (%s)',
+                    parse_url($url, PHP_URL_HOST),
+                    curl_errno($ch),
+                    curl_error($ch) !== '' ? curl_error($ch) : 'no message'
+                );
                 curl_close($ch);
                 return false;
             }
@@ -274,7 +279,9 @@ class Fcm_service {
         ]);
         $response = @file_get_contents($url, false, $context);
         if ($response === false) {
-            $this->last_error = 'FCM request failed (streams).';
+            $err = error_get_last();
+            $this->last_error = 'FCM request to ' . parse_url($url, PHP_URL_HOST) . ' failed (streams): '
+                . ($err ? $err['message'] : 'no message');
             return false;
         }
         return $response;
