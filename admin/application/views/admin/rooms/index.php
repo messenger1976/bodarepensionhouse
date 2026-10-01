@@ -16,6 +16,11 @@
                                     <i class="bi bi-calendar-check"></i> <span>View Calendar</span>
                                 </a>
                             </li>
+                            <li>
+                                <a href="<?php echo base_url('room_blocks'); ?>" class="btn btn-outline-light">
+                                    <i class="bi bi-calendar-x"></i> <span>Blocked Dates</span>
+                                </a>
+                            </li>
                             <?php if (isset($can_add) && $can_add): ?>
                             <li>
                                 <a href="<?php echo base_url('room_settings'); ?>" class="btn btn-outline-light">

@@ -15,6 +15,7 @@ class Calendar extends Admin_Controller {
         $this->load->model('Booking_model');
         $this->load->model('Event_model');
         $this->load->model('Room_model');
+        $this->load->model('Room_block_model');
     }
 
     public function index() {
@@ -26,6 +27,8 @@ class Calendar extends Admin_Controller {
         $data['can_view_events'] = $this->can_view_hotel_events();
         $data['can_add_bookings'] = $this->has_permission('add_bookings');
         $data['can_add_events'] = $this->has_permission('add_events');
+        $data['can_view_blocks'] = $this->can_view_room_blocks();
+        $data['can_manage_blocks'] = $this->has_permission('edit_rooms') && $this->Room_block_model->is_ready();
         $data['today_summary'] = $this->build_today_summary();
         $data['initial_calendar_events'] = $this->load_calendar_events(
             date('Y-m-01'),
@@ -59,7 +62,7 @@ class Calendar extends Admin_Controller {
         $room_id = $this->input->get('room_id') ? (int) $this->input->get('room_id') : null;
         $include_cancelled = $this->input->get('include_cancelled') === '1' || $status === 'cancelled';
 
-        if (!in_array($type, array('all', 'room', 'event'), true)) {
+        if (!in_array($type, array('all', 'room', 'event', 'block'), true)) {
             $type = 'all';
         }
 
@@ -124,8 +127,23 @@ class Calendar extends Admin_Controller {
             || $this->has_permission('view_calendar');
     }
 
+    private function can_view_room_blocks() {
+        return $this->can_view_room_stays() || $this->has_permission('view_rooms');
+    }
+
     private function load_calendar_events($start, $end, $type, $status, $room_id, $include_cancelled) {
         $events = array();
+
+        // Status filters are booking/event statuses; blocks have none, so a status filter hides them.
+        if (in_array($type, array('all', 'room', 'block'), true) && !$status && $this->can_view_room_blocks()) {
+            $events = array_merge(
+                $events,
+                $this->Room_block_model->get_calendar_feed($start, $end, $room_id, $this->has_permission('edit_rooms'))
+            );
+        }
+        if ($type === 'block') {
+            return $events;
+        }
 
         if ($type === 'all' || $type === 'room') {
             if ($this->can_view_room_stays()) {
@@ -172,8 +190,15 @@ class Calendar extends Admin_Controller {
             'check_outs' => 0,
             'in_house' => 0,
             'events_today' => 0,
-            'pending_bookings' => 0
+            'pending_bookings' => 0,
+            'rooms_blocked' => 0
         );
+
+        foreach ($this->Room_block_model->get_blocked_map($date, $date) as $nights) {
+            if (isset($nights[$date])) {
+                $summary['rooms_blocked'] += (int) $nights[$date]['units'];
+            }
+        }
 
         if ($this->db->table_exists('booking_items')) {
             $this->db->from('booking_items');

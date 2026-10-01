@@ -92,6 +92,10 @@ $route['rooms/upload_image/(:num)'] = 'admin/rooms/upload_image/$1';
 $route['rooms/delete_image/(:num)'] = 'admin/rooms/delete_image/$1';
 $route['rooms/set_primary_image/(:num)/(:num)'] = 'admin/rooms/set_primary_image/$1/$2';
 $route['room_settings'] = 'admin/room_settings/index';
+$route['room_blocks'] = 'admin/room_blocks/index';
+$route['room_blocks/add'] = 'admin/room_blocks/add';
+$route['room_blocks/edit/(:num)'] = 'admin/room_blocks/edit/$1';
+$route['room_blocks/delete/(:num)'] = 'admin/room_blocks/delete/$1';
 
 // Inquiry Management routes
 $route['inquiries'] = 'admin/inquiries/index';

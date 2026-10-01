@@ -1,7 +1,7 @@
 <div class="content-card">
     <!-- Header Section -->
-    <div class="booking-header-section mb-4 p-4 bg-gradient text-white rounded" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-        <div class="d-flex justify-content-between align-items-center">
+    <div class="booking-header-section mb-4 p-4 text-white rounded" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <h4 class="mb-1"><i class="bi bi-plus-circle"></i> Add New Booking</h4>
                 <p class="mb-0 opacity-75">Create a new booking reservation</p>
@@ -240,8 +240,8 @@
                     <thead class="table-light">
                         <tr>
                             <th style="min-width: 180px;">Full Name</th>
-                            <th style="width: 90px;">Age</th>
-                            <th style="width: 120px;">Gender</th>
+                            <th style="min-width: 100px;">Age</th>
+                            <th style="min-width: 135px;">Gender</th>
                             <th style="width: 160px;">DOB</th>
                             <th style="min-width: 140px;">Contact No.</th>
                             <th style="width: 60px;"></th>
@@ -319,6 +319,15 @@
 </div>
 
 <style>
+#guest-names-table .guest-age {
+    min-width: 80px;
+}
+#guest-names-table .guest-gender {
+    min-width: 115px;
+}
+#guest-names-table .guest-dob {
+    min-width: 140px;
+}
 .booking-header-section {
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }

@@ -359,6 +359,7 @@ class Rooms extends Admin_Controller {
         
         $data['title'] = 'Room Availability Calendar';
         $data['rooms'] = $this->Room_model->get_all_rooms();
+        $data['can_block'] = $this->has_permission('edit_rooms');
         
         $this->load->view('admin/layout/header', $data);
         $this->load->view('admin/rooms/calendar', $data);

@@ -12,6 +12,11 @@
                     <div class="toggle-expand-content" data-content="pageMenu">
                         <ul class="nk-block-tools g-3">
                             <li>
+                                <a href="<?php echo base_url('room_blocks'); ?>" class="btn btn-outline-light">
+                                    <i class="bi bi-calendar-x"></i> <span>Blocked Dates</span>
+                                </a>
+                            </li>
+                            <li>
                                 <a href="<?php echo base_url('rooms'); ?>" class="btn btn-outline-light">
                                     <i class="bi bi-arrow-left"></i> <span>Back to Rooms</span>
                                 </a>
@@ -82,11 +87,20 @@
                 </div>
                 <div class="col-md-3">
                     <div class="d-flex align-items-center">
+                        <span class="legend-badge legend-blocked me-2"></span>
+                        <span class="text-base">Blocked by admin</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex align-items-center">
                         <span class="legend-badge legend-secondary me-2"></span>
                         <span class="text-base">Inactive Room</span>
                     </div>
                 </div>
             </div>
+            <?php if (!empty($can_block)): ?>
+            <p class="text-soft small mt-3 mb-0"><i class="bi bi-hand-index"></i> Click an empty part of a day to block dates starting that day.</p>
+            <?php endif; ?>
         </div>
     </div>
     
@@ -135,6 +149,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 showRoomDetails(roomData, date);
             }
         },
+        <?php if (!empty($can_block)): ?>
+        dateClick: function(info) {
+            const roomId = roomFilter.value;
+            window.location.href = '<?php echo base_url("room_blocks/add"); ?>?start=' + info.dateStr.substring(0, 10) + (roomId ? '&room_id=' + roomId : '');
+        },
+        <?php endif; ?>
         datesSet: function(info) {
             // Load data when calendar view changes
             loadAvailabilityData(info.startStr, info.endStr);
@@ -189,18 +209,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 let className = 'room-event-inactive';
                 let title = roomData.room_name + ': ';
                 
+                const blockedNote = roomData.blocked > 0 && roomData.status !== 'blocked' ? ', ' + roomData.blocked + ' blocked' : '';
+
                 if (roomData.status === 'inactive' || (room && room.status !== 'active')) {
                     className = 'room-event-inactive';
                     title += 'Inactive';
+                } else if (roomData.status === 'blocked') {
+                    className = 'room-event-blocked';
+                    title += 'Blocked' + (roomData.block_reasons && roomData.block_reasons.length ? ' (' + roomData.block_reasons.join(', ') + ')' : '');
                 } else if (roomData.status === 'available') {
                     className = 'room-event-available';
                     title += 'Available (' + roomData.remaining + '/' + roomData.total_available + ')';
                 } else if (roomData.status === 'partial') {
                     className = 'room-event-partial';
-                    title += 'Partially Booked (' + roomData.remaining + '/' + roomData.total_available + ' left)';
+                    title += (roomData.booked > 0 ? 'Partially Booked' : 'Partially Blocked') + ' (' + roomData.remaining + '/' + roomData.total_available + ' left' + blockedNote + ')';
                 } else {
                     className = 'room-event-booked';
-                    title += 'Fully Booked';
+                    title += 'Fully Booked' + (roomData.blocked > 0 ? ' (' + roomData.blocked + ' blocked)' : '');
                 }
                 
                 events.push({
@@ -215,6 +240,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                    'Type: ' + roomData.room_type + '\n' +
                                    'Total: ' + roomData.total_available + '\n' +
                                    'Booked: ' + roomData.booked + '\n' +
+                                   'Blocked: ' + (roomData.blocked || 0) + '\n' +
                                    'Remaining: ' + roomData.remaining + '\n' +
                                    'Status: ' + roomData.status
                     }
@@ -257,6 +283,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span class="badge bg-${roomData.booked > 0 ? 'warning' : 'secondary'}">${roomData.booked}</span>
                     </span>
                 </div>
+                ${roomData.blocked > 0 ? `
+                <div class="info-row">
+                    <span class="info-label"><i class="bi bi-calendar-x"></i> Blocked:</span>
+                    <span class="info-value">
+                        <span class="badge bg-dark">${roomData.blocked}</span>
+                        ${roomData.block_reasons && roomData.block_reasons.length ? '<small class="text-soft ms-1">' + escapeHtml(roomData.block_reasons.join(', ')) + '</small>' : ''}
+                    </span>
+                </div>
+                ` : ''}
                 <div class="info-row">
                     <span class="info-label"><i class="bi bi-check-circle"></i> Remaining:</span>
                     <span class="info-value">
@@ -266,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="info-row">
                     <span class="info-label"><i class="bi bi-info-circle"></i> Status:</span>
                     <span class="info-value">
-                        <span class="badge bg-${roomData.status === 'available' ? 'success' : (roomData.status === 'partial' ? 'warning' : (roomData.status === 'inactive' ? 'secondary' : 'danger'))}">
+                        <span class="badge bg-${roomData.status === 'available' ? 'success' : (roomData.status === 'partial' ? 'warning' : (roomData.status === 'inactive' ? 'secondary' : (roomData.status === 'blocked' ? 'dark' : 'danger')))}">
                             ${roomData.status.charAt(0).toUpperCase() + roomData.status.slice(1)}
                         </span>
                     </span>
@@ -297,6 +332,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${content}
                         </div>
                         <div class="modal-footer">
+                            <?php if (!empty($can_block)): ?>
+                            <a href="<?php echo base_url('room_blocks'); ?>?room_id=${roomData.room_id}" class="btn btn-outline-light">
+                                <i class="bi bi-list-ul"></i> View blocks
+                            </a>
+                            <a href="<?php echo base_url('room_blocks/add'); ?>?room_id=${roomData.room_id}&start=${date}" class="btn btn-dark">
+                                <i class="bi bi-calendar-x"></i> Block this date
+                            </a>
+                            <?php endif; ?>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                                 <i class="bi bi-x-circle"></i> Close
                             </button>
@@ -325,6 +368,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
     function ymdFromDate(d) {
         if (typeof bodareFormatDateLocal === 'function') return bodareFormatDateLocal(d);
         const year = d.getFullYear();

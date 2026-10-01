@@ -4,7 +4,8 @@ $summary = isset($today_summary) ? $today_summary : array(
     'check_outs' => 0,
     'in_house' => 0,
     'events_today' => 0,
-    'pending_bookings' => 0
+    'pending_bookings' => 0,
+    'rooms_blocked' => 0
 );
 ?>
 <div class="nk-block">
@@ -38,6 +39,13 @@ $summary = isset($today_summary) ? $today_summary : array(
                             <li>
                                 <a href="<?php echo base_url('rooms/calendar'); ?>" class="btn btn-outline-light">
                                     <i class="bi bi-door-open"></i> <span>Availability</span>
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                            <?php if (!empty($can_view_blocks)): ?>
+                            <li>
+                                <a href="<?php echo base_url(!empty($can_manage_blocks) ? 'room_blocks/add' : 'room_blocks'); ?>" class="btn btn-outline-light">
+                                    <i class="bi bi-calendar-x"></i> <span><?php echo !empty($can_manage_blocks) ? 'Block Dates' : 'Blocked Dates'; ?></span>
                                 </a>
                             </li>
                             <?php endif; ?>
@@ -90,6 +98,16 @@ $summary = isset($today_summary) ? $today_summary : array(
                 </div>
             </div>
         </div>
+        <?php if (!empty($can_view_blocks)): ?>
+        <div class="col-6 col-md">
+            <a href="<?php echo base_url('room_blocks'); ?>" class="card card-bordered h-100 text-decoration-none">
+                <div class="card-inner py-3">
+                    <div class="text-soft small text-uppercase mb-1">Rooms blocked</div>
+                    <div class="fs-4 fw-bold text-body" id="sum-blocked"><?php echo (int) $summary['rooms_blocked']; ?></div>
+                </div>
+            </a>
+        </div>
+        <?php endif; ?>
     </div>
 
     <!-- Filters -->
@@ -102,6 +120,9 @@ $summary = isset($today_summary) ? $today_summary : array(
                         <option value="all">Room stays &amp; events</option>
                         <option value="room">Room bookings only</option>
                         <option value="event">Hotel events only</option>
+                        <?php if (!empty($can_view_blocks)): ?>
+                        <option value="block">Blocked dates only</option>
+                        <?php endif; ?>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -175,8 +196,16 @@ $summary = isset($today_summary) ? $today_summary : array(
                         <span class="text-base">Pending / Inquiry</span>
                     </div>
                 </div>
+                <?php if (!empty($can_view_blocks)): ?>
+                <div class="col-6 col-md-3">
+                    <div class="d-flex align-items-center">
+                        <span class="legend-badge legend-blocked me-2"></span>
+                        <span class="text-base">Blocked dates</span>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <div class="col-12 mt-1">
-                    <small class="text-soft">Check-in day shades from the right (from check-in time); checkout day shades to the left (until check-out time).</small>
+                    <small class="text-soft">Check-in day shades from the right (from check-in time); checkout day shades to the left (until check-out time).<?php if (!empty($can_view_blocks)): ?> Blocked dates cover whole nights and hide when a status filter is chosen.<?php endif; ?></small>
                 </div>
             </div>
         </div>
@@ -290,8 +319,20 @@ document.addEventListener('DOMContentLoaded', function() {
         var body = '';
         var title = event.title;
         var link = p.url || '#';
+        var linkLabel = 'Open record';
 
-        if (p.source === 'room') {
+        if (p.source === 'block') {
+            title = 'Blocked Dates';
+            linkLabel = <?php echo json_encode(!empty($can_manage_blocks) ? 'Edit block' : 'View blocks'); ?>;
+            body =
+                '<div class="info-row"><span class="info-label">Room</span><span class="info-value"><strong>' + escapeHtml(p.roomName || '-') + '</strong> <span class="text-soft">(' + escapeHtml(p.roomCode || '-') + ')</span></span></div>' +
+                '<div class="info-row"><span class="info-label">Type</span><span class="info-value">' + escapeHtml(p.roomType || '-') + '</span></div>' +
+                '<div class="info-row"><span class="info-label">Nights blocked</span><span class="info-value">' + escapeHtml(p.startDate || '') + ' → ' + escapeHtml(p.endDate || '') +
+                    ' <span class="text-soft">(' + (p.nights || 1) + ' night' + (p.nights === 1 ? '' : 's') + ')</span></span></div>' +
+                '<div class="info-row"><span class="info-label">Bookable again</span><span class="info-value">' + escapeHtml(p.reopenDate || '') + '</span></div>' +
+                '<div class="info-row"><span class="info-label">Rooms blocked</span><span class="info-value"><span class="badge bg-' + (p.fullyBlocked ? 'dark' : 'secondary') + '">' + escapeHtml(p.unitsLabel || '') + '</span></span></div>' +
+                '<div class="info-row"><span class="info-label">Reason</span><span class="info-value">' + escapeHtml(p.reason || '—') + '</span></div>';
+        } else if (p.source === 'room') {
             title = 'Room Booking';
             body =
                 '<div class="info-row"><span class="info-label">Guest</span><span class="info-value"><strong>' + escapeHtml(p.guestName || '-') + '</strong></span></div>' +
@@ -328,6 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('calendarDetailTitle').textContent = title;
         document.getElementById('calendarDetailBody').innerHTML = '<div class="room-details-popover">' + body + '</div>';
         document.getElementById('calendarDetailLink').href = link;
+        document.getElementById('calendarDetailLink').textContent = linkLabel;
         if (detailModal) {
             detailModal.show();
         }
@@ -438,6 +480,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('sum-in-house').textContent = s.in_house;
                 document.getElementById('sum-events').textContent = s.events_today;
                 document.getElementById('sum-pending').textContent = s.pending_bookings;
+                var blockedEl = document.getElementById('sum-blocked');
+                if (blockedEl) blockedEl.textContent = s.rooms_blocked || 0;
             })
             .catch(function() {});
     }
@@ -528,6 +572,8 @@ document.addEventListener('DOMContentLoaded', function() {
     typeFilter.addEventListener('change', function() {
         // Room filter only applies to room stays
         roomFilter.disabled = typeFilter.value === 'event';
+        statusFilter.disabled = typeFilter.value === 'block';
+        if (statusFilter.disabled) statusFilter.value = '';
         refetch();
     });
     statusFilter.addEventListener('change', refetch);

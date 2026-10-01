@@ -424,7 +424,8 @@ class Booking extends CI_Controller {
                 // Get room availability info
                 $available_rooms = isset($room->available_rooms) ? (int)$room->available_rooms : 1;
                 $booked_rooms = $this->Booking_model->count_booked_rooms($room_id, $check_in, $check_out);
-                $remaining_rooms = $available_rooms - $booked_rooms;
+                $blocked_rooms = $this->Booking_model->count_blocked_rooms($room_id, $check_in, $check_out);
+                $remaining_rooms = max(0, $available_rooms - $booked_rooms - $blocked_rooms);
                 
                 $debug_info['requested_dates'] = array(
                     'check_in' => $check_in,
@@ -434,6 +435,7 @@ class Booking extends CI_Controller {
                     'requested_rooms' => $requested_rooms,
                     'available_rooms' => $available_rooms,
                     'booked_rooms' => $booked_rooms,
+                    'blocked_rooms' => $blocked_rooms,
                     'remaining_rooms' => $remaining_rooms
                 );
                 

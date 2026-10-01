@@ -1,6 +1,6 @@
 <div class="content-card">
     <!-- Header Section -->
-    <div class="booking-header-section mb-4 p-3 p-md-4 bg-gradient text-white rounded" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+    <div class="booking-header-section mb-4 p-3 p-md-4 text-white rounded" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <h4 class="mb-1"><i class="bi bi-pencil"></i> Edit Booking</h4>
@@ -368,8 +368,8 @@
                     <thead class="table-light">
                         <tr>
                             <th style="min-width: 180px;">Full Name</th>
-                            <th style="width: 90px;">Age</th>
-                            <th style="width: 120px;">Gender</th>
+                            <th style="min-width: 100px;">Age</th>
+                            <th style="min-width: 135px;">Gender</th>
                             <th style="width: 160px;">DOB</th>
                             <th style="min-width: 140px;">Contact No.</th>
                             <th style="width: 60px;"></th>
@@ -507,6 +507,15 @@ body.dark-mode .card-title {
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+#guest-names-table .guest-age {
+    min-width: 80px;
+}
+#guest-names-table .guest-gender {
+    min-width: 115px;
+}
+#guest-names-table .guest-dob {
+    min-width: 140px;
 }
 @media (max-width: 1199.98px) {
     #guest-names-table,

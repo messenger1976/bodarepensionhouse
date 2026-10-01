@@ -3294,6 +3294,12 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             color: #fff !important;
             border: none !important;
         }
+
+        .room-event-blocked {
+            background: repeating-linear-gradient(135deg, #1e293b 0, #1e293b 6px, #334155 6px, #334155 12px) !important;
+            color: #fff !important;
+            border: none !important;
+        }
         
         /* Legend Badges */
         .legend-badge {
@@ -3318,6 +3324,10 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
         
         .legend-secondary {
             background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+        }
+
+        .legend-blocked {
+            background: repeating-linear-gradient(135deg, #1e293b 0, #1e293b 4px, #334155 4px, #334155 8px);
         }
         
         /* Calendar Filter Section */
@@ -3419,7 +3429,7 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             <!-- Rooms -->
             <?php if ($admin_id && $this->Admin_model->has_permission($admin_id, 'view_rooms')): ?>
             <div class="nk-menu-item">
-                <a href="<?php echo base_url('rooms'); ?>" class="nk-menu-link <?php echo strpos($current_uri, 'rooms') !== false ? 'active' : ''; ?>">
+                <a href="<?php echo base_url('rooms'); ?>" class="nk-menu-link <?php echo (strpos($current_uri, 'rooms') !== false || strpos($current_uri, 'room_blocks') !== false) ? 'active' : ''; ?>">
                     <span class="nk-menu-icon"><i class="bi bi-door-open"></i></span>
                     <span class="nk-menu-text">Rooms</span>
                 </a>

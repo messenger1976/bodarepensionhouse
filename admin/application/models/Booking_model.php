@@ -15,42 +15,139 @@ class Booking_model extends CI_Model {
      * @param string|null $status Optional booking status filter
      */
     public function get_all_bookings($status = null) {
-        $this->db->select('bookings.*, rooms.room_name, rooms.room_type, rooms.room_code');
+        $has_items = $this->db->table_exists('booking_items');
+
+        if ($has_items) {
+            $this->db->select('bookings.*, rooms.room_name, rooms.room_type, rooms.room_code, '
+                . 'COALESCE(bi.earliest_checkin, bookings.check_in) AS earliest_checkin, '
+                . 'COALESCE(bi.latest_checkout, bookings.check_out) AS latest_checkout', false);
+        } else {
+            $this->db->select('bookings.*, rooms.room_name, rooms.room_type, rooms.room_code, '
+                . 'bookings.check_in AS earliest_checkin, bookings.check_out AS latest_checkout', false);
+        }
         $this->db->from('bookings');
         $this->db->join('rooms', 'rooms.id = bookings.room_id', 'left');
+        if ($has_items) {
+            $this->db->join(
+                "(SELECT booking_id, MIN(check_in) AS earliest_checkin, MAX(check_out) AS latest_checkout
+                  FROM booking_items WHERE status != 'cancelled' GROUP BY booking_id) bi",
+                'bi.booking_id = bookings.id',
+                'left',
+                false
+            );
+        }
         if ($status) {
             $this->db->where('bookings.status', $status);
         }
         $this->db->order_by('bookings.created_at', 'DESC');
-        $bookings = $this->db->get()->result();
-        
-        // If booking_items table exists, get earliest check-in and latest check-out for each booking
-        if ($this->db->table_exists('booking_items')) {
-            foreach ($bookings as $booking) {
-                $this->db->select('MIN(check_in) as earliest_checkin, MAX(check_out) as latest_checkout');
-                $this->db->from('booking_items');
-                $this->db->where('booking_id', $booking->id);
-                $this->db->where('status !=', 'cancelled');
-                $result = $this->db->get()->row();
-                
-                if ($result && $result->earliest_checkin) {
-                    $booking->earliest_checkin = $result->earliest_checkin;
-                    $booking->latest_checkout = $result->latest_checkout;
-                } else {
-                    // Fallback to booking's check_in/check_out if no booking_items
-                    $booking->earliest_checkin = $booking->check_in;
-                    $booking->latest_checkout = $booking->check_out;
-                }
-            }
-        } else {
-            // Fallback: use booking's check_in/check_out
-            foreach ($bookings as $booking) {
-                $booking->earliest_checkin = $booking->check_in;
-                $booking->latest_checkout = $booking->check_out;
+        return $this->db->get()->result();
+    }
+
+    /**
+     * Columns the admin bookings list may sort by (request key => SQL column).
+     */
+    public static function list_sort_columns() {
+        return array(
+            'booking' => 'bookings.id',
+            'guest'   => 'bookings.guest_name',
+            'stay'    => 'bookings.check_in',
+            'guests'  => 'bookings.guests',
+            'status'  => 'bookings.status',
+            'amount'  => 'bookings.total_amount',
+            'created' => 'bookings.created_at',
+        );
+    }
+
+    /**
+     * Apply admin-list filters to the current query builder.
+     *
+     * $filters keys: status, date_field (stay|check_in|check_out|created),
+     * date_from, date_to (Y-m-d, either may be empty), q (search text).
+     */
+    private function apply_list_filters(array $filters, $include_status = true) {
+        if ($include_status && !empty($filters['status'])) {
+            $this->db->where('bookings.status', $filters['status']);
+        }
+
+        $from = !empty($filters['date_from']) ? $filters['date_from'] : null;
+        $to = !empty($filters['date_to']) ? $filters['date_to'] : null;
+        $field = isset($filters['date_field']) ? $filters['date_field'] : 'stay';
+
+        if ($from || $to) {
+            switch ($field) {
+                case 'check_in':
+                case 'check_out':
+                    if ($from) { $this->db->where('bookings.' . $field . ' >=', $from); }
+                    if ($to) { $this->db->where('bookings.' . $field . ' <=', $to); }
+                    break;
+                case 'created':
+                    if ($from) { $this->db->where('bookings.created_at >=', $from . ' 00:00:00'); }
+                    if ($to) { $this->db->where('bookings.created_at <', date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00'); }
+                    break;
+                default:
+                    // Stay overlaps the range; the check-out day counts as part of the stay.
+                    if ($to) { $this->db->where('bookings.check_in <=', $to); }
+                    if ($from) { $this->db->where('bookings.check_out >=', $from); }
             }
         }
-        
-        return $bookings;
+
+        $q = isset($filters['q']) ? trim($filters['q']) : '';
+        if ($q !== '') {
+            $this->db->group_start()
+                ->like('bookings.booking_number', $q)
+                ->or_like('bookings.guest_name', $q)
+                ->or_like('bookings.guest_email', $q)
+                ->or_like('bookings.guest_phone', $q)
+                ->group_end();
+        }
+    }
+
+    /**
+     * Count bookings matching the admin-list filters.
+     */
+    public function count_list_bookings(array $filters) {
+        $this->db->from('bookings');
+        $this->apply_list_filters($filters);
+        return (int) $this->db->count_all_results();
+    }
+
+    /**
+     * Per-status counts for the admin list (status filter ignored so every tab shows its total).
+     *
+     * @return array status => count, plus 'all'
+     */
+    public function count_list_bookings_by_status(array $filters) {
+        $this->db->select('bookings.status, COUNT(*) AS cnt', false);
+        $this->db->from('bookings');
+        $this->apply_list_filters($filters, false);
+        $this->db->group_by('bookings.status');
+        $counts = array('all' => 0);
+        foreach ($this->db->get()->result() as $row) {
+            $counts[$row->status] = (int) $row->cnt;
+            $counts['all'] += (int) $row->cnt;
+        }
+        return $counts;
+    }
+
+    /**
+     * One page of bookings for the admin list. Selects only the columns the list renders.
+     */
+    public function get_list_bookings(array $filters, $limit, $offset, $sort = 'booking', $dir = 'desc') {
+        $columns = self::list_sort_columns();
+        $sort_col = isset($columns[$sort]) ? $columns[$sort] : $columns['booking'];
+        $dir = strtolower($dir) === 'asc' ? 'ASC' : 'DESC';
+
+        $this->db->select('bookings.id, bookings.booking_number, bookings.guest_name, bookings.guest_email, '
+            . 'bookings.check_in, bookings.check_out, bookings.check_in_time, bookings.check_out_time, '
+            . 'bookings.guests, bookings.rooms, bookings.status, bookings.total_amount, bookings.created_at');
+        $this->db->from('bookings');
+        $this->apply_list_filters($filters);
+        $this->db->order_by($sort_col, $dir);
+        if ($sort_col !== 'bookings.id') {
+            $this->db->order_by('bookings.id', 'DESC');
+        }
+        $this->db->limit((int) $limit, (int) $offset);
+        return $this->db->get()->result();
     }
     
     /**
@@ -305,8 +402,17 @@ class Booking_model extends CI_Model {
 
         $available_rooms = isset($room->available_rooms) ? (int)$room->available_rooms : 1;
         $booked_count = $this->count_booked_rooms($room_id, $check_in, $check_out, $exclude_booking_id);
+        $blocked_count = $this->count_blocked_rooms($room_id, $check_in, $check_out);
 
-        return max(0, $available_rooms - $booked_count);
+        return max(0, $available_rooms - $booked_count - $blocked_count);
+    }
+
+    /**
+     * Units taken off sale by admin date blocks on the busiest night of a stay.
+     */
+    public function count_blocked_rooms($room_id, $check_in, $check_out) {
+        $this->load->model('Room_block_model');
+        return $this->Room_block_model->max_blocked_units_for_stay($room_id, $check_in, $check_out);
     }
     
     /**
@@ -509,6 +615,9 @@ class Booking_model extends CI_Model {
         $all_rooms = $this->Room_model->get_all_rooms();
         
         $availability = array();
+        $date = date('Y-m-d', strtotime($date));
+        $this->load->model('Room_block_model');
+        $blocked_map = $this->Room_block_model->get_blocked_map($date, $date);
         
         foreach ($all_rooms as $room) {
             if ($room->status != 'active') {
@@ -519,7 +628,8 @@ class Booking_model extends CI_Model {
             
             // Count booked rooms for this specific date
             $booked_rooms = $this->count_booked_rooms_for_date($room->id, $date);
-            $remaining_rooms = $available_rooms - $booked_rooms;
+            $blocked_rooms = isset($blocked_map[$room->id][$date]) ? $blocked_map[$room->id][$date]['units'] : 0;
+            $remaining_rooms = $available_rooms - $booked_rooms - $blocked_rooms;
             
             $availability[$room->id] = array(
                 'room_id' => $room->id,
@@ -527,6 +637,7 @@ class Booking_model extends CI_Model {
                 'room_type' => $room->room_type,
                 'available' => $available_rooms,
                 'booked' => $booked_rooms,
+                'blocked' => $blocked_rooms,
                 'remaining' => max(0, $remaining_rooms)
             );
         }
@@ -593,6 +704,9 @@ class Booking_model extends CI_Model {
         $availability_data = array();
         $current_date = new DateTime($start_date);
         $end = new DateTime($end_date);
+
+        $this->load->model('Room_block_model');
+        $blocked_map = $this->Room_block_model->get_blocked_map($current_date->format('Y-m-d'), $end->format('Y-m-d'), $room_id);
         
         // Loop through each date in the range
         while ($current_date <= $end) {
@@ -603,16 +717,26 @@ class Booking_model extends CI_Model {
             foreach ($rooms as $room) {
                 // Include all rooms, but mark inactive ones
                 $available_rooms = isset($room->available_rooms) ? (int)$room->available_rooms : 1;
+                $block = isset($blocked_map[$room->id][$date_str]) ? $blocked_map[$room->id][$date_str] : null;
+                $blocked_rooms = $block ? (int)$block['units'] : 0;
+                $block_reasons = $block ? array_values(array_unique($block['reasons'])) : array();
                 
                 // For inactive rooms, set booked to total to show as unavailable
                 if ($room->status != 'active') {
                     $booked_rooms = $available_rooms; // Show as fully booked
+                    $blocked_rooms = 0;
                     $remaining_rooms = 0;
                     $status = 'inactive';
                 } else {
                     $booked_rooms = $this->count_booked_rooms_for_date($room->id, $date_str);
-                    $remaining_rooms = max(0, $available_rooms - $booked_rooms);
-                    $status = $remaining_rooms > 0 ? ($remaining_rooms == $available_rooms ? 'available' : 'partial') : 'booked';
+                    $remaining_rooms = max(0, $available_rooms - $booked_rooms - $blocked_rooms);
+                    if ($blocked_rooms >= $available_rooms) {
+                        $status = 'blocked';
+                    } elseif ($remaining_rooms <= 0) {
+                        $status = 'booked';
+                    } else {
+                        $status = $remaining_rooms == $available_rooms ? 'available' : 'partial';
+                    }
                 }
                 
                 $availability_data[$date_str][$room->id] = array(
@@ -622,6 +746,8 @@ class Booking_model extends CI_Model {
                     'room_code' => isset($room->room_code) ? $room->room_code : '',
                     'total_available' => $available_rooms,
                     'booked' => $booked_rooms,
+                    'blocked' => $blocked_rooms,
+                    'block_reasons' => $block_reasons,
                     'remaining' => $remaining_rooms,
                     'is_available' => $remaining_rooms > 0 && $room->status == 'active',
                     'status' => $status,
@@ -837,7 +963,7 @@ class Booking_model extends CI_Model {
         $booked_units = 0;
 
         foreach ($availability as $room) {
-            $total_units += (int)$room['available'];
+            $total_units += max(0, (int)$room['available'] - (int)$room['blocked']);
             $booked_units += (int)$room['booked'];
         }
 
@@ -873,7 +999,7 @@ class Booking_model extends CI_Model {
                 if (!isset($room['room_status']) || $room['room_status'] != 'active') {
                     continue;
                 }
-                $total_units += (int)$room['total_available'];
+                $total_units += max(0, (int)$room['total_available'] - (int)$room['blocked']);
                 $booked_units += (int)$room['booked'];
             }
 

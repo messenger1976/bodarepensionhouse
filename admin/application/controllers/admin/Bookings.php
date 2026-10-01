@@ -7,6 +7,9 @@ if (!class_exists('Admin_Controller', FALSE)) {
 }
 
 class Bookings extends Admin_Controller {
+
+    /** Session key holding the bookings list filters; cleared with the session on logout. */
+    const LIST_FILTER_KEY = 'bookings_filter';
     
     public function __construct() {
         parent::__construct();
@@ -164,27 +167,199 @@ class Bookings extends Admin_Controller {
         );
     }
     
+    /**
+     * Date-range presets for the bookings list (key => label).
+     */
+    public static function list_range_presets() {
+        return array(
+            'all'        => 'All dates',
+            'today'      => 'Today',
+            'this_week'  => 'This week',
+            'this_month' => 'This month',
+            'next_7'     => 'Next 7 days',
+            'next_30'    => 'Next 30 days',
+            'last_30'    => 'Last 30 days',
+            'this_year'  => 'This year',
+            'custom'     => 'Custom range',
+        );
+    }
+
+    /**
+     * Resolve a preset to [from, to] (Y-m-d) in Asia/Manila; 'all' / 'custom' return empty strings.
+     */
+    private function list_range_dates($range) {
+        $today = new DateTime('today', new DateTimeZone('Asia/Manila'));
+        $from = clone $today;
+        $to = clone $today;
+        switch ($range) {
+            case 'today':
+                break;
+            case 'this_week':
+                $from->modify('monday this week');
+                $to->modify('sunday this week');
+                break;
+            case 'this_month':
+                $from->modify('first day of this month');
+                $to->modify('last day of this month');
+                break;
+            case 'next_7':
+                $to->modify('+6 days');
+                break;
+            case 'next_30':
+                $to->modify('+29 days');
+                break;
+            case 'last_30':
+                $from->modify('-29 days');
+                break;
+            case 'this_year':
+                $from->setDate((int) $today->format('Y'), 1, 1);
+                $to->setDate((int) $today->format('Y'), 12, 31);
+                break;
+            default:
+                return array('', '');
+        }
+        return array($from->format('Y-m-d'), $to->format('Y-m-d'));
+    }
+
+    private function valid_ymd($value) {
+        $value = trim((string) $value);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return '';
+        }
+        list($y, $m, $d) = array_map('intval', explode('-', $value));
+        return checkdate($m, $d, $y) ? $value : '';
+    }
+
+    /**
+     * Merge query-string filters over the ones saved in the session, validate, and save them back.
+     * With no query string the previous filters are reused; ?reset=1 restores the defaults.
+     */
+    private function resolve_list_filters() {
+        $defaults = array(
+            'status'     => '',
+            'range'      => 'all',
+            'date_field' => 'stay',
+            'date_from'  => '',
+            'date_to'    => '',
+            'q'          => '',
+            'sort'       => 'booking',
+            'dir'        => 'desc',
+            'per_page'   => 25,
+            'page'       => 1,
+        );
+
+        if ($this->input->get('reset')) {
+            $this->session->unset_userdata(self::LIST_FILTER_KEY);
+            redirect('bookings');
+        }
+
+        $saved = $this->session->userdata(self::LIST_FILTER_KEY);
+        $f = is_array($saved) ? array_merge($defaults, array_intersect_key($saved, $defaults)) : $defaults;
+
+        $allowed_statuses = array('pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'completed');
+        $allowed_fields = array('stay', 'check_in', 'check_out', 'created');
+        $allowed_per_page = array(10, 25, 50, 100);
+        $presets = self::list_range_presets();
+        $sorts = Booking_model::list_sort_columns();
+
+        $changed = false;
+        $get = function ($key) { return $this->input->get($key, true); };
+
+        if ($get('status') !== null) {
+            $f['status'] = in_array($get('status'), $allowed_statuses, true) ? $get('status') : '';
+            $changed = true;
+        }
+        if ($get('range') !== null) {
+            $f['range'] = isset($presets[$get('range')]) ? $get('range') : 'all';
+            $changed = true;
+        }
+        if ($get('date_field') !== null) {
+            $f['date_field'] = in_array($get('date_field'), $allowed_fields, true) ? $get('date_field') : 'stay';
+            $changed = true;
+        }
+        if ($get('date_from') !== null || $get('date_to') !== null) {
+            $f['date_from'] = $this->valid_ymd($get('date_from'));
+            $f['date_to'] = $this->valid_ymd($get('date_to'));
+            $changed = true;
+        }
+        if ($get('q') !== null) {
+            $f['q'] = mb_substr(trim((string) $get('q')), 0, 100);
+            $changed = true;
+        }
+        if ($get('sort') !== null && isset($sorts[$get('sort')])) {
+            $f['sort'] = $get('sort');
+            $f['dir'] = $get('dir') === 'asc' ? 'asc' : 'desc';
+            $changed = true;
+        }
+        if ($get('per_page') !== null && in_array((int) $get('per_page'), $allowed_per_page, true)) {
+            $f['per_page'] = (int) $get('per_page');
+            $changed = true;
+        }
+
+        if ($get('page') !== null) {
+            $f['page'] = max(1, (int) $get('page'));
+        } elseif ($changed) {
+            $f['page'] = 1;
+        }
+
+        if ($f['range'] === 'custom') {
+            if ($f['date_from'] === '' && $f['date_to'] === '') {
+                $f['range'] = 'all';
+            } elseif ($f['date_from'] !== '' && $f['date_to'] !== '' && $f['date_from'] > $f['date_to']) {
+                list($f['date_from'], $f['date_to']) = array($f['date_to'], $f['date_from']);
+            }
+        }
+        if ($f['range'] !== 'custom') {
+            list($f['date_from'], $f['date_to']) = $this->list_range_dates($f['range']);
+        }
+
+        $f['per_page'] = in_array((int) $f['per_page'], $allowed_per_page, true) ? (int) $f['per_page'] : 25;
+        $f['page'] = max(1, (int) $f['page']);
+
+        $this->session->set_userdata(self::LIST_FILTER_KEY, $f);
+        return $f;
+    }
+
     public function index() {
         // Require permission to view bookings
         $this->require_permission('view_bookings');
         
-        $allowed_statuses = array('pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'completed');
-        $status = $this->input->get('status');
-        if (!$status || !in_array($status, $allowed_statuses, true)) {
-            $status = '';
+        $filters = $this->resolve_list_filters();
+
+        $total = $this->Booking_model->count_list_bookings($filters);
+        $per_page = (int) $filters['per_page'];
+        $pages = max(1, (int) ceil($total / $per_page));
+        if ($filters['page'] > $pages) {
+            $filters['page'] = $pages;
+            $this->session->set_userdata(self::LIST_FILTER_KEY, $filters);
         }
+        $offset = ($filters['page'] - 1) * $per_page;
 
         $data['title'] = 'Manage Bookings';
-        $data['bookings'] = $this->Booking_model->get_all_bookings($status ?: null);
-        $data['filter_status'] = $status;
+        $data['bookings'] = $this->Booking_model->get_list_bookings($filters, $per_page, $offset, $filters['sort'], $filters['dir']);
+        $data['filters'] = $filters;
+        $data['filter_status'] = $filters['status'];
+        $data['status_counts'] = $this->Booking_model->count_list_bookings_by_status($filters);
+        $data['total_rows'] = $total;
+        $data['total_pages'] = $pages;
+        $data['offset'] = $offset;
+        $data['range_presets'] = self::list_range_presets();
+        $data['range_dates'] = array();
+        foreach (array_keys($data['range_presets']) as $preset) {
+            $data['range_dates'][$preset] = $this->list_range_dates($preset);
+        }
         $data['can_add'] = $this->has_permission('add_bookings');
         $data['can_edit'] = $this->has_permission('edit_bookings');
         $data['can_delete'] = $this->has_permission('delete_bookings');
 
         $data['payment_status_map'] = array();
-        if ($this->db->table_exists('invoices')) {
+        if (!empty($data['bookings']) && $this->db->table_exists('invoices')) {
             $this->load->model('Invoice_model');
-            $data['payment_status_map'] = $this->Invoice_model->get_payment_status_map();
+            $ids = array();
+            foreach ($data['bookings'] as $b) {
+                $ids[] = (int) $b->id;
+            }
+            $data['payment_status_map'] = $this->Invoice_model->get_payment_status_map($ids);
         }
         
         $this->load->view('admin/layout/header', $data);

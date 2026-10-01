@@ -170,6 +170,7 @@
 
     .nk-content {
         margin-left: 0 !important;
+        margin-top: 0 !important;
         padding: 1rem;
         padding-top: calc(var(--header-height, 70px) + env(safe-area-inset-top, 0px) + 0.75rem);
         padding-bottom: 1.25rem;
@@ -256,7 +257,16 @@
 
     /* ── Booking edit / add form elements ── */
     .booking-header-section {
-        padding: 1rem !important;
+        padding: 0.875rem 1rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .booking-header-section h4 {
+        font-size: 1.1rem;
+    }
+
+    .booking-header-section p {
+        font-size: 0.8125rem;
     }
 
     .room-row {
@@ -657,6 +667,19 @@
     .card .row.g-3 > [class*="col-1"] {
         flex: 0 0 50%;
         max-width: 50%;
+    }
+
+    /* The substring selectors above also match col-md-10/11/12 and col-12 */
+    .card .row.g-2 > .col-md-10,
+    .card .row.g-2 > .col-md-11,
+    .card .row.g-2 > .col-md-12,
+    .card .row.g-2 > .col-12,
+    .card .row.g-3 > .col-md-10,
+    .card .row.g-3 > .col-md-11,
+    .card .row.g-3 > .col-md-12,
+    .card .row.g-3 > .col-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
     }
 
     /* ── DataTables ── */

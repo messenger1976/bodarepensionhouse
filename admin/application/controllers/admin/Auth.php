@@ -522,7 +522,8 @@ class Auth extends CI_Controller {
             'admin_id',
             'admin_username',
             'admin_name',
-            'admin_logged_in'
+            'admin_logged_in',
+            'bookings_filter'
         ));
         
         // Delete the session cookie explicitly by setting it to expire in the past

@@ -173,15 +173,25 @@ class Invoice_model extends CI_Model {
     /**
      * Batch payment status keyed by booking_id (for bookings list).
      */
-    public function get_payment_status_map() {
+    public function get_payment_status_map($booking_ids = null) {
         if (!$this->db->table_exists('invoices')) {
             return array();
+        }
+        if (is_array($booking_ids)) {
+            $booking_ids = array_values(array_unique(array_filter(array_map('intval', $booking_ids))));
+            if (empty($booking_ids)) {
+                return array();
+            }
         }
 
         $this->db->select('booking_id, id, invoice_number, status, amount_paid, balance_due, total_amount');
         $this->db->from('invoices');
         $this->db->where('status !=', 'void');
-        $this->db->where('booking_id IS NOT NULL', null, false);
+        if (is_array($booking_ids)) {
+            $this->db->where_in('booking_id', $booking_ids);
+        } else {
+            $this->db->where('booking_id IS NOT NULL', null, false);
+        }
         $this->db->order_by('id', 'ASC');
         $rows = $this->db->get()->result();
 
