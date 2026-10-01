@@ -93,8 +93,21 @@
             .then(() => waitForApi(attempt + 1));
     }
 
-    async function getAndSaveToken() {
+    async function getAndSaveToken(fresh = false) {
         const registration = await serviceWorkerRegistration();
+        if (fresh) {
+            // Firebase returns its cached token while the push subscription is unchanged,
+            // even if FCM has already invalidated it (server log: NotRegistered).
+            // Dropping the subscription makes getToken() mint a new one.
+            try {
+                const subscription = await registration.pushManager.getSubscription();
+                if (subscription) {
+                    await subscription.unsubscribe();
+                }
+            } catch (e) {
+                console.log('Web push unsubscribe failed', e);
+            }
+        }
         const { sdk, messaging } = await loadMessaging();
         const token = await sdk.getToken(messaging, {
             vapidKey: config.vapidKey,
@@ -131,12 +144,12 @@
         if (permission !== 'granted') {
             return false;
         }
-        await getAndSaveToken();
+        await getAndSaveToken(true);
         return true;
     }
 
     /** Stop notifications for this browser (server row deactivated + Firebase token deleted). */
-    async function disable(waitForFirebase = true) {
+    async function disable(deleteFirebaseToken = true) {
         const token = storedToken();
         storeToken('');
         if (!token) {
@@ -149,19 +162,20 @@
         } catch (e) {
             console.log('Web push unregister failed', e);
         }
-        if (config && supported) {
-            const removal = loadMessaging()
-                .then(({ sdk, messaging }) => sdk.deleteToken(messaging))
-                .catch((e) => console.log('Web push deleteToken failed', e));
-            if (waitForFirebase) {
-                await removal;
+        if (deleteFirebaseToken && config && supported) {
+            try {
+                const { sdk, messaging } = await loadMessaging();
+                await sdk.deleteToken(messaging);
+            } catch (e) {
+                console.log('Web push deleteToken failed', e);
             }
         }
     }
 
     // Called by API.auth.logout() so a shared computer stops getting the previous
-    // guest's booking notifications. The server row is what matters; the Firebase
-    // token deletion is left in the background so logout never waits on the CDN.
+    // guest's booking notifications. Only the server row is deactivated and unlinked:
+    // logout navigates away immediately, and a Firebase deleteToken() cut off midway
+    // leaves the browser holding a dead token that it hands back on the next getToken().
     window.BODARE_webPushLogout = function () {
         return disable(false);
     };

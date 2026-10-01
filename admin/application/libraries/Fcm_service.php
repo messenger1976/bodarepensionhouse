@@ -10,6 +10,7 @@ class Fcm_service {
     protected $project_id = '';
     protected $service_account = null;
     protected $last_error = '';
+    protected $last_error_code = '';
     protected $access_token = null;
     protected $access_token_expires = 0;
 
@@ -96,17 +97,46 @@ class Fcm_service {
         }
 
         $sent = 0;
+        $errors = [];
         foreach ($tokens as $row) {
+            $this->last_error_code = '';
             if ($this->send_to_token($row->fcm_token, $title, $body, $data)) {
                 $sent++;
+                continue;
+            }
+
+            $dead = $this->is_dead_token_error();
+            $errors[] = sprintf(
+                'token #%d (%s)%s: %s',
+                (int) $row->id,
+                $row->platform,
+                $dead ? ' deactivated' : '',
+                $this->last_error
+            );
+            if ($dead) {
+                $this->CI->Push_device_model->deactivate_token($row->fcm_token);
             }
         }
 
         if ($sent === 0) {
+            $this->last_error = implode('; ', $errors);
             return false;
         }
 
         return $sent;
+    }
+
+    /**
+     * Firebase says the token will never work again (app uninstalled, browser
+     * subscription removed, token deleted) — keep sending and it fails forever.
+     */
+    protected function is_dead_token_error()
+    {
+        if (in_array($this->last_error_code, ['UNREGISTERED', 'NOT_FOUND'], true)) {
+            return true;
+        }
+        return stripos($this->last_error, 'NotRegistered') !== false
+            || stripos($this->last_error, 'Requested entity was not found') !== false;
     }
 
     protected function send_message(array $message)
@@ -138,8 +168,17 @@ class Fcm_service {
             return false;
         }
 
-        if (!empty($decoded['error']['message'])) {
-            $this->last_error = (string) $decoded['error']['message'];
+        if (!empty($decoded['error'])) {
+            $error = $decoded['error'];
+            $code = '';
+            foreach ((array) ($error['details'] ?? []) as $detail) {
+                if (!empty($detail['errorCode'])) {
+                    $code = (string) $detail['errorCode'];
+                    break;
+                }
+            }
+            $this->last_error_code = $code !== '' ? $code : (string) ($error['status'] ?? '');
+            $this->last_error = (string) ($error['message'] ?? 'FCM error') . ($code !== '' ? ' [' . $code . ']' : '');
             return false;
         }
 
