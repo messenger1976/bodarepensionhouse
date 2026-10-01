@@ -139,43 +139,86 @@
     <div class="card card-bordered mb-4">
         <div class="card-inner">
             <h6 class="title mb-3">Invoices in Period</h6>
-            <div class="table-responsive">
-                <table class="table table-hover">
+            <?php
+            $inv_refs = function ($inv) {
+                $html = '';
+                if ($inv->booking_number) {
+                    $html .= '<span class="badge bg-info me-1">' . htmlspecialchars($inv->booking_number) . '</span>';
+                }
+                if (!empty($inv->event_name)) {
+                    $html .= '<span class="badge bg-secondary">' . htmlspecialchars($inv->event_name) . '</span>';
+                }
+                return $html !== '' ? $html : '—';
+            };
+            ?>
+            <div class="mob-desktop-table mob-desktop-table--xl">
+            <div class="table-responsive dt-fit-wrap">
+                <table class="table table-hover dt-fit-width" id="billingInvoicesTable" style="width:100%">
                     <thead>
                         <tr>
                             <th>Invoice #</th>
-                            <th>Guest</th>
-                            <th>Booking / Event</th>
+                            <th class="col-name">Guest</th>
                             <th>Status</th>
-                            <th>Total</th>
-                            <th>Paid</th>
-                            <th>Balance</th>
+                            <th class="col-amount">Total</th>
+                            <th class="col-amount">Paid</th>
+                            <th class="col-amount">Balance</th>
                             <th>Due</th>
-                            <th></th>
+                            <th class="col-actions no-print" data-orderable="false"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($invoices)): foreach ($invoices as $inv): ?>
                         <tr>
-                            <td><strong><?php echo htmlspecialchars($inv->invoice_number); ?></strong></td>
-                            <td><?php echo htmlspecialchars($inv->guest_name); ?></td>
-                            <td>
-                                <?php if ($inv->booking_number): ?><span class="badge bg-info"><?php echo htmlspecialchars($inv->booking_number); ?></span><?php endif; ?>
-                                <?php if (!empty($inv->event_name)): ?><span class="badge bg-secondary"><?php echo htmlspecialchars($inv->event_name); ?></span><?php endif; ?>
-                                <?php if (!$inv->booking_number && empty($inv->event_name)): ?>—<?php endif; ?>
+                            <td class="fw-semibold"><?php echo htmlspecialchars($inv->invoice_number); ?></td>
+                            <td class="col-name">
+                                <div class="dt-cell-title"><?php echo htmlspecialchars($inv->guest_name); ?></div>
+                                <div class="mt-1"><?php echo $inv_refs($inv); ?></div>
                             </td>
                             <td><span class="badge bg-secondary"><?php echo ucfirst($inv->status); ?></span></td>
-                            <td>₱<?php echo number_format($inv->total_amount, 2); ?></td>
-                            <td>₱<?php echo number_format($inv->amount_paid, 2); ?></td>
-                            <td><strong>₱<?php echo number_format($inv->balance_due, 2); ?></strong></td>
-                            <td><?php echo $inv->due_date ? date('M d, Y', strtotime($inv->due_date)) : '—'; ?></td>
-                            <td><a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-outline-primary">View</a></td>
+                            <td class="col-amount" data-order="<?php echo (float) $inv->total_amount; ?>">₱<?php echo number_format($inv->total_amount, 2); ?></td>
+                            <td class="col-amount" data-order="<?php echo (float) $inv->amount_paid; ?>">₱<?php echo number_format($inv->amount_paid, 2); ?></td>
+                            <td class="col-amount fw-semibold" data-order="<?php echo (float) $inv->balance_due; ?>">₱<?php echo number_format($inv->balance_due, 2); ?></td>
+                            <td data-order="<?php echo $inv->due_date ? date('Y-m-d', strtotime($inv->due_date)) : ''; ?>"><?php echo $inv->due_date ? date('M d, Y', strtotime($inv->due_date)) : '—'; ?></td>
+                            <td class="col-actions no-print"><a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-outline-primary" title="View invoice"><i class="bi bi-eye"></i></a></td>
                         </tr>
                         <?php endforeach; else: ?>
-                        <tr><td colspan="9" class="text-center text-muted">No invoices in this period</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted">No invoices in this period</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
+            </div>
+            </div>
+
+            <div class="mob-card-list mob-card-list--xl d-xl-none">
+                <?php if (!empty($invoices)): foreach ($invoices as $inv): ?>
+                <div class="mob-list-card">
+                    <div class="mob-list-card-header">
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <div class="mob-list-card-title"><?php echo htmlspecialchars($inv->guest_name); ?></div>
+                            <div class="mob-list-card-meta text-truncate"><?php echo htmlspecialchars($inv->invoice_number); ?></div>
+                        </div>
+                        <span class="badge bg-secondary flex-shrink-0"><?php echo ucfirst($inv->status); ?></span>
+                    </div>
+                    <div class="mob-list-card-body">
+                        <div class="mob-list-card-meta"><i class="bi bi-link-45deg"></i> <?php echo $inv_refs($inv); ?></div>
+                        <div class="mob-list-card-meta"><i class="bi bi-calendar-x"></i> Due <?php echo $inv->due_date ? date('M d, Y', strtotime($inv->due_date)) : '—'; ?></div>
+                        <div class="mob-list-card-meta d-flex justify-content-between mt-2">
+                            <span>Total</span><span>₱<?php echo number_format($inv->total_amount, 2); ?></span>
+                        </div>
+                        <div class="mob-list-card-meta d-flex justify-content-between">
+                            <span>Paid</span><span>₱<?php echo number_format($inv->amount_paid, 2); ?></span>
+                        </div>
+                        <div class="mob-list-card-meta d-flex justify-content-between fw-semibold text-body">
+                            <span>Balance</span><span>₱<?php echo number_format($inv->balance_due, 2); ?></span>
+                        </div>
+                    </div>
+                    <div class="mob-list-card-actions">
+                        <a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> View</a>
+                    </div>
+                </div>
+                <?php endforeach; else: ?>
+                <div class="mob-list-card mob-list-card-empty text-center text-muted py-4">No invoices in this period</div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -184,31 +227,56 @@
     <div class="card card-bordered mb-4">
         <div class="card-inner">
             <h6 class="title mb-3 text-danger">Outstanding Receivables (All Dates)</h6>
-            <div class="table-responsive">
-                <table class="table table-hover">
+            <div class="mob-desktop-table mob-desktop-table--xl">
+            <div class="table-responsive dt-fit-wrap">
+                <table class="table table-hover dt-fit-width" id="billingOutstandingTable" style="width:100%">
                     <thead>
                         <tr>
                             <th>Invoice #</th>
-                            <th>Guest</th>
+                            <th class="col-name">Guest</th>
                             <th>Status</th>
-                            <th>Balance Due</th>
+                            <th class="col-amount">Balance Due</th>
                             <th>Due Date</th>
-                            <th></th>
+                            <th class="col-actions no-print" data-orderable="false"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($outstanding as $inv): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($inv->invoice_number); ?></td>
-                            <td><?php echo htmlspecialchars($inv->guest_name); ?></td>
+                            <td class="fw-semibold"><?php echo htmlspecialchars($inv->invoice_number); ?></td>
+                            <td class="col-name"><?php echo htmlspecialchars($inv->guest_name); ?></td>
                             <td><span class="badge bg-warning text-dark"><?php echo ucfirst($inv->status); ?></span></td>
-                            <td><strong class="text-danger">₱<?php echo number_format($inv->balance_due, 2); ?></strong></td>
-                            <td><?php echo $inv->due_date ? date('M d, Y', strtotime($inv->due_date)) : '—'; ?></td>
-                            <td><a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-outline-primary">View</a></td>
+                            <td class="col-amount" data-order="<?php echo (float) $inv->balance_due; ?>"><strong class="text-danger">₱<?php echo number_format($inv->balance_due, 2); ?></strong></td>
+                            <td data-order="<?php echo $inv->due_date ? date('Y-m-d', strtotime($inv->due_date)) : ''; ?>"><?php echo $inv->due_date ? date('M d, Y', strtotime($inv->due_date)) : '—'; ?></td>
+                            <td class="col-actions no-print"><a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-outline-primary" title="View invoice"><i class="bi bi-eye"></i></a></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+            </div>
+            </div>
+
+            <div class="mob-card-list mob-card-list--xl d-xl-none">
+                <?php foreach ($outstanding as $inv): ?>
+                <div class="mob-list-card">
+                    <div class="mob-list-card-header">
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <div class="mob-list-card-title"><?php echo htmlspecialchars($inv->guest_name); ?></div>
+                            <div class="mob-list-card-meta text-truncate"><?php echo htmlspecialchars($inv->invoice_number); ?></div>
+                        </div>
+                        <span class="badge bg-warning text-dark flex-shrink-0"><?php echo ucfirst($inv->status); ?></span>
+                    </div>
+                    <div class="mob-list-card-body">
+                        <div class="mob-list-card-meta"><i class="bi bi-calendar-x"></i> Due <?php echo $inv->due_date ? date('M d, Y', strtotime($inv->due_date)) : '—'; ?></div>
+                        <div class="mob-list-card-meta d-flex justify-content-between fw-semibold mt-2">
+                            <span>Balance Due</span><span class="text-danger">₱<?php echo number_format($inv->balance_due, 2); ?></span>
+                        </div>
+                    </div>
+                    <div class="mob-list-card-actions">
+                        <a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> View</a>
+                    </div>
+                </div>
+                <?php endforeach; ?>
             </div>
         </div>
     </div>
@@ -219,6 +287,10 @@
 @media print {
     .no-print, .nk-sidebar, .nk-header, .nk-block-tools { display: none !important; }
     .print-header { display: block !important; }
+
+    /* Always print the tables, never the on-screen card lists */
+    .mob-desktop-table.mob-desktop-table--xl { display: block !important; }
+    .mob-card-list.mob-card-list--xl { display: none !important; }
 }
 .card-inner .amount { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
 .card-inner .title { color: #64748b; font-size: 0.85rem; margin-bottom: 0.35rem; }

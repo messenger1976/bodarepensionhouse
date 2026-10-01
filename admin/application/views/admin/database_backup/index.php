@@ -92,23 +92,24 @@ $backups = isset($backups) && is_array($backups) ? $backups : array();
                     <p class="mt-2 mb-0">No backup files yet. Create or upload a <code>.sql</code> backup to get started.</p>
                 </div>
             <?php else: ?>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                <div class="mob-desktop-table mob-desktop-table--xl">
+                <div class="table-responsive dt-fit-wrap">
+                    <table class="table table-hover align-middle mb-0 dt-fit-width" id="backupsTable" style="width:100%">
                         <thead>
                             <tr>
-                                <th>Filename</th>
+                                <th class="col-name">Filename</th>
                                 <th>Size</th>
                                 <th>Created</th>
-                                <th class="text-end">Actions</th>
+                                <th class="col-actions" data-orderable="false">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($backups as $file): ?>
                             <tr>
-                                <td><code><?php echo $a($file['name']); ?></code></td>
-                                <td><?php echo $a($file['size_label']); ?></td>
-                                <td><?php echo $a($file['mtime_label']); ?></td>
-                                <td class="text-end text-nowrap">
+                                <td class="col-name"><code class="dt-break"><?php echo $a($file['name']); ?></code></td>
+                                <td data-order="<?php echo (int) $file['size']; ?>"><?php echo $a($file['size_label']); ?></td>
+                                <td data-order="<?php echo (int) $file['mtime']; ?>"><?php echo $a($file['mtime_label']); ?></td>
+                                <td class="col-actions">
                                     <a href="<?php echo base_url('database_backup/download/' . rawurlencode($file['name'])); ?>" class="btn btn-sm btn-light" title="Download">
                                         <i class="bi bi-download"></i>
                                     </a>
@@ -137,6 +138,48 @@ $backups = isset($backups) && is_array($backups) ? $backups : array();
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
+                </div>
+
+                <div class="mob-card-list mob-card-list--xl d-xl-none">
+                    <?php foreach ($backups as $file): ?>
+                    <div class="mob-list-card">
+                        <div class="mob-list-card-header">
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                <div class="mob-list-card-title"><code class="dt-break"><?php echo $a($file['name']); ?></code></div>
+                            </div>
+                        </div>
+                        <div class="mob-list-card-body">
+                            <div class="mob-list-card-meta"><i class="bi bi-hdd"></i> <?php echo $a($file['size_label']); ?></div>
+                            <div class="mob-list-card-meta"><i class="bi bi-clock"></i> <?php echo $a($file['mtime_label']); ?></div>
+                        </div>
+                        <div class="mob-list-card-actions">
+                            <a href="<?php echo base_url('database_backup/download/' . rawurlencode($file['name'])); ?>" class="btn btn-sm btn-light" title="Download">
+                                <i class="bi bi-download"></i> Download
+                            </a>
+                            <?php if ($can_restore): ?>
+                            <button type="button"
+                                class="btn btn-sm btn-warning"
+                                title="Restore"
+                                data-bs-toggle="modal"
+                                data-bs-target="#restoreBackupModal"
+                                data-filename="<?php echo $a($file['name']); ?>">
+                                <i class="bi bi-arrow-counterclockwise"></i> Restore
+                            </button>
+                            <?php endif; ?>
+                            <?php if ($can_delete): ?>
+                            <button type="button"
+                                class="btn btn-sm btn-danger"
+                                title="Delete"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteBackupModal"
+                                data-filename="<?php echo $a($file['name']); ?>">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
             <?php endif; ?>
         </div>

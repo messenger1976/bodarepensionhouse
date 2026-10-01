@@ -272,31 +272,32 @@
             <div class="card-title-group">
                 <div class="card-title"><h6 class="title">Invoices for <?php echo date('F d, Y', strtotime($selected_date)); ?></h6></div>
             </div>
-            <div class="table-responsive">
-                <table class="table table-hover">
+            <div class="table-responsive dt-fit-wrap">
+                <table class="table table-hover dt-fit-width" style="width:100%">
                     <thead>
                         <tr>
                             <th>Invoice #</th>
-                            <th>Guest</th>
-                            <th>Booking</th>
+                            <th class="col-name">Guest</th>
                             <th>Status</th>
-                            <th>Total</th>
-                            <th>Paid</th>
-                            <th>Balance</th>
-                            <th></th>
+                            <th class="col-amount">Total</th>
+                            <th class="col-amount">Paid</th>
+                            <th class="col-amount">Balance</th>
+                            <th class="col-actions no-print" data-orderable="false"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($day_invoices as $inv): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($inv->invoice_number); ?></td>
-                            <td><?php echo htmlspecialchars($inv->guest_name); ?></td>
-                            <td><?php echo htmlspecialchars($inv->booking_number ?: '—'); ?></td>
+                            <td class="fw-semibold"><?php echo htmlspecialchars($inv->invoice_number); ?></td>
+                            <td class="col-name">
+                                <div class="dt-cell-title"><?php echo htmlspecialchars($inv->guest_name); ?></div>
+                                <div class="dt-cell-sub text-muted">Booking <?php echo htmlspecialchars($inv->booking_number ?: '—'); ?></div>
+                            </td>
                             <td><span class="badge bg-secondary"><?php echo ucfirst($inv->status); ?></span></td>
-                            <td>₱<?php echo number_format($inv->total_amount, 2); ?></td>
-                            <td>₱<?php echo number_format($inv->amount_paid, 2); ?></td>
-                            <td><strong>₱<?php echo number_format($inv->balance_due, 2); ?></strong></td>
-                            <td><a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-outline-primary">View</a></td>
+                            <td class="col-amount" data-order="<?php echo (float) $inv->total_amount; ?>">₱<?php echo number_format($inv->total_amount, 2); ?></td>
+                            <td class="col-amount" data-order="<?php echo (float) $inv->amount_paid; ?>">₱<?php echo number_format($inv->amount_paid, 2); ?></td>
+                            <td class="col-amount fw-semibold" data-order="<?php echo (float) $inv->balance_due; ?>">₱<?php echo number_format($inv->balance_due, 2); ?></td>
+                            <td class="col-actions no-print"><a href="<?php echo base_url('invoices/view/' . $inv->id); ?>" class="btn btn-sm btn-outline-primary" title="View invoice"><i class="bi bi-eye"></i></a></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -314,55 +315,66 @@
                     <h6 class="title">Bookings for <?php echo date('F d, Y', strtotime($selected_date)); ?></h6>
                 </div>
             </div>
-            <div class="table-responsive">
-                <table class="table table-hover" id="dailySalesTable">
+            <?php
+            $ds_badge = function ($status) {
+                if ($status == 'confirmed') return 'success';
+                if ($status == 'checked_in') return 'info';
+                if ($status == 'checked_out' || $status == 'completed') return 'primary';
+                if ($status == 'cancelled') return 'danger';
+                if ($status == 'pending') return 'warning';
+                return 'secondary';
+            };
+            ?>
+            <div class="mob-desktop-table mob-desktop-table--xl">
+            <div class="table-responsive dt-fit-wrap">
+                <table class="table table-hover dt-fit-width" id="dailySalesTable" style="width:100%">
                     <thead>
                         <tr>
-                            <th>Booking Number</th>
-                            <th>Guest Name</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Room</th>
-                            <th>Check-In</th>
-                            <th>Check-Out</th>
+                            <th>Booking #</th>
+                            <th class="col-name">Guest</th>
+                            <th class="col-name">Room</th>
+                            <th>Stay</th>
                             <th>Guests</th>
                             <th>Status</th>
-                            <th>Amount</th>
-                            <th>Created At</th>
-                            <th class="no-print">Actions</th>
+                            <th class="col-amount">Amount</th>
+                            <th>Created</th>
+                            <th class="col-actions no-print" data-orderable="false">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($daily_sales)): ?>
                             <?php foreach ($daily_sales as $booking): ?>
+                                <?php
+                                $check_in_ts = strtotime($booking->check_in);
+                                $created_ts = strtotime($booking->created_at);
+                                ?>
                                 <tr>
-                                    <td>#<?php echo isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT); ?></td>
-                                    <td><?php echo htmlspecialchars($booking->guest_name); ?></td>
-                                    <td><?php echo htmlspecialchars($booking->guest_email); ?></td>
-                                    <td><?php echo htmlspecialchars($booking->guest_phone); ?></td>
-                                    <td>
-                                        <?php echo htmlspecialchars($booking->room_name); ?>
-                                        <?php if (!empty($booking->room_code)): ?>
-                                            <br><small class="text-muted"><?php echo htmlspecialchars($booking->room_code); ?></small>
+                                    <td class="fw-semibold">#<?php echo isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT); ?></td>
+                                    <td class="col-name">
+                                        <div class="dt-cell-title"><?php echo htmlspecialchars($booking->guest_name); ?></div>
+                                        <div class="dt-cell-sub text-muted" title="<?php echo htmlspecialchars($booking->guest_email); ?>"><?php echo htmlspecialchars($booking->guest_email); ?></div>
+                                        <?php if (!empty($booking->guest_phone)): ?>
+                                        <div class="dt-cell-sub text-muted"><?php echo htmlspecialchars($booking->guest_phone); ?></div>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?php echo date('M d, Y', strtotime($booking->check_in)); ?></td>
-                                    <td><?php echo date('M d, Y', strtotime($booking->check_out)); ?></td>
-                                    <td><?php echo $booking->guests; ?></td>
-                                    <td>
-                                        <?php
-                                        $badge_class = 'secondary';
-                                        if ($booking->status == 'confirmed') $badge_class = 'success';
-                                        if ($booking->status == 'checked_in') $badge_class = 'info';
-                                        if ($booking->status == 'checked_out' || $booking->status == 'completed') $badge_class = 'primary';
-                                        if ($booking->status == 'cancelled') $badge_class = 'danger';
-                                        if ($booking->status == 'pending') $badge_class = 'warning';
-                                        ?>
-                                        <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucwords(str_replace('_', ' ', $booking->status)); ?></span>
+                                    <td class="col-name">
+                                        <div><?php echo htmlspecialchars($booking->room_name); ?></div>
+                                        <?php if (!empty($booking->room_code)): ?>
+                                            <div class="dt-cell-sub text-muted"><?php echo htmlspecialchars($booking->room_code); ?></div>
+                                        <?php endif; ?>
                                     </td>
-                                    <td><strong>₱<?php echo number_format($booking->total_amount, 2); ?></strong></td>
-                                    <td><?php echo date('M d, Y h:i A', strtotime($booking->created_at)); ?></td>
-                                    <td class="no-print">
+                                    <td data-order="<?php echo date('Y-m-d', $check_in_ts); ?>">
+                                        <div><?php echo date('M d, Y', $check_in_ts); ?></div>
+                                        <div class="dt-cell-sub text-muted">to <?php echo date('M d, Y', strtotime($booking->check_out)); ?></div>
+                                    </td>
+                                    <td data-order="<?php echo (int) $booking->guests; ?>"><?php echo (int) $booking->guests; ?></td>
+                                    <td><span class="badge bg-<?php echo $ds_badge($booking->status); ?>"><?php echo ucwords(str_replace('_', ' ', $booking->status)); ?></span></td>
+                                    <td class="col-amount fw-semibold" data-order="<?php echo (float) $booking->total_amount; ?>">₱<?php echo number_format($booking->total_amount, 2); ?></td>
+                                    <td data-order="<?php echo date('Y-m-d H:i:s', $created_ts); ?>">
+                                        <div><?php echo date('M d, Y', $created_ts); ?></div>
+                                        <div class="dt-cell-sub text-muted"><?php echo date('h:i A', $created_ts); ?></div>
+                                    </td>
+                                    <td class="col-actions no-print">
                                         <a href="<?php echo base_url('bookings/view/' . $booking->id); ?>" class="btn btn-sm btn-primary" title="View">
                                             <i class="bi bi-eye"></i>
                                         </a>
@@ -371,18 +383,62 @@
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="11" class="text-center text-muted">No bookings found for this date</td>
+                                <td colspan="9" class="text-center text-muted">No bookings found for this date</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                     <tfoot>
                         <tr style="background-color: #f5f5f5; font-weight: bold;">
-                            <td colspan="9" style="text-align: right;">TOTAL REVENUE:</td>
-                            <td style="text-align: right;">₱<?php echo number_format($total_revenue, 2); ?></td>
+                            <td colspan="6" style="text-align: right;">TOTAL REVENUE:</td>
+                            <td class="col-amount">₱<?php echo number_format($total_revenue, 2); ?></td>
+                            <td></td>
                             <td class="no-print"></td>
                         </tr>
                     </tfoot>
                 </table>
+            </div>
+            </div>
+
+            <div class="mob-card-list mob-card-list--xl d-xl-none">
+                <?php if (!empty($daily_sales)): ?>
+                    <?php foreach ($daily_sales as $booking): ?>
+                        <div class="mob-list-card">
+                            <div class="mob-list-card-header">
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <div class="mob-list-card-title"><?php echo htmlspecialchars($booking->guest_name); ?></div>
+                                    <div class="mob-list-card-meta text-truncate">#<?php echo isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT); ?> &middot; <?php echo htmlspecialchars($booking->room_name); ?></div>
+                                </div>
+                                <span class="badge bg-<?php echo $ds_badge($booking->status); ?> flex-shrink-0"><?php echo ucwords(str_replace('_', ' ', $booking->status)); ?></span>
+                            </div>
+                            <div class="mob-list-card-body">
+                                <div class="mob-list-card-meta text-truncate" title="<?php echo htmlspecialchars($booking->guest_email); ?>"><i class="bi bi-envelope"></i> <?php echo htmlspecialchars($booking->guest_email); ?></div>
+                                <?php if (!empty($booking->guest_phone)): ?>
+                                <div class="mob-list-card-meta"><i class="bi bi-telephone"></i> <?php echo htmlspecialchars($booking->guest_phone); ?></div>
+                                <?php endif; ?>
+                                <div class="mob-list-card-meta">
+                                    <i class="bi bi-calendar-event"></i>
+                                    <?php echo date('M d, Y', strtotime($booking->check_in)); ?> &ndash; <?php echo date('M d, Y', strtotime($booking->check_out)); ?>
+                                    &middot; <?php echo (int) $booking->guests; ?> guest<?php echo (int) $booking->guests === 1 ? '' : 's'; ?>
+                                </div>
+                                <div class="mob-list-card-meta"><i class="bi bi-clock"></i> Created <?php echo date('M d, Y h:i A', strtotime($booking->created_at)); ?></div>
+                                <div class="mob-list-card-meta mt-2">
+                                    <span class="fw-semibold fs-6 text-body">&#8369;<?php echo number_format($booking->total_amount, 2); ?></span>
+                                </div>
+                            </div>
+                            <div class="mob-list-card-actions">
+                                <a href="<?php echo base_url('bookings/view/' . $booking->id); ?>" class="btn btn-sm btn-primary" title="View">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                    <div class="mob-list-card mob-list-card-empty d-flex flex-row justify-content-between align-items-center fw-semibold">
+                        <span>Total Revenue</span>
+                        <span class="fs-6">&#8369;<?php echo number_format($total_revenue, 2); ?></span>
+                    </div>
+                <?php else: ?>
+                    <div class="mob-list-card mob-list-card-empty text-center text-muted py-4">No bookings found for this date</div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -394,21 +450,23 @@
     </div>
 </div>
 
-<script>
-    // Initialize DataTable if available
-    $(document).ready(function() {
-        if ($.fn.DataTable) {
-            $('#dailySalesTable').DataTable({
-                order: [[10, 'desc']], // Sort by Created At descending
-                pageLength: 25,
-                responsive: true
-            });
-        }
-    });
-</script>
-
 <style>
     @media print {
+        /* Always print the bookings table, never the on-screen card list */
+        .mob-desktop-table.mob-desktop-table--xl {
+            display: block !important;
+        }
+
+        .mob-card-list.mob-card-list--xl {
+            display: none !important;
+        }
+
+        table.dt-fit-width .dt-cell-sub {
+            max-width: none !important;
+            white-space: normal !important;
+            overflow: visible !important;
+        }
+
         /* Hide navigation and UI elements */
         .nk-sidebar, .nk-header, .nk-block-tools, .btn, 
         .card-title-group .card-title:last-child, 

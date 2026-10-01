@@ -141,43 +141,49 @@ $actor = function ($v) {
                     <span class="text-muted small">Page <?php echo $page; ?> of <?php echo $total_pages; ?></span>
                 <?php endif; ?>
             </div>
-            <div class="table-responsive">
-                <table class="table table-hover">
+            <div class="mob-desktop-table mob-desktop-table--xl">
+            <div class="table-responsive dt-fit-wrap">
+                <table class="table table-hover dt-fit-width" id="activityLogsTable" style="width:100%">
                     <thead>
                         <tr>
                             <th>#</th>
                             <th>Date</th>
-                            <th>Type</th>
-                            <th>Module</th>
-                            <th>Action</th>
-                            <th>Description</th>
+                            <th>Event</th>
+                            <th class="col-name">Description</th>
                             <th>Actor</th>
                             <th>Status</th>
-                            <th>Severity</th>
-                            <th style="width: 60px;">View</th>
+                            <th class="col-actions" data-orderable="false">View</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($logs)): ?>
                             <?php foreach ($logs as $log): ?>
+                                <?php $log_ts = strtotime($log->created_at); ?>
                                 <tr>
-                                    <td><?php echo (int) $log->id; ?></td>
-                                    <td class="text-nowrap"><?php echo $a(date('M j, Y H:i', strtotime($log->created_at))); ?></td>
-                                    <td><span class="badge bg-<?php echo $badge($log->log_type); ?>"><?php echo $a($log->log_type); ?></span></td>
-                                    <td><?php echo $a($log->module); ?></td>
-                                    <td><code><?php echo $a($log->action); ?></code></td>
-                                    <td><?php echo $a(mb_strimwidth((string) $log->description, 0, 80, '…')); ?></td>
+                                    <td class="text-muted"><?php echo (int) $log->id; ?></td>
+                                    <td data-order="<?php echo $a(date('Y-m-d H:i:s', $log_ts)); ?>">
+                                        <div><?php echo $a(date('M j, Y', $log_ts)); ?></div>
+                                        <div class="dt-cell-sub text-muted"><?php echo $a(date('H:i', $log_ts)); ?></div>
+                                    </td>
                                     <td>
+                                        <div class="dt-cell-title"><?php echo $a($log->module); ?></div>
+                                        <div class="dt-cell-sub">
+                                            <span class="badge bg-<?php echo $badge($log->log_type); ?>"><?php echo $a($log->log_type); ?></span>
+                                            <code><?php echo $a($log->action); ?></code>
+                                        </div>
+                                    </td>
+                                    <td class="col-name"><?php echo $a(mb_strimwidth((string) $log->description, 0, 80, '…')); ?></td>
+                                    <td>
+                                        <span class="badge bg-<?php echo $actor($log->actor_type); ?>"><?php echo $a($log->actor_type); ?></span>
                                         <?php if ($log->actor_name): ?>
-                                            <span class="badge bg-<?php echo $actor($log->actor_type); ?>"><?php echo $a($log->actor_type); ?></span>
-                                            <div class="small text-muted mt-1"><?php echo $a($log->actor_name); ?></div>
-                                        <?php else: ?>
-                                            <span class="badge bg-<?php echo $actor($log->actor_type); ?>"><?php echo $a($log->actor_type); ?></span>
+                                            <div class="dt-cell-sub text-muted mt-1" title="<?php echo $a($log->actor_name); ?>"><?php echo $a($log->actor_name); ?></div>
                                         <?php endif; ?>
                                     </td>
-                                    <td><span class="badge bg-<?php echo $log->status == 'failed' ? 'danger' : 'success'; ?>"><?php echo $a($log->status); ?></span></td>
-                                    <td><span class="badge bg-<?php echo $sev($log->severity); ?>"><?php echo $a($log->severity); ?></span></td>
                                     <td>
+                                        <span class="badge bg-<?php echo $log->status == 'failed' ? 'danger' : 'success'; ?>"><?php echo $a($log->status); ?></span>
+                                        <div class="mt-1"><span class="badge bg-<?php echo $sev($log->severity); ?>"><?php echo $a($log->severity); ?></span></div>
+                                    </td>
+                                    <td class="col-actions">
                                         <a href="<?php echo base_url('activity_logs/view/' . (int) $log->id); ?>" class="btn btn-sm btn-info" title="View details">
                                             <i class="bi bi-eye"></i>
                                         </a>
@@ -186,11 +192,48 @@ $actor = function ($v) {
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="10" class="text-center text-muted">No activity logs found</td>
+                                <td colspan="7" class="text-center text-muted">No activity logs found</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
+            </div>
+            </div>
+
+            <div class="mob-card-list mob-card-list--xl d-xl-none">
+                <?php if (!empty($logs)): ?>
+                    <?php foreach ($logs as $log): ?>
+                        <div class="mob-list-card">
+                            <div class="mob-list-card-header">
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <div class="mob-list-card-title"><?php echo $a($log->module); ?> &middot; <code><?php echo $a($log->action); ?></code></div>
+                                    <div class="mob-list-card-meta">#<?php echo (int) $log->id; ?> &middot; <?php echo $a(date('M j, Y H:i', strtotime($log->created_at))); ?></div>
+                                </div>
+                                <span class="badge bg-<?php echo $log->status == 'failed' ? 'danger' : 'success'; ?> flex-shrink-0"><?php echo $a($log->status); ?></span>
+                            </div>
+                            <div class="mob-list-card-body">
+                                <div class="mob-list-card-meta">
+                                    <?php echo $a(mb_strimwidth((string) $log->description, 0, 120, '…')); ?>
+                                </div>
+                                <div class="mob-list-card-meta d-flex flex-wrap align-items-center gap-1 mt-2">
+                                    <span class="badge bg-<?php echo $badge($log->log_type); ?>"><?php echo $a($log->log_type); ?></span>
+                                    <span class="badge bg-<?php echo $sev($log->severity); ?>"><?php echo $a($log->severity); ?></span>
+                                    <span class="badge bg-<?php echo $actor($log->actor_type); ?>"><?php echo $a($log->actor_type); ?></span>
+                                    <?php if ($log->actor_name): ?>
+                                        <span class="text-truncate" style="max-width: 100%;"><i class="bi bi-person"></i> <?php echo $a($log->actor_name); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <div class="mob-list-card-actions">
+                                <a href="<?php echo base_url('activity_logs/view/' . (int) $log->id); ?>" class="btn btn-sm btn-info" title="View details">
+                                    <i class="bi bi-eye"></i> View details
+                                </a>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="mob-list-card mob-list-card-empty text-center text-muted py-4">No activity logs found</div>
+                <?php endif; ?>
             </div>
 
             <?php if ($total_pages > 1): ?>

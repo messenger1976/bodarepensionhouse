@@ -172,7 +172,7 @@
                 ?>
                 <div class="room-row mb-3 p-3 border rounded shadow-sm bg-white" data-room-index="<?php echo $room_index; ?>">
                     <div class="row g-3 align-items-end">
-                        <div class="col-12 col-lg-2">
+                        <div class="col-12 col-lg-4">
                             <label class="form-label small fw-bold">Select Room *</label>
                             <select class="form-select room-select" name="room_selections[<?php echo $room_index; ?>][room_id]" data-index="<?php echo $room_index; ?>" required>
                                 <option value="">-- Choose a room --</option>
@@ -183,7 +183,7 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-12 col-md-6 col-lg-3">
+                        <div class="col-12 col-md-6 col-lg-4">
                             <label class="form-label small fw-bold">Check-In *</label>
                             <input type="datetime-local" class="form-control room-checkin-dt" required
                                 value="<?php echo htmlspecialchars($grouped_item['check_in'] . 'T' . $edit_ci_time, ENT_QUOTES, 'UTF-8'); ?>"
@@ -192,7 +192,7 @@
                             <input type="hidden" class="room-checkin-time" value="<?php echo htmlspecialchars($edit_ci_time, ENT_QUOTES, 'UTF-8'); ?>"
                                 <?php if ($is_first_room_row): ?>id="check_in_time" name="check_in_time"<?php endif; ?>>
                         </div>
-                        <div class="col-12 col-md-6 col-lg-3">
+                        <div class="col-12 col-md-6 col-lg-4">
                             <label class="form-label small fw-bold">Check-Out *</label>
                             <input type="datetime-local" class="form-control room-checkout-dt" required
                                 value="<?php echo htmlspecialchars($grouped_item['check_out'] . 'T' . $edit_co_time, ENT_QUOTES, 'UTF-8'); ?>"
@@ -201,15 +201,15 @@
                             <input type="hidden" class="room-checkout-time" value="<?php echo htmlspecialchars($edit_co_time, ENT_QUOTES, 'UTF-8'); ?>"
                                 <?php if ($is_first_room_row): ?>id="check_out_time" name="check_out_time"<?php endif; ?>>
                         </div>
-                        <div class="col-6 col-sm-3 col-md-3 col-lg-1">
+                        <div class="col-6 col-sm-3 col-md-3 col-lg-2">
                             <label class="form-label small fw-bold">Guests</label>
                             <input type="number" class="form-control room-guests" name="room_selections[<?php echo $room_index; ?>][guests]" value="<?php echo $grouped_item['guests']; ?>" min="1" data-index="<?php echo $room_index; ?>" required>
                         </div>
-                        <div class="col-6 col-sm-3 col-md-3 col-lg-1">
+                        <div class="col-6 col-sm-3 col-md-3 col-lg-2">
                             <label class="form-label small fw-bold">Qty</label>
                             <input type="number" class="form-control room-quantity" name="room_selections[<?php echo $room_index; ?>][quantity]" value="<?php echo $grouped_item['quantity']; ?>" min="1" data-index="<?php echo $room_index; ?>" required>
                         </div>
-                        <div class="col-6 col-sm-3 col-md-3 col-lg-1">
+                        <div class="col-6 col-sm-3 col-md-3 col-lg-2">
                             <label class="form-label small fw-bold">Price/Night</label>
                             <input type="text" class="form-control room-price-display" readonly value="₱<?php echo number_format($grouped_item['price_per_night'], 2); ?>" style="font-size: 0.85rem;">
                         </div>
@@ -232,7 +232,7 @@
                 ?>
                 <div class="room-row mb-3 p-3 border rounded shadow-sm bg-white" data-room-index="0">
                     <div class="row g-3 align-items-end">
-                        <div class="col-12 col-lg-2">
+                        <div class="col-12 col-lg-4">
                             <label class="form-label small fw-bold">Select Room *</label>
                             <select class="form-select room-select" name="room_selections[0][room_id]" data-index="0" required>
                                 <option value="">-- Choose a room --</option>
@@ -243,7 +243,7 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-12 col-md-6 col-lg-3">
+                        <div class="col-12 col-md-6 col-lg-4">
                             <label class="form-label small fw-bold">Check-In *</label>
                             <input type="datetime-local" class="form-control room-checkin-dt" required
                                 value="<?php echo htmlspecialchars($booking->check_in . 'T' . $edit_ci_time, ENT_QUOTES, 'UTF-8'); ?>"
@@ -251,7 +251,7 @@
                             <input type="hidden" class="room-checkin" name="room_selections[0][check_in]" value="<?php echo htmlspecialchars($booking->check_in, ENT_QUOTES, 'UTF-8'); ?>" data-index="0">
                             <input type="hidden" class="room-checkin-time" id="check_in_time" name="check_in_time" value="<?php echo htmlspecialchars($edit_ci_time, ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
-                        <div class="col-12 col-md-6 col-lg-3">
+                        <div class="col-12 col-md-6 col-lg-4">
                             <label class="form-label small fw-bold">Check-Out *</label>
                             <input type="datetime-local" class="form-control room-checkout-dt" required
                                 value="<?php echo htmlspecialchars($booking->check_out . 'T' . $edit_co_time, ENT_QUOTES, 'UTF-8'); ?>"
@@ -259,15 +259,15 @@
                             <input type="hidden" class="room-checkout" name="room_selections[0][check_out]" value="<?php echo htmlspecialchars($booking->check_out, ENT_QUOTES, 'UTF-8'); ?>" data-index="0">
                             <input type="hidden" class="room-checkout-time" id="check_out_time" name="check_out_time" value="<?php echo htmlspecialchars($edit_co_time, ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
-                        <div class="col-6 col-sm-3 col-md-3 col-lg-1">
+                        <div class="col-6 col-sm-3 col-md-3 col-lg-2">
                             <label class="form-label small fw-bold">Guests</label>
                             <input type="number" class="form-control room-guests" name="room_selections[0][guests]" value="<?php echo $booking->guests; ?>" min="1" data-index="0" required>
                         </div>
-                        <div class="col-6 col-sm-3 col-md-3 col-lg-1">
+                        <div class="col-6 col-sm-3 col-md-3 col-lg-2">
                             <label class="form-label small fw-bold">Qty</label>
                             <input type="number" class="form-control room-quantity" name="room_selections[0][quantity]" value="<?php echo isset($booking->rooms) ? $booking->rooms : 1; ?>" min="1" data-index="0" required>
                         </div>
-                        <div class="col-6 col-sm-3 col-md-3 col-lg-1">
+                        <div class="col-6 col-sm-3 col-md-3 col-lg-2">
                             <label class="form-label small fw-bold">Price/Night</label>
                             <input type="text" class="form-control room-price-display" readonly value="₱0.00" style="font-size: 0.85rem;">
                         </div>
@@ -292,27 +292,27 @@
         <div class="card-body bg-light">
             <h6 class="card-title mb-3"><i class="bi bi-calculator text-primary"></i> Booking Summary</h6>
             <div class="row g-3">
-                <div class="col-6 col-md-2">
+                <div class="col-6 col-md-4 col-xl-2">
                     <label class="form-label small fw-bold">Total Rooms</label>
                     <div class="form-control bg-white" id="total-rooms-display">0</div>
                 </div>
-                <div class="col-6 col-md-2">
+                <div class="col-6 col-md-4 col-xl-2">
                     <label class="form-label small fw-bold">Total Guests</label>
                     <div class="form-control bg-white" id="total-guests-display">0</div>
                 </div>
-                <div class="col-6 col-md-2">
+                <div class="col-6 col-md-4 col-xl-2">
                     <label class="form-label small fw-bold">Earliest Check-In</label>
                     <div class="form-control bg-white" id="earliest-checkin-display">-</div>
                 </div>
-                <div class="col-6 col-md-2">
+                <div class="col-6 col-md-4 col-xl-2">
                     <label class="form-label small fw-bold">Latest Check-Out</label>
                     <div class="form-control bg-white" id="latest-checkout-display">-</div>
                 </div>
-                <div class="col-6 col-md-2">
+                <div class="col-6 col-md-4 col-xl-2">
                     <label class="form-label small fw-bold">Rooms Subtotal</label>
                     <div class="form-control bg-white" id="rooms-subtotal-display">₱0.00</div>
                 </div>
-                <div class="col-6 col-md-2">
+                <div class="col-6 col-md-4 col-xl-2">
                     <label class="form-label small fw-bold">Total Amount</label>
                     <div class="form-control bg-white fw-bold text-success fs-5" id="total-amount-display">₱<?php echo isset($booking->total_amount) ? number_format($booking->total_amount, 2) : '0.00'; ?></div>
                 </div>
@@ -426,7 +426,7 @@
                             </td>
                             <td data-label="Action" class="text-center">
                                 <button type="button" class="btn btn-sm btn-outline-danger remove-guest-row-btn" title="Remove">
-                                    <i class="bi bi-trash"></i> <span class="d-md-none ms-1">Remove Guest</span>
+                                    <i class="bi bi-trash"></i> <span class="d-xl-none ms-1">Remove Guest</span>
                                 </button>
                             </td>
                         </tr>
@@ -508,7 +508,7 @@ body.dark-mode .card-title {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-@media (max-width: 767.98px) {
+@media (max-width: 1199.98px) {
     #guest-names-table,
     #guest-names-table thead,
     #guest-names-table tbody,
@@ -521,6 +521,8 @@ body.dark-mode .card-title {
     }
     #guest-names-table {
         border: none !important;
+        min-width: 0 !important;
+        width: 100%;
     }
     #guest-names-table tbody {
         display: flex;
@@ -587,6 +589,26 @@ body.dark-mode .card-title {
     }
     #guest-names-table tr.guest-name-row > td[data-label="Action"]::before {
         display: none;
+    }
+}
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    #guest-names-table tr.guest-name-row > td[data-label="Full Name"],
+    #guest-names-table tr.guest-name-row > td[data-label="Contact No."] {
+        flex: 1 1 calc(50% - 0.25rem);
+        width: calc(50% - 0.25rem) !important;
+    }
+    #guest-names-table tr.guest-name-row > td[data-label="Age"],
+    #guest-names-table tr.guest-name-row > td[data-label="Gender"] {
+        flex: 1 1 calc(25% - 0.375rem);
+        width: calc(25% - 0.375rem) !important;
+    }
+    #guest-names-table tr.guest-name-row > td[data-label="Date of Birth"] {
+        flex: 1 1 calc(50% - 0.25rem);
+        width: calc(50% - 0.25rem) !important;
+    }
+    #guest-names-table tr.guest-name-row > td[data-label="Action"] .remove-guest-row-btn {
+        width: auto;
+        padding: 0.4rem 1rem;
     }
 }
 body.dark-mode #guest-names-table tr.guest-name-row {
@@ -757,7 +779,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </td>
             <td data-label="Action" class="text-center">
                 <button type="button" class="btn btn-sm btn-outline-danger remove-guest-row-btn" title="Remove">
-                    <i class="bi bi-trash"></i> <span class="d-md-none ms-1">Remove Guest</span>
+                    <i class="bi bi-trash"></i> <span class="d-xl-none ms-1">Remove Guest</span>
                 </button>
             </td>
         `;
@@ -831,7 +853,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         newRow.innerHTML = `
             <div class="row g-3 align-items-end">
-                <div class="col-12 col-lg-2">
+                <div class="col-12 col-lg-4">
                     <label class="form-label small fw-bold">Select Room *</label>
                     <select class="form-select room-select" name="room_selections[${roomIndex}][room_id]" data-index="${roomIndex}" required>
                         <option value="">-- Choose a room --</option>
@@ -842,27 +864,27 @@ document.addEventListener('DOMContentLoaded', function() {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-12 col-md-6 col-lg-3">
+                <div class="col-12 col-md-6 col-lg-4">
                     <label class="form-label small fw-bold">Check-In *</label>
                     <input type="datetime-local" class="form-control room-checkin-dt" value="${toDatetimeLocal(firstCheckIn, firstCheckInTime)}" required title="Check-in date and time">
                     <input type="hidden" class="room-checkin" name="room_selections[${roomIndex}][check_in]" value="${firstCheckIn}" data-index="${roomIndex}">
                     <input type="hidden" class="room-checkin-time" value="${firstCheckInTime}">
                 </div>
-                <div class="col-12 col-md-6 col-lg-3">
+                <div class="col-12 col-md-6 col-lg-4">
                     <label class="form-label small fw-bold">Check-Out *</label>
                     <input type="datetime-local" class="form-control room-checkout-dt" value="${toDatetimeLocal(tomorrow, firstCheckOutTime)}" required title="Check-out date and time">
                     <input type="hidden" class="room-checkout" name="room_selections[${roomIndex}][check_out]" value="${tomorrow}" data-index="${roomIndex}">
                     <input type="hidden" class="room-checkout-time" value="${firstCheckOutTime}">
                 </div>
-                <div class="col-6 col-sm-3 col-md-3 col-lg-1">
+                <div class="col-6 col-sm-3 col-md-3 col-lg-2">
                     <label class="form-label small fw-bold">Guests</label>
                     <input type="number" class="form-control room-guests" name="room_selections[${roomIndex}][guests]" value="1" min="1" data-index="${roomIndex}" required>
                 </div>
-                <div class="col-6 col-sm-3 col-md-3 col-lg-1">
+                <div class="col-6 col-sm-3 col-md-3 col-lg-2">
                     <label class="form-label small fw-bold">Qty</label>
                     <input type="number" class="form-control room-quantity" name="room_selections[${roomIndex}][quantity]" value="1" min="1" data-index="${roomIndex}" required>
                 </div>
-                <div class="col-6 col-sm-3 col-md-3 col-lg-1">
+                <div class="col-6 col-sm-3 col-md-3 col-lg-2">
                     <label class="form-label small fw-bold">Price/Night</label>
                     <input type="text" class="form-control room-price-display" readonly value="₱0.00" style="font-size: 0.85rem;">
                 </div>
@@ -1193,6 +1215,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (guestZipcodeInput) guestZipcodeInput.value = '';
             }
         });
+
+        if (window.initCustomerSelect2) {
+            window.initCustomerSelect2(customerSelect);
+        }
     }
     
     // Initial calculation - wait a bit for DOM to be fully ready

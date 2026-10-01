@@ -194,6 +194,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 guestPhoneInput.value = '';
             }
         });
+
+        if (window.initCustomerSelect2) {
+            window.initCustomerSelect2(customerSelect);
+        }
     }
 });
 </script>

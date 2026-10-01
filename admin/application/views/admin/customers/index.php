@@ -43,45 +43,44 @@
         <?php endif; ?>
     </div>
     
-    <div class="table-responsive">
-        <table class="table table-hover">
+    <?php
+    $customer_address = function ($customer) {
+        $address_parts = array_filter(array($customer->address, $customer->city, $customer->province));
+        return !empty($address_parts) ? implode(', ', $address_parts) : '';
+    };
+    ?>
+    <div class="mob-desktop-table mob-desktop-table--xl">
+    <div class="table-responsive dt-fit-wrap">
+        <table class="table table-hover dt-fit-width" id="customersTable" style="width:100%">
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Address</th>
+                    <th class="col-name">Customer</th>
+                    <th class="col-name">Address</th>
                     <th>Status</th>
-                    <th>Actions</th>
+                    <th class="col-actions" data-orderable="false">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (!empty($customers)): ?>
                     <?php foreach ($customers as $customer): ?>
+                        <?php $address = $customer_address($customer); ?>
                         <tr>
-                            <td><?php echo $customer->id; ?></td>
-                            <td>
-                                <strong><?php echo htmlspecialchars($customer->first_name . ' ' . $customer->last_name); ?></strong>
+                            <td class="text-muted"><?php echo (int) $customer->id; ?></td>
+                            <td class="col-name">
+                                <div class="dt-cell-title"><?php echo htmlspecialchars($customer->first_name . ' ' . $customer->last_name); ?></div>
+                                <div class="dt-cell-sub text-muted" title="<?php echo htmlspecialchars($customer->email); ?>"><?php echo htmlspecialchars($customer->email); ?></div>
+                                <?php if ($customer->phone): ?>
+                                <div class="dt-cell-sub text-muted"><?php echo htmlspecialchars($customer->phone); ?></div>
+                                <?php endif; ?>
                             </td>
-                            <td><?php echo htmlspecialchars($customer->email); ?></td>
-                            <td><?php echo htmlspecialchars($customer->phone ? $customer->phone : '-'); ?></td>
-                            <td>
-                                <?php 
-                                $address_parts = array_filter([
-                                    $customer->address,
-                                    $customer->city,
-                                    $customer->province
-                                ]);
-                                echo htmlspecialchars(!empty($address_parts) ? implode(', ', $address_parts) : '-');
-                                ?>
-                            </td>
+                            <td class="col-name"><?php echo htmlspecialchars($address !== '' ? $address : '-'); ?></td>
                             <td>
                                 <span class="badge bg-<?php echo $customer->status == 'active' ? 'success' : 'secondary'; ?>">
                                     <?php echo ucfirst($customer->status); ?>
                                 </span>
                             </td>
-                            <td>
+                            <td class="col-actions">
                                 <?php if (isset($can_edit) && $can_edit): ?>
                                 <a href="<?php echo base_url('customers/view/' . $customer->id); ?>" class="btn btn-sm btn-info" title="View">
                                     <i class="bi bi-eye"></i>
@@ -104,11 +103,64 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="7" class="text-center text-muted">No customers/guests found</td>
+                        <td colspan="5" class="text-center text-muted">No customers/guests found</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
         </table>
+    </div>
+    </div>
+
+    <div class="mob-card-list mob-card-list--xl d-xl-none">
+        <?php if (!empty($customers)): ?>
+            <?php foreach ($customers as $customer): ?>
+                <?php
+                $address = $customer_address($customer);
+                $full_name = trim($customer->first_name . ' ' . $customer->last_name);
+                ?>
+                <div class="mob-list-card">
+                    <div class="mob-list-card-header">
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <div class="mob-list-card-title"><?php echo htmlspecialchars($full_name); ?></div>
+                            <div class="mob-list-card-meta">#<?php echo (int) $customer->id; ?></div>
+                        </div>
+                        <span class="badge bg-<?php echo $customer->status == 'active' ? 'success' : 'secondary'; ?> flex-shrink-0">
+                            <?php echo ucfirst($customer->status); ?>
+                        </span>
+                    </div>
+                    <div class="mob-list-card-body">
+                        <div class="mob-list-card-meta text-truncate" title="<?php echo htmlspecialchars($customer->email); ?>"><i class="bi bi-envelope"></i> <?php echo htmlspecialchars($customer->email); ?></div>
+                        <div class="mob-list-card-meta"><i class="bi bi-telephone"></i> <?php echo htmlspecialchars($customer->phone ? $customer->phone : '-'); ?></div>
+                        <?php if ($address !== ''): ?>
+                        <div class="mob-list-card-meta"><i class="bi bi-geo-alt"></i> <?php echo htmlspecialchars($address); ?></div>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ((isset($can_edit) && $can_edit) || (isset($can_delete) && $can_delete)): ?>
+                    <div class="mob-list-card-actions">
+                        <?php if (isset($can_edit) && $can_edit): ?>
+                        <a href="<?php echo base_url('customers/view/' . $customer->id); ?>" class="btn btn-sm btn-info" title="View">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                        <a href="<?php echo base_url('customers/edit/' . $customer->id); ?>" class="btn btn-sm btn-warning" title="Edit">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <?php endif; ?>
+                        <?php if (isset($can_delete) && $can_delete): ?>
+                        <a href="<?php echo base_url('customers/delete/' . $customer->id); ?>"
+                           class="btn btn-sm btn-danger delete-customer-btn"
+                           data-name="<?php echo htmlspecialchars($full_name, ENT_QUOTES, 'UTF-8'); ?>"
+                           data-email="<?php echo htmlspecialchars($customer->email, ENT_QUOTES, 'UTF-8'); ?>"
+                           title="Delete">
+                            <i class="bi bi-trash"></i> Delete
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="mob-list-card mob-list-card-empty text-center text-muted py-4">No customers/guests found</div>
+        <?php endif; ?>
     </div>
 </div>
 

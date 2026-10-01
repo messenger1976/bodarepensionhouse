@@ -100,41 +100,81 @@
     <div class="card card-bordered">
         <div class="card-inner">
             <h6 class="title mb-3">Events in Period</h6>
-            <div class="table-responsive">
-                <table class="table table-hover">
+            <div class="mob-desktop-table mob-desktop-table--xl">
+            <div class="table-responsive dt-fit-wrap">
+                <table class="table table-hover dt-fit-width" id="eventsReportTable" style="width:100%">
                     <thead>
                         <tr>
                             <th>Event #</th>
-                            <th>Name</th>
-                            <th>Type</th>
+                            <th class="col-name">Event</th>
                             <th>Date</th>
-                            <th>Organizer</th>
+                            <th class="col-name">Organizer</th>
                             <th>Guests</th>
-                            <th>Amount</th>
                             <th>Status</th>
-                            <th>Booking</th>
-                            <th></th>
+                            <th class="col-amount">Amount</th>
+                            <th class="col-actions no-print" data-orderable="false"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($events)): foreach ($events as $ev): ?>
+                        <?php $event_ts = strtotime($ev->event_date); ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($ev->event_number ?: ('EV' . str_pad($ev->id, 8, '0', STR_PAD_LEFT))); ?></td>
-                            <td><strong><?php echo htmlspecialchars($ev->event_name); ?></strong></td>
-                            <td><?php echo ucfirst($ev->event_type); ?></td>
-                            <td><?php echo date('M d, Y', strtotime($ev->event_date)); ?></td>
-                            <td><?php echo htmlspecialchars($ev->organizer_name); ?></td>
-                            <td><?php echo (int) $ev->expected_guests; ?></td>
-                            <td>₱<?php echo number_format($ev->total_amount, 2); ?></td>
+                            <td class="fw-semibold"><?php echo htmlspecialchars($ev->event_number ?: ('EV' . str_pad($ev->id, 8, '0', STR_PAD_LEFT))); ?></td>
+                            <td class="col-name">
+                                <div class="dt-cell-title"><?php echo htmlspecialchars($ev->event_name); ?></div>
+                                <div class="dt-cell-sub text-muted"><?php echo htmlspecialchars(ucfirst($ev->event_type)); ?></div>
+                            </td>
+                            <td data-order="<?php echo date('Y-m-d', $event_ts); ?>"><?php echo date('M d, Y', $event_ts); ?></td>
+                            <td class="col-name">
+                                <div><?php echo htmlspecialchars($ev->organizer_name); ?></div>
+                                <?php if ($ev->booking_number): ?>
+                                <div class="dt-cell-sub text-muted">Booking <?php echo htmlspecialchars($ev->booking_number); ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td data-order="<?php echo (int) $ev->expected_guests; ?>"><?php echo (int) $ev->expected_guests; ?></td>
                             <td><span class="badge bg-secondary"><?php echo ucfirst($ev->status); ?></span></td>
-                            <td><?php echo htmlspecialchars($ev->booking_number ?: '—'); ?></td>
-                            <td><a href="<?php echo base_url('events/view/' . $ev->id); ?>" class="btn btn-sm btn-outline-primary">View</a></td>
+                            <td class="col-amount fw-semibold" data-order="<?php echo (float) $ev->total_amount; ?>">₱<?php echo number_format($ev->total_amount, 2); ?></td>
+                            <td class="col-actions no-print"><a href="<?php echo base_url('events/view/' . $ev->id); ?>" class="btn btn-sm btn-outline-primary" title="View event"><i class="bi bi-eye"></i></a></td>
                         </tr>
                         <?php endforeach; else: ?>
-                        <tr><td colspan="10" class="text-center text-muted">No events in this period</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted">No events in this period</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
+            </div>
+            </div>
+
+            <div class="mob-card-list mob-card-list--xl d-xl-none">
+                <?php if (!empty($events)): foreach ($events as $ev): ?>
+                <div class="mob-list-card">
+                    <div class="mob-list-card-header">
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <div class="mob-list-card-title"><?php echo htmlspecialchars($ev->event_name); ?></div>
+                            <div class="mob-list-card-meta text-truncate">
+                                <?php echo htmlspecialchars($ev->event_number ?: ('EV' . str_pad($ev->id, 8, '0', STR_PAD_LEFT))); ?>
+                                &middot; <?php echo htmlspecialchars(ucfirst($ev->event_type)); ?>
+                            </div>
+                        </div>
+                        <span class="badge bg-secondary flex-shrink-0"><?php echo ucfirst($ev->status); ?></span>
+                    </div>
+                    <div class="mob-list-card-body">
+                        <div class="mob-list-card-meta"><i class="bi bi-calendar3"></i> <?php echo date('M d, Y', strtotime($ev->event_date)); ?></div>
+                        <div class="mob-list-card-meta text-truncate"><i class="bi bi-person"></i> <?php echo htmlspecialchars($ev->organizer_name); ?></div>
+                        <div class="mob-list-card-meta">
+                            <i class="bi bi-people"></i> <?php echo (int) $ev->expected_guests; ?> expected guest<?php echo (int) $ev->expected_guests === 1 ? '' : 's'; ?>
+                            <?php if ($ev->booking_number): ?>&middot; Booking <?php echo htmlspecialchars($ev->booking_number); ?><?php endif; ?>
+                        </div>
+                        <div class="mob-list-card-meta mt-2">
+                            <span class="fw-semibold fs-6 text-body">₱<?php echo number_format($ev->total_amount, 2); ?></span>
+                        </div>
+                    </div>
+                    <div class="mob-list-card-actions">
+                        <a href="<?php echo base_url('events/view/' . $ev->id); ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> View</a>
+                    </div>
+                </div>
+                <?php endforeach; else: ?>
+                <div class="mob-list-card mob-list-card-empty text-center text-muted py-4">No events in this period</div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -143,6 +183,11 @@
 <style>
 @media print {
     .no-print, .nk-sidebar, .nk-header, .nk-block-tools { display: none !important; }
+
+    /* Always print the table, never the on-screen card list */
+    .mob-desktop-table.mob-desktop-table--xl { display: block !important; }
+    .mob-card-list.mob-card-list--xl { display: none !important; }
+    table.dt-fit-width .dt-cell-sub { max-width: none !important; white-space: normal !important; overflow: visible !important; }
 }
 .card-inner .amount { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
 .card-inner .title { color: #64748b; font-size: 0.85rem; margin-bottom: 0.35rem; }

@@ -49,38 +49,42 @@
         </div>
     <?php endif; ?>
     
-    <div class="card card-bordered">
+    <div class="card card-bordered mob-desktop-table mob-desktop-table--xl">
         <div class="card-inner">
-            <div class="table-responsive">
-        <table class="table table-hover">
+            <div class="table-responsive dt-fit-wrap">
+        <table class="table table-hover dt-fit-width" id="roomsTable" style="width:100%">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Room Name</th>
+                    <th class="col-id">ID</th>
+                    <th class="col-name">Room</th>
                     <th>Type</th>
-                    <th>Room Code</th>
-                    <th>Price</th>
+                    <th class="col-amount">Price</th>
                     <th>Capacity</th>
                     <th>Status</th>
-                    <th>Actions</th>
+                    <th class="col-actions" data-orderable="false">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (!empty($rooms)): ?>
                     <?php foreach ($rooms as $room): ?>
+                        <?php $room_code = !empty($room->room_code) ? $room->room_code : null; ?>
                         <tr>
-                            <td><?php echo $room->id; ?></td>
-                            <td><?php echo htmlspecialchars($room->room_name); ?></td>
+                            <td class="col-id text-muted"><?php echo (int) $room->id; ?></td>
+                            <td class="col-name">
+                                <div class="dt-cell-title"><?php echo htmlspecialchars($room->room_name); ?></div>
+                                <?php if ($room_code): ?>
+                                <div class="dt-cell-sub"><code><?php echo htmlspecialchars($room_code); ?></code></div>
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo htmlspecialchars($room->room_type); ?></td>
-                            <td><code><?php echo htmlspecialchars(isset($room->room_code) ? $room->room_code : '-'); ?></code></td>
-                            <td>₱<?php echo number_format($room->price, 2); ?></td>
-                            <td><?php echo $room->capacity; ?> person(s)</td>
+                            <td class="col-amount fw-semibold" data-order="<?php echo (float) $room->price; ?>">₱<?php echo number_format($room->price, 2); ?></td>
+                            <td data-order="<?php echo (int) $room->capacity; ?>"><i class="bi bi-people text-muted"></i> <?php echo (int) $room->capacity; ?> person(s)</td>
                             <td>
                                 <span class="badge bg-<?php echo $room->status == 'active' ? 'success' : 'secondary'; ?>">
                                     <?php echo ucfirst($room->status); ?>
                                 </span>
                             </td>
-                            <td>
+                            <td class="col-actions">
                                 <?php if (isset($can_edit) && $can_edit): ?>
                                 <a href="<?php echo base_url('rooms/edit/' . $room->id); ?>" class="btn btn-sm btn-warning" title="Edit">
                                     <i class="bi bi-pencil"></i>
@@ -101,13 +105,67 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="8" class="text-center text-muted">No rooms found</td>
+                        <td colspan="7" class="text-center text-muted">No rooms found</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
         </table>
             </div>
         </div>
+    </div>
+
+    <div class="mob-card-list mob-card-list--xl d-xl-none">
+        <?php if (!empty($rooms)): ?>
+            <?php foreach ($rooms as $room): ?>
+                <?php $room_code = !empty($room->room_code) ? $room->room_code : null; ?>
+                <div class="mob-list-card">
+                    <div class="mob-list-card-header">
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <div class="mob-list-card-title"><?php echo htmlspecialchars($room->room_name); ?></div>
+                            <div class="mob-list-card-meta text-truncate">
+                                #<?php echo (int) $room->id; ?>
+                                <?php if ($room_code): ?>&middot; <code><?php echo htmlspecialchars($room_code); ?></code><?php endif; ?>
+                            </div>
+                        </div>
+                        <span class="badge bg-<?php echo $room->status == 'active' ? 'success' : 'secondary'; ?> flex-shrink-0">
+                            <?php echo ucfirst($room->status); ?>
+                        </span>
+                    </div>
+                    <div class="mob-list-card-body">
+                        <div class="mob-list-card-meta">
+                            <i class="bi bi-tag"></i> <?php echo htmlspecialchars($room->room_type); ?>
+                        </div>
+                        <div class="mob-list-card-meta">
+                            <i class="bi bi-people"></i> <?php echo (int) $room->capacity; ?> person(s)
+                        </div>
+                        <div class="mob-list-card-meta mt-2">
+                            <span class="fw-semibold fs-6 text-body">&#8369;<?php echo number_format($room->price, 2); ?></span>
+                        </div>
+                    </div>
+                    <?php if ((isset($can_edit) && $can_edit) || (isset($can_delete) && $can_delete) || (isset($can_add) && $can_add)): ?>
+                    <div class="mob-list-card-actions">
+                        <?php if (isset($can_edit) && $can_edit): ?>
+                        <a href="<?php echo base_url('rooms/edit/' . $room->id); ?>" class="btn btn-sm btn-warning" title="Edit">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <?php endif; ?>
+                        <?php if (isset($can_add) && $can_add): ?>
+                        <a href="<?php echo base_url('rooms/duplicate/' . $room->id); ?>" class="btn btn-sm btn-info" onclick="return confirm('Duplicate this room?');" title="Duplicate">
+                            <i class="bi bi-copy"></i> Duplicate
+                        </a>
+                        <?php endif; ?>
+                        <?php if (isset($can_delete) && $can_delete): ?>
+                        <a href="<?php echo base_url('rooms/delete/' . $room->id); ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this room?');" title="Delete">
+                            <i class="bi bi-trash"></i> Delete
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="mob-list-card mob-list-card-empty text-center text-muted py-4">No rooms found</div>
+        <?php endif; ?>
     </div>
 </div>
 

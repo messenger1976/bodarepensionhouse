@@ -109,43 +109,99 @@
     <div class="card card-bordered">
         <div class="card-inner">
             <h6 class="title mb-3">Payment Transactions</h6>
-            <div class="table-responsive">
-                <table class="table table-hover">
+            <?php
+            $pay_badge = function ($status) {
+                if ($status === 'paid') return 'success';
+                if ($status === 'failed') return 'danger';
+                return 'warning';
+            };
+            $pay_ts = function ($p) {
+                return strtotime($p->payment_date ? $p->payment_date : $p->created_at);
+            };
+            $pay_reference = function ($p) {
+                return $p->reference_number ?: ($p->transaction_id ?: '');
+            };
+            ?>
+            <div class="mob-desktop-table mob-desktop-table--xl">
+            <div class="table-responsive dt-fit-wrap">
+                <table class="table table-hover dt-fit-width" id="paymentsReportTable" style="width:100%">
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Guest</th>
-                            <th>Booking</th>
-                            <th>Invoice</th>
+                            <th class="col-name">Guest</th>
                             <th>Method</th>
                             <th>Status</th>
-                            <th>Reference</th>
-                            <th class="text-end">Amount</th>
-                            <th></th>
+                            <th class="col-amount">Amount</th>
+                            <th class="col-actions no-print" data-orderable="false"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($payments)): foreach ($payments as $p): ?>
+                        <?php $ts = $pay_ts($p); $ref = $pay_reference($p); ?>
                         <tr>
-                            <td><?php echo $p->payment_date ? date('M d, Y h:i A', strtotime($p->payment_date)) : date('M d, Y', strtotime($p->created_at)); ?></td>
-                            <td><?php echo htmlspecialchars($p->guest_name ?: '—'); ?></td>
-                            <td><?php echo htmlspecialchars($p->booking_number ?: '—'); ?></td>
-                            <td><?php echo htmlspecialchars($p->invoice_number ?: '—'); ?></td>
-                            <td><?php echo ucfirst(str_replace('_', ' ', $p->payment_method)); ?></td>
-                            <td>
-                                <span class="badge bg-<?php echo $p->payment_status === 'paid' ? 'success' : ($p->payment_status === 'failed' ? 'danger' : 'warning'); ?>">
-                                    <?php echo ucfirst($p->payment_status); ?>
-                                </span>
+                            <td data-order="<?php echo date('Y-m-d H:i:s', $ts); ?>">
+                                <div><?php echo date('M d, Y', $ts); ?></div>
+                                <?php if ($p->payment_date): ?>
+                                <div class="dt-cell-sub text-muted"><?php echo date('h:i A', $ts); ?></div>
+                                <?php endif; ?>
                             </td>
-                            <td><?php echo htmlspecialchars($p->reference_number ?: ($p->transaction_id ?: '—')); ?></td>
-                            <td class="text-end"><strong>₱<?php echo number_format($p->amount, 2); ?></strong></td>
-                            <td><a href="<?php echo base_url('payments/view/' . $p->id); ?>" class="btn btn-sm btn-outline-primary">View</a></td>
+                            <td class="col-name">
+                                <div class="dt-cell-title"><?php echo htmlspecialchars($p->guest_name ?: '—'); ?></div>
+                                <div class="dt-cell-sub text-muted">
+                                    Booking <?php echo htmlspecialchars($p->booking_number ?: '—'); ?>
+                                    &middot; Invoice <?php echo htmlspecialchars($p->invoice_number ?: '—'); ?>
+                                </div>
+                            </td>
+                            <td>
+                                <div><?php echo ucfirst(str_replace('_', ' ', $p->payment_method)); ?></div>
+                                <?php if ($ref !== ''): ?>
+                                <div class="dt-cell-sub text-muted" title="<?php echo htmlspecialchars($ref); ?>">Ref: <?php echo htmlspecialchars($ref); ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td><span class="badge bg-<?php echo $pay_badge($p->payment_status); ?>"><?php echo ucfirst($p->payment_status); ?></span></td>
+                            <td class="col-amount fw-semibold" data-order="<?php echo (float) $p->amount; ?>">₱<?php echo number_format($p->amount, 2); ?></td>
+                            <td class="col-actions no-print"><a href="<?php echo base_url('payments/view/' . $p->id); ?>" class="btn btn-sm btn-outline-primary" title="View payment"><i class="bi bi-eye"></i></a></td>
                         </tr>
                         <?php endforeach; else: ?>
-                        <tr><td colspan="9" class="text-center text-muted">No payments found for this period</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted">No payments found for this period</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
+            </div>
+            </div>
+
+            <div class="mob-card-list mob-card-list--xl d-xl-none">
+                <?php if (!empty($payments)): foreach ($payments as $p): ?>
+                <?php $ts = $pay_ts($p); $ref = $pay_reference($p); ?>
+                <div class="mob-list-card">
+                    <div class="mob-list-card-header">
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <div class="mob-list-card-title"><?php echo htmlspecialchars($p->guest_name ?: '—'); ?></div>
+                            <div class="mob-list-card-meta"><?php echo $p->payment_date ? date('M d, Y h:i A', $ts) : date('M d, Y', $ts); ?></div>
+                        </div>
+                        <span class="badge bg-<?php echo $pay_badge($p->payment_status); ?> flex-shrink-0"><?php echo ucfirst($p->payment_status); ?></span>
+                    </div>
+                    <div class="mob-list-card-body">
+                        <div class="mob-list-card-meta"><i class="bi bi-credit-card"></i> <?php echo ucfirst(str_replace('_', ' ', $p->payment_method)); ?></div>
+                        <div class="mob-list-card-meta text-truncate">
+                            <i class="bi bi-link-45deg"></i>
+                            Booking <?php echo htmlspecialchars($p->booking_number ?: '—'); ?>
+                            &middot; Invoice <?php echo htmlspecialchars($p->invoice_number ?: '—'); ?>
+                        </div>
+                        <?php if ($ref !== ''): ?>
+                        <div class="mob-list-card-meta"><i class="bi bi-hash"></i> <span class="dt-break"><?php echo htmlspecialchars($ref); ?></span></div>
+                        <?php endif; ?>
+                        <div class="mob-list-card-meta mt-2">
+                            <span class="fw-semibold fs-6 text-body">₱<?php echo number_format($p->amount, 2); ?></span>
+                        </div>
+                    </div>
+                    <div class="mob-list-card-actions">
+                        <a href="<?php echo base_url('payments/view/' . $p->id); ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> View</a>
+                    </div>
+                </div>
+                <?php endforeach; else: ?>
+                <div class="mob-list-card mob-list-card-empty text-center text-muted py-4">No payments found for this period</div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -154,6 +210,11 @@
 <style>
 @media print {
     .no-print, .nk-sidebar, .nk-header, .nk-block-tools { display: none !important; }
+
+    /* Always print the table, never the on-screen card list */
+    .mob-desktop-table.mob-desktop-table--xl { display: block !important; }
+    .mob-card-list.mob-card-list--xl { display: none !important; }
+    table.dt-fit-width .dt-cell-sub { max-width: none !important; white-space: normal !important; overflow: visible !important; }
 }
 .card-inner .amount { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
 .card-inner .title { color: #64748b; font-size: 0.85rem; margin-bottom: 0.35rem; }

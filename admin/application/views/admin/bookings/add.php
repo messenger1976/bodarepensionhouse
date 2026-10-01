@@ -924,6 +924,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (guestZipcodeInput) guestZipcodeInput.value = '';
             }
         });
+
+        if (window.initCustomerSelect2) {
+            window.initCustomerSelect2(customerSelect);
+        }
     }
     
     // Initial calculation
