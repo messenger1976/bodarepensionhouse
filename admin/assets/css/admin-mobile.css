@@ -888,7 +888,7 @@
     /* Bookings (and other dt-fit-width tables): fit all columns to page width */
     .bookings-table-wrap,
     .mob-desktop-table .table-responsive.bookings-table-wrap {
-        overflow-x: hidden;
+        overflow-x: auto;
         max-width: 100%;
     }
 
@@ -897,57 +897,82 @@
         max-width: 100%;
     }
 
+    /* Auto layout: columns size to their content, so none can collapse to a sliver */
     table.dt-fit-width,
     .dataTables_wrapper table.dt-fit-width {
         width: 100% !important;
         max-width: 100%;
-        table-layout: fixed;
+        table-layout: auto;
     }
 
     table.dt-fit-width thead th,
     table.dt-fit-width tbody td {
-        white-space: normal;
-        word-break: break-word;
-        overflow-wrap: anywhere;
+        box-sizing: border-box;
+        white-space: nowrap;
         vertical-align: middle;
-        padding: 0.65rem 0.45rem;
-        font-size: 0.78rem;
+        padding: 0.7rem 0.6rem;
+        font-size: 0.8rem;
         letter-spacing: 0.2px;
     }
 
     table.dt-fit-width thead th {
         text-transform: none;
-        font-size: 0.72rem;
+        font-size: 0.75rem;
         letter-spacing: 0.3px;
         line-height: 1.25;
     }
 
-    /* Compact numeric / badge columns */
-    table.dt-fit-width thead th:nth-child(1),
-    table.dt-fit-width tbody td:nth-child(1) { width: 8%; }
-    table.dt-fit-width thead th:nth-child(2),
-    table.dt-fit-width tbody td:nth-child(2) { width: 12%; }
-    table.dt-fit-width thead th:nth-child(3),
-    table.dt-fit-width tbody td:nth-child(3) { width: 14%; }
-    table.dt-fit-width thead th:nth-child(4),
-    table.dt-fit-width tbody td:nth-child(4),
-    table.dt-fit-width thead th:nth-child(5),
-    table.dt-fit-width tbody td:nth-child(5) { width: 10%; }
-    table.dt-fit-width thead th:nth-child(6),
-    table.dt-fit-width tbody td:nth-child(6),
-    table.dt-fit-width thead th:nth-child(7),
-    table.dt-fit-width tbody td:nth-child(7) { width: 5%; text-align: center; }
-    table.dt-fit-width thead th:nth-child(8),
-    table.dt-fit-width tbody td:nth-child(8),
-    table.dt-fit-width thead th:nth-child(9),
-    table.dt-fit-width tbody td:nth-child(9) { width: 8%; }
-    table.dt-fit-width thead th:nth-child(10),
-    table.dt-fit-width tbody td:nth-child(10) { width: 8%; white-space: nowrap; }
-    table.dt-fit-width thead th:nth-child(11),
-    table.dt-fit-width tbody td:nth-child(11) {
-        width: 7.5rem;
-        white-space: nowrap;
+    table.dt-fit-width .col-select { width: 40px; }
+    table.dt-fit-width .col-guest {
+        white-space: normal;
+        min-width: 160px;
+    }
+    table.dt-fit-width .col-amount { text-align: right; }
+    table.dt-fit-width .col-actions {
+        width: 1%;
         text-align: right;
+    }
+
+    table.dt-fit-width .bk-guest-name {
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    table.dt-fit-width .bk-guest-email {
+        max-width: 220px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    table.dt-fit-width .bk-stay-line {
+        line-height: 1.5;
+    }
+
+    table.dt-fit-width .bk-stay-line .bi {
+        font-size: 0.8rem;
+        margin-right: 0.15rem;
+    }
+
+    table.dt-fit-width .bk-stay-nights {
+        font-size: 0.7rem;
+    }
+
+    table.dt-fit-width .bk-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        white-space: nowrap;
+        margin-right: 0.4rem;
+    }
+
+    table.dt-fit-width .bk-count .bi {
+        color: #94a3b8;
+    }
+
+    body.dark-mode table.dt-fit-width .bk-guest-name {
+        color: #e2e8f0;
     }
 
     table.dt-fit-width .btn-sm {
@@ -959,10 +984,101 @@
     }
 
     table.dt-fit-width .badge {
-        white-space: normal;
-        text-align: center;
         line-height: 1.2;
         font-size: 0.7rem;
+    }
+}
+
+/* Tablet / small laptop: bookings table can't fit beside the sidebar, so show cards in a grid */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .mob-desktop-table.mob-desktop-table--xl {
+        display: none !important;
+    }
+
+    .mob-card-list.mob-card-list--xl {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.875rem;
+    }
+
+    .mob-card-list--xl > :not(.mob-list-card),
+    .mob-card-list--xl > .mob-list-card-empty {
+        grid-column: 1 / -1;
+    }
+
+    .mob-card-list--xl .mob-list-card {
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 1rem 1.125rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        min-width: 0;
+    }
+
+    .mob-card-list--xl .mob-list-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.625rem;
+        gap: 0.5rem;
+    }
+
+    .mob-card-list--xl .mob-list-card-title {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.9375rem;
+        word-break: break-word;
+    }
+
+    .mob-card-list--xl .mob-list-card-meta {
+        font-size: 0.8125rem;
+        color: #64748b;
+        margin-bottom: 0.3rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mob-card-list--xl .mob-list-card-meta i {
+        width: 16px;
+        color: #94a3b8;
+    }
+
+    .mob-card-list--xl .mob-list-card-body {
+        flex: 1 1 auto;
+        margin-bottom: 0.75rem;
+    }
+
+    .mob-card-list--xl .mob-list-card-actions {
+        display: flex;
+        gap: 0.5rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .mob-card-list--xl .mob-list-card-actions .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        font-size: 0.8125rem;
+        padding: 0.45rem;
+    }
+
+    body.dark-mode .mob-card-list--xl .mob-list-card {
+        background: #1e293b;
+        border-color: #334155;
+    }
+
+    body.dark-mode .mob-card-list--xl .mob-list-card-title {
+        color: #e2e8f0;
+    }
+
+    body.dark-mode .mob-card-list--xl .mob-list-card-meta {
+        color: #94a3b8;
+    }
+
+    body.dark-mode .mob-card-list--xl .mob-list-card-actions {
+        border-top-color: #334155;
     }
 }
 

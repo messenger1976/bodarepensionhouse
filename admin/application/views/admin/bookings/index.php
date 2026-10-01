@@ -61,61 +61,69 @@
     </div>
 
     <form id="bookings-batch-form" method="post" action="<?php echo base_url('bookings/batch_delete'); ?>">
-    <div class="card card-bordered mob-desktop-table">
+    <div class="card card-bordered mob-desktop-table mob-desktop-table--xl">
         <div class="card-inner">
             <div class="table-responsive bookings-table-wrap">
         <table class="table table-hover dt-fit-width" id="bookingsTable" style="width:100%">
             <thead>
                 <tr>
                     <?php if (isset($can_delete) && $can_delete): ?>
-                    <th style="width: 42px;">
+                    <th class="col-select" data-orderable="false">
                         <input type="checkbox" class="form-check-input" data-bd-select-all="bookings-batch-form" title="Select all">
                     </th>
                     <?php endif; ?>
-                    <th>Booking #</th>
-                    <th>Guest</th>
-                    <th>Email</th>
-                    <th>Check-In</th>
-                    <th>Check-Out</th>
-                    <th>Guests</th>
-                    <th>Rooms</th>
-                    <th>Status</th>
-                    <th>Payment</th>
-                    <th>Amount</th>
-                    <th>Actions</th>
+                    <th class="col-booking">Booking #</th>
+                    <th class="col-guest">Guest</th>
+                    <th class="col-stay">Stay</th>
+                    <th class="col-count">Guests / Rooms</th>
+                    <th class="col-status">Status</th>
+                    <th class="col-payment">Payment</th>
+                    <th class="col-amount">Amount</th>
+                    <th class="col-actions" data-orderable="false">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (!empty($bookings)): ?>
                     <?php foreach ($bookings as $booking): ?>
+                        <?php
+                        $check_in_ts = strtotime($booking->check_in);
+                        $check_out_ts = strtotime($booking->check_out);
+                        $nights = max(1, (int) round(($check_out_ts - $check_in_ts) / 86400));
+                        $room_count = isset($booking->rooms) ? (int) $booking->rooms : 1;
+                        ?>
                         <tr>
                             <?php if (isset($can_delete) && $can_delete): ?>
-                            <td>
+                            <td class="col-select">
                                 <input type="checkbox" class="form-check-input booking-select-checkbox" name="booking_ids[]" value="<?php echo (int) $booking->id; ?>">
                             </td>
                             <?php endif; ?>
-                            <td>#<?php echo isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT); ?></td>
-                            <td><?php echo htmlspecialchars($booking->guest_name); ?></td>
-                            <td><?php echo htmlspecialchars($booking->guest_email); ?></td>
-                            <td>
-                                <?php echo date('M d, Y', strtotime($booking->check_in)); ?>
-                                <?php if (!empty($booking->check_in_time)): ?>
-                                    <span class="text-muted"><?php echo date('g:i A', strtotime($booking->check_in_time)); ?></span>
-                                <?php endif; ?>
+                            <td class="col-booking fw-semibold">#<?php echo isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT); ?></td>
+                            <td class="col-guest">
+                                <div class="bk-guest-name"><?php echo htmlspecialchars($booking->guest_name); ?></div>
+                                <div class="bk-guest-email text-muted" title="<?php echo htmlspecialchars($booking->guest_email); ?>"><?php echo htmlspecialchars($booking->guest_email); ?></div>
                             </td>
-                            <td>
-                                <?php echo date('M d, Y', strtotime($booking->check_out)); ?>
-                                <?php if (!empty($booking->check_out_time)): ?>
-                                    <span class="text-muted"><?php echo date('g:i A', strtotime($booking->check_out_time)); ?></span>
-                                <?php endif; ?>
+                            <td class="col-stay" data-order="<?php echo date('Y-m-d', $check_in_ts) . ' ' . (!empty($booking->check_in_time) ? date('H:i', strtotime($booking->check_in_time)) : '00:00'); ?>">
+                                <div class="bk-stay-line">
+                                    <i class="bi bi-box-arrow-in-right text-success"></i>
+                                    <?php echo date('M d, Y', $check_in_ts); ?>
+                                    <?php if (!empty($booking->check_in_time)): ?>
+                                        <span class="text-muted"><?php echo date('g:i A', strtotime($booking->check_in_time)); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="bk-stay-line">
+                                    <i class="bi bi-box-arrow-right text-danger"></i>
+                                    <?php echo date('M d, Y', $check_out_ts); ?>
+                                    <?php if (!empty($booking->check_out_time)): ?>
+                                        <span class="text-muted"><?php echo date('g:i A', strtotime($booking->check_out_time)); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="bk-stay-nights text-muted"><?php echo $nights; ?> night<?php echo $nights === 1 ? '' : 's'; ?></div>
                             </td>
-                            <td><?php echo $booking->guests; ?></td>
-                            <td>
-                                <span class="badge bg-info">
-                                    <?php echo isset($booking->rooms) ? $booking->rooms : 1; ?>
-                                </span>
+                            <td class="col-count" data-order="<?php echo (int) $booking->guests; ?>">
+                                <span class="bk-count" title="Guests"><i class="bi bi-people"></i> <?php echo (int) $booking->guests; ?></span>
+                                <span class="bk-count" title="Rooms"><i class="bi bi-door-closed"></i> <?php echo $room_count; ?></span>
                             </td>
-                            <td>
+                            <td class="col-status">
                                 <?php
                                 $badge_class = 'secondary';
                                 if ($booking->status == 'confirmed') $badge_class = 'success';
@@ -126,7 +134,7 @@
                                 ?>
                                 <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucwords(str_replace('_', ' ', $booking->status)); ?></span>
                             </td>
-                            <td>
+                            <td class="col-payment">
                                 <?php
                                 $ps = isset($payment_status_map[$booking->id]) ? $payment_status_map[$booking->id] : null;
                                 if ($ps):
@@ -138,8 +146,8 @@
                                     <span class="badge bg-secondary">No Invoice</span>
                                 <?php endif; ?>
                             </td>
-                            <td>₱<?php echo number_format($booking->total_amount, 2); ?></td>
-                            <td>
+                            <td class="col-amount fw-semibold" data-order="<?php echo (float) $booking->total_amount; ?>">₱<?php echo number_format($booking->total_amount, 2); ?></td>
+                            <td class="col-actions">
                                 <a href="<?php echo base_url('bookings/' . $booking->id); ?>" class="btn btn-sm btn-primary" title="View">
                                     <i class="bi bi-eye"></i>
                                 </a>
@@ -158,7 +166,7 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="<?php echo (isset($can_delete) && $can_delete) ? '12' : '11'; ?>" class="text-center text-muted">No bookings found</td>
+                        <td colspan="<?php echo (isset($can_delete) && $can_delete) ? '9' : '8'; ?>" class="text-center text-muted">No bookings found</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -167,7 +175,7 @@
         </div>
     </div>
 
-    <div class="mob-card-list d-lg-none">
+    <div class="mob-card-list mob-card-list--xl d-xl-none">
         <?php if (!empty($bookings) && isset($can_delete) && $can_delete): ?>
         <div class="d-flex align-items-center gap-2 mb-2 px-1">
             <input type="checkbox" class="form-check-input" id="bookings-mobile-select-all" data-bd-select-all="bookings-batch-form" title="Select all">
@@ -186,32 +194,49 @@
                 $booking_num = isset($booking->booking_number) ? $booking->booking_number : str_pad($booking->id, 6, '0', STR_PAD_LEFT);
                 $ps = isset($payment_status_map[$booking->id]) ? $payment_status_map[$booking->id] : null;
                 ?>
+                <?php
+                $check_in_ts = strtotime($booking->check_in);
+                $check_out_ts = strtotime($booking->check_out);
+                $nights = max(1, (int) round(($check_out_ts - $check_in_ts) / 86400));
+                $room_count = isset($booking->rooms) ? (int) $booking->rooms : 1;
+                ?>
                 <div class="mob-list-card">
                     <div class="mob-list-card-header">
                         <?php if (isset($can_delete) && $can_delete): ?>
-                        <input type="checkbox" class="form-check-input booking-select-checkbox me-2" name="booking_ids[]" value="<?php echo (int) $booking->id; ?>" aria-label="Select booking">
+                        <input type="checkbox" class="form-check-input booking-select-checkbox me-2 flex-shrink-0" name="booking_ids[]" value="<?php echo (int) $booking->id; ?>" aria-label="Select booking">
                         <?php endif; ?>
-                        <div>
-                            <div class="mob-list-card-title">#<?php echo $booking_num; ?> &middot; <?php echo htmlspecialchars($booking->guest_name); ?></div>
-                            <div class="mob-list-card-meta"><?php echo htmlspecialchars($booking->guest_email); ?></div>
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <div class="mob-list-card-title"><?php echo htmlspecialchars($booking->guest_name); ?></div>
+                            <div class="mob-list-card-meta text-truncate" title="<?php echo htmlspecialchars($booking->guest_email); ?>">#<?php echo $booking_num; ?> &middot; <?php echo htmlspecialchars($booking->guest_email); ?></div>
                         </div>
-                        <span class="badge bg-<?php echo $badge_class; ?>"><?php echo ucwords(str_replace('_', ' ', $booking->status)); ?></span>
+                        <span class="badge bg-<?php echo $badge_class; ?> flex-shrink-0"><?php echo ucwords(str_replace('_', ' ', $booking->status)); ?></span>
                     </div>
-                    <div class="mob-list-card-meta">
-                        <i class="bi bi-calendar-event"></i>
-                        <?php echo date('M d, Y', strtotime($booking->check_in)); ?>
-                        &ndash;
-                        <?php echo date('M d, Y', strtotime($booking->check_out)); ?>
-                    </div>
-                    <div class="mob-list-card-meta d-flex flex-wrap align-items-center gap-2">
-                        <?php if ($ps): ?>
-                            <span class="badge bg-<?php echo $ps['badge']; ?>" title="Paid: &#8369;<?php echo number_format($ps['amount_paid'], 2); ?> / Balance: &#8369;<?php echo number_format($ps['balance'], 2); ?>">
-                                <?php echo htmlspecialchars($ps['display']); ?>
-                            </span>
-                        <?php else: ?>
-                            <span class="badge bg-secondary">No Invoice</span>
-                        <?php endif; ?>
-                        <span class="fw-semibold">&#8369;<?php echo number_format($booking->total_amount, 2); ?></span>
+                    <div class="mob-list-card-body">
+                        <div class="mob-list-card-meta">
+                            <i class="bi bi-box-arrow-in-right"></i>
+                            <?php echo date('M d, Y', $check_in_ts); ?>
+                            <?php if (!empty($booking->check_in_time)): ?><?php echo date('g:i A', strtotime($booking->check_in_time)); ?><?php endif; ?>
+                        </div>
+                        <div class="mob-list-card-meta">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <?php echo date('M d, Y', $check_out_ts); ?>
+                            <?php if (!empty($booking->check_out_time)): ?><?php echo date('g:i A', strtotime($booking->check_out_time)); ?><?php endif; ?>
+                        </div>
+                        <div class="mob-list-card-meta">
+                            <i class="bi bi-moon"></i> <?php echo $nights; ?> night<?php echo $nights === 1 ? '' : 's'; ?>
+                            &middot; <?php echo (int) $booking->guests; ?> guest<?php echo (int) $booking->guests === 1 ? '' : 's'; ?>
+                            &middot; <?php echo $room_count; ?> room<?php echo $room_count === 1 ? '' : 's'; ?>
+                        </div>
+                        <div class="mob-list-card-meta d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2">
+                            <?php if ($ps): ?>
+                                <span class="badge bg-<?php echo $ps['badge']; ?>" title="Paid: &#8369;<?php echo number_format($ps['amount_paid'], 2); ?> / Balance: &#8369;<?php echo number_format($ps['balance'], 2); ?>">
+                                    <?php echo htmlspecialchars($ps['display']); ?>
+                                </span>
+                            <?php else: ?>
+                                <span class="badge bg-secondary">No Invoice</span>
+                            <?php endif; ?>
+                            <span class="fw-semibold fs-6 text-body">&#8369;<?php echo number_format($booking->total_amount, 2); ?></span>
+                        </div>
                     </div>
                     <div class="mob-list-card-actions">
                         <a href="<?php echo base_url('bookings/' . $booking->id); ?>" class="btn btn-sm btn-primary" title="View">
@@ -231,7 +256,7 @@
                 </div>
             <?php endforeach; ?>
         <?php else: ?>
-            <div class="mob-list-card text-center text-muted py-4">No bookings found</div>
+            <div class="mob-list-card mob-list-card-empty text-center text-muted py-4">No bookings found</div>
         <?php endif; ?>
     </div>
     </form>
