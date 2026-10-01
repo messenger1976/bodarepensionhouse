@@ -58,8 +58,11 @@ class Push_device_model extends CI_Model {
             return false;
         }
 
+        // Unlink the guest too: upsert_token() keeps an existing user_id when a later
+        // registration arrives logged out, which would resurrect the previous guest.
         $this->db->where('fcm_token', $fcm_token)->update('push_device_tokens', [
             'is_active' => 0,
+            'user_id' => null,
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
         return $this->db->affected_rows() > 0;

@@ -170,6 +170,8 @@ if (!headers_sent()) {
             document.documentElement.classList.add('is-capacitor');
         }
         window.BODARE_PUSH_ENABLED = <?php echo json_encode(bodare_push_enabled()); ?>;
+        window.BODARE_FIREBASE_WEB = <?php echo json_encode(bodare_firebase_web_config(), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG); ?>;
     </script>
     <script src="native-bridge.js?v=<?php echo is_file(dirname(__DIR__) . '/native-bridge.js') ? filemtime(dirname(__DIR__) . '/native-bridge.js') : time(); ?>"></script>
+    <script src="web-push.js?v=<?php echo is_file(dirname(__DIR__) . '/web-push.js') ? filemtime(dirname(__DIR__) . '/web-push.js') : time(); ?>"></script>
 </head>

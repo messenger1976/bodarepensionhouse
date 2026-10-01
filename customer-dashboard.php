@@ -193,6 +193,13 @@ include __DIR__ . '/includes/site-head.php';
                         <button type="submit" class="cta-button">Update Password</button>
                     </form>
                 </div>
+
+                <div id="web-push-panel" class="registration-container" style="display: none; margin-top: 1.5rem;">
+                    <h2>Booking Notifications</h2>
+                    <p id="web-push-status" style="color: #666; margin-bottom: 1.5rem;"></p>
+                    <button type="button" id="web-push-enable" class="cta-button" style="display: none;">Turn On Notifications</button>
+                    <button type="button" id="web-push-disable" class="cta-button-secondary" style="display: none;">Turn Off Notifications</button>
+                </div>
             </div>
 
             <!-- Inquiry Tab Content -->

@@ -1,6 +1,6 @@
 // Service Worker for BODARE Pension House PWA
 // Bump CACHE_NAME whenever icons / splash branding change so old caches drop.
-const CACHE_NAME = 'bodare-pwa-v8';
+const CACHE_NAME = 'bodare-pwa-v9';
 const urlsToCache = [
   '/',
   '/index.php',
@@ -49,6 +49,51 @@ self.addEventListener('message', (event) => {
   }
 });
 
+// Web push (FCM). Firebase's SW SDK is not loaded here; the payload is shown directly.
+// Browsers revoke push permission if a push arrives without a visible notification.
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (e) {
+    payload = { notification: { body: event.data ? event.data.text() : '' } };
+  }
+  const notification = payload.notification || {};
+  const data = payload.data || {};
+  const scope = self.registration.scope;
+
+  event.waitUntil(
+    self.registration.showNotification(notification.title || 'BODARE Pension House', {
+      body: notification.body || '',
+      icon: new URL('img/icon-192.png', scope).href,
+      badge: new URL('img/icon-96.png', scope).href,
+      tag: data.booking_id ? 'booking-' + data.booking_id : (data.invoice_id ? 'invoice-' + data.invoice_id : undefined),
+      data
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const data = event.notification.data || {};
+  const scope = self.registration.scope;
+  let target = new URL(data.url || 'customer-dashboard.php', scope);
+  if (target.origin !== self.location.origin) {
+    target = new URL('customer-dashboard.php', scope);
+  }
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.startsWith(scope) && 'focus' in client) {
+          return client.focus().then((focused) => (focused && 'navigate' in focused ? focused.navigate(target.href) : focused));
+        }
+      }
+      return self.clients.openWindow(target.href);
+    })
+  );
+});
+
 // Fetch event
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
@@ -76,6 +121,7 @@ self.addEventListener('fetch', (event) => {
     '/booking-api.js',
     '/script.js',
     '/native-bridge.js',
+    '/web-push.js',
     '/app-shell.css',
     '/manifest.json',
     '/img/logo.png',

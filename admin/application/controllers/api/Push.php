@@ -53,11 +53,16 @@ class Push extends CI_Controller {
         $this->apply_cors_headers();
         header('Content-Type: application/json');
 
+        $push_enabled = $this->push_enabled();
+        $this->load->library('fcm_service');
+
         echo json_encode([
             'success' => true,
-            'push_enabled' => $this->push_enabled(),
+            'push_enabled' => $push_enabled,
             'table_exists' => $this->db->table_exists('push_device_tokens'),
             'project_id' => function_exists('bodare_firebase_project_id') ? bodare_firebase_project_id() : '',
+            'send_configured' => $this->fcm_service->is_configured(),
+            'web_push_enabled' => function_exists('bodare_firebase_web_config') && bodare_firebase_web_config() !== null,
         ]);
     }
 

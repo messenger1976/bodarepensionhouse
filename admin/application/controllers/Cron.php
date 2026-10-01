@@ -23,7 +23,7 @@ class Cron extends CI_Controller {
         $expected = isset($config['cron_secret']) ? trim((string) $config['cron_secret']) : '';
         $provided = trim((string) $this->input->get_post('key'));
 
-        if ($expected === '' || !hash_equals($expected, $provided)) {
+        if ($expected === '' || $expected === 'change-me-to-a-long-random-string' || !hash_equals($expected, $provided)) {
             $this->output->set_status_header(403);
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => 'Forbidden']);

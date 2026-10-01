@@ -25,4 +25,16 @@ return [
 
     // Secret for cron URLs (check-in reminders). Required for /admin/index.php/cron/check_in_reminders?key=...
     'cron_secret' => 'change-me-to-a-long-random-string',
+
+    // Browser / installed-PWA push (Chrome, Edge, Firefox, Android; iOS 16.4+ home-screen only).
+    // Requires push_enabled => true. Values come from Firebase Console:
+    //   - Project settings → General → Your apps → Web app: apiKey, appId, messagingSenderId
+    //   - Project settings → Cloud Messaging → Web Push certificates: key pair (public key)
+    'web_push_enabled' => false,
+    'web' => [
+        'apiKey' => '',
+        'appId' => '',
+        'messagingSenderId' => '304492747746',
+        'vapidKey' => '',
+    ],
 ];

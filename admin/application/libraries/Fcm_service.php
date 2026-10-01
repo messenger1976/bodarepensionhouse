@@ -55,17 +55,35 @@ class Fcm_service {
             return false;
         }
 
+        $normalized = $this->normalize_data($data);
+
         return $this->send_message([
             'token' => $token,
             'notification' => [
                 'title' => (string) $title,
                 'body' => (string) $body,
             ],
-            'data' => $this->normalize_data($data),
+            'data' => $normalized,
             'android' => [
                 'priority' => 'HIGH',
             ],
+            // Browser tokens only; replaces `data` there. sw.js resolves `url` against its scope.
+            'webpush' => [
+                'headers' => ['Urgency' => 'high'],
+                'data' => $normalized + ['url' => $this->web_click_path($normalized)],
+            ],
         ]);
+    }
+
+    protected function web_click_path(array $data)
+    {
+        if (!empty($data['url'])) {
+            return (string) $data['url'];
+        }
+        if (!empty($data['invoice_id'])) {
+            return 'customer-dashboard.php?tab=invoices';
+        }
+        return 'customer-dashboard.php';
     }
 
     public function send_to_user($user_id, $title, $body, array $data = [])

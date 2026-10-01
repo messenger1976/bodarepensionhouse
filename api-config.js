@@ -199,6 +199,13 @@ const API = {
         },
 
         async logout() {
+            if (typeof window.BODARE_webPushLogout === 'function') {
+                try {
+                    await window.BODARE_webPushLogout();
+                } catch (error) {
+                    // Never block logout on push cleanup.
+                }
+            }
             try {
                 return await API.request('auth/logout', {
                     method: 'POST'
