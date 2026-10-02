@@ -3386,6 +3386,10 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
             if ($admin_id) {
                 $is_super_admin = $this->Admin_model->is_super_admin($admin_id);
             }
+            $can_view_site_settings = $is_super_admin || ($admin_id && (
+                $this->Admin_model->has_permission($admin_id, 'view_site_settings') ||
+                $this->Admin_model->has_permission($admin_id, 'manage_site_settings')
+            ));
             
             // Get current URI for active state
             $current_uri = uri_string();
@@ -3557,6 +3561,8 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                 $this->Admin_model->has_permission($admin_id, 'manage_email_settings') ||
                 $this->Admin_model->has_permission($admin_id, 'view_paymongo_setup') ||
                 $this->Admin_model->has_permission($admin_id, 'manage_paymongo_setup') ||
+                $this->Admin_model->has_permission($admin_id, 'view_site_settings') ||
+                $this->Admin_model->has_permission($admin_id, 'manage_site_settings') ||
                 $this->Admin_model->has_permission($admin_id, 'view_database_backup') ||
                 $this->Admin_model->has_permission($admin_id, 'create_database_backup') ||
                 $this->Admin_model->has_permission($admin_id, 'upload_database_backup') ||
@@ -3570,6 +3576,7 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                 strpos($current_uri, 'activity_logs') !== false ||
                 strpos($current_uri, 'email_settings') !== false ||
                 strpos($current_uri, 'paymongo_setup') !== false ||
+                strpos($current_uri, 'site_settings') !== false ||
                 strpos($current_uri, 'database_backup') !== false ||
                 strpos($current_uri, 'module_generator') !== false
             );
@@ -3621,6 +3628,13 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                     <div class="nk-menu-sub-item">
                         <a href="<?php echo base_url('paymongo_setup'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'paymongo_setup') !== false ? 'active' : ''; ?>">
                             <i class="bi bi-wallet2 me-2"></i> PayMongo Setup
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($can_view_site_settings): ?>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('site_settings'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'site_settings') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-sliders me-2"></i> Site Settings
                         </a>
                     </div>
                     <?php endif; ?>
@@ -3721,12 +3735,14 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                             <span>Profile</span>
                         </a>
                     </li>
+                    <?php if (!empty($can_view_site_settings)): ?>
                     <li>
-                        <a class="dropdown-item" href="#">
+                        <a class="dropdown-item" href="<?php echo base_url('site_settings'); ?>">
                             <i class="bi bi-gear"></i>
                             <span>Settings</span>
                         </a>
                     </li>
+                    <?php endif; ?>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <div class="dropdown-item dark-mode-toggle" onclick="event.stopPropagation();">

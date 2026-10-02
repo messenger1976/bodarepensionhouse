@@ -81,9 +81,191 @@ if (!function_exists('bodare_site_config')) {
             ],
             'facebook_url' => 'https://www.facebook.com/bodarepensionhouse',
             'messenger_url' => 'https://m.me/bodarepensionhouse',
+            'logo_src' => 'img/logo.png',
+            'about_text' => 'Bodare and Community Multi-Purpose Cooperative offers comfortable and affordable lodging in the heart of Tagbilaran City, providing a welcoming stay for all our guests.',
+            'meta_title' => '',
+            'meta_description' => '',
+            'meta_keywords' => '',
+            'seo_noindex' => false,
+            'google_site_verification' => '',
+            'bing_site_verification' => '',
+            'google_analytics_id' => '',
+            'map_url' => '',
+            'phone_alt' => '',
+            'business_hours' => '',
+            'social' => [
+                'facebook' => 'https://www.facebook.com/bodarepensionhouse',
+            ],
         ];
 
+        $config = bodare_apply_site_settings($config, bodare_site_settings_rows());
+
         return $config;
+    }
+}
+
+if (!function_exists('bodare_site_settings_rows')) {
+    /**
+     * Raw Admin → Site Settings rows; empty when the table is missing or the DB is down.
+     */
+    function bodare_site_settings_rows()
+    {
+        $rows = [];
+        $db = bodare_db();
+        if (!$db) {
+            return $rows;
+        }
+        $result = @$db->query('SELECT setting_key, setting_value FROM site_settings');
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $rows[$row['setting_key']] = trim((string) $row['setting_value']);
+            }
+            $result->free();
+        }
+        return $rows;
+    }
+}
+
+if (!function_exists('bodare_apply_site_settings')) {
+    /**
+     * Overlay saved site settings on the built-in defaults. Blank values keep the default.
+     */
+    function bodare_apply_site_settings(array $config, array $rows)
+    {
+        if (empty($rows)) {
+            return $config;
+        }
+
+        $map = [
+            'site_name' => 'name',
+            'site_short_name' => 'short_name',
+            'legal_name' => 'legal_name',
+            'tagline' => 'tagline',
+            'about_text' => 'about_text',
+            'meta_title' => 'meta_title',
+            'meta_description' => 'meta_description',
+            'google_site_verification' => 'google_site_verification',
+            'bing_site_verification' => 'bing_site_verification',
+            'google_analytics_id' => 'google_analytics_id',
+            'contact_email' => 'email',
+            'contact_phone' => 'phone_display',
+            'contact_phone_e164' => 'phone_e164',
+            'contact_phone_alt' => 'phone_alt',
+            'business_hours' => 'business_hours',
+            'street_address' => 'street_address',
+            'address_locality' => 'address_locality',
+            'address_region' => 'address_region',
+            'postal_code' => 'postal_code',
+            'address_country' => 'address_country',
+            'map_url' => 'map_url',
+            'facebook_url' => 'facebook_url',
+            'messenger_url' => 'messenger_url',
+        ];
+        foreach ($map as $key => $target) {
+            if (isset($rows[$key]) && $rows[$key] !== '') {
+                $config[$target] = $rows[$key];
+            }
+        }
+
+        $keywords = [];
+        foreach (['meta_keywords', 'meta_tags'] as $key) {
+            if (!empty($rows[$key])) {
+                foreach (explode(',', $rows[$key]) as $word) {
+                    $word = trim($word);
+                    if ($word !== '' && !in_array(strtolower($word), array_map('strtolower', $keywords), true)) {
+                        $keywords[] = $word;
+                    }
+                }
+            }
+        }
+        if (!empty($keywords)) {
+            $config['meta_keywords'] = implode(', ', $keywords);
+        }
+
+        $config['seo_noindex'] = isset($rows['seo_noindex']) && $rows['seo_noindex'] === '1';
+
+        if (isset($rows['geo_latitude'], $rows['geo_longitude'])
+            && is_numeric($rows['geo_latitude']) && is_numeric($rows['geo_longitude'])) {
+            $config['geo'] = [
+                'latitude' => (float) $rows['geo_latitude'],
+                'longitude' => (float) $rows['geo_longitude'],
+            ];
+        }
+
+        // Uploads are stored relative to admin/ (the admin app's front controller).
+        $publicRoot = dirname(__DIR__);
+        foreach (['logo_path' => 'logo', 'og_image_path' => 'og'] as $key => $kind) {
+            if (empty($rows[$key])) {
+                continue;
+            }
+            $relative = 'admin/' . ltrim(str_replace('\\', '/', $rows[$key]), '/');
+            if (strpos($relative, '..') !== false || !is_file($publicRoot . '/' . $relative)) {
+                continue;
+            }
+            $url = $config['base_url'] . '/' . $relative;
+            if ($kind === 'logo') {
+                $config['logo_src'] = $relative;
+                $config['logo_url'] = $url;
+            } else {
+                $config['default_og_image'] = $url;
+                $size = @getimagesize($publicRoot . '/' . $relative);
+                if (is_array($size)) {
+                    $config['default_og_image_width'] = (int) $size[0];
+                    $config['default_og_image_height'] = (int) $size[1];
+                    $config['default_og_image_type'] = !empty($size['mime']) ? $size['mime'] : $config['default_og_image_type'];
+                }
+            }
+        }
+
+        $social = [];
+        foreach (['facebook', 'instagram', 'tiktok', 'youtube', 'x', 'linkedin'] as $network) {
+            if (!empty($rows[$network . '_url'])) {
+                $social[$network] = $rows[$network . '_url'];
+            }
+        }
+        if (array_key_exists('facebook_url', $rows) || !empty($social)) {
+            $config['social'] = $social;
+            $config['same_as'] = array_values($social);
+        }
+
+        return $config;
+    }
+}
+
+if (!function_exists('bodare_site_address_lines')) {
+    /**
+     * Street address split on commas, then "City, Province" and "Country ZIP" lines.
+     */
+    function bodare_site_address_lines()
+    {
+        $site = bodare_site_config();
+        $lines = array_values(array_filter(array_map('trim', explode(',', (string) $site['street_address']))));
+        if (count($lines) > 2) {
+            $lines = [array_shift($lines), implode(', ', $lines)];
+        }
+        $cityLine = trim($site['address_locality'] . ', ' . $site['address_region'], ', ');
+        if ($cityLine !== '') {
+            $lines[] = $cityLine;
+        }
+        $countryNames = ['PH' => 'Philippines'];
+        $country = $countryNames[$site['address_country']] ?? $site['address_country'];
+        $countryLine = trim($country . ' ' . $site['postal_code']);
+        if ($countryLine !== '') {
+            $lines[] = $countryLine;
+        }
+        return $lines;
+    }
+}
+
+if (!function_exists('bodare_site_map_url')) {
+    function bodare_site_map_url($embed = false)
+    {
+        $site = bodare_site_config();
+        if (!$embed && !empty($site['map_url'])) {
+            return $site['map_url'];
+        }
+        $query = implode(', ', bodare_site_address_lines());
+        return 'https://www.google.com/maps?q=' . rawurlencode($query) . ($embed ? '&output=embed' : '');
     }
 }
 
@@ -848,7 +1030,7 @@ if (!function_exists('bodare_business_json_ld')) {
                 'latitude' => $site['geo']['latitude'],
                 'longitude' => $site['geo']['longitude'],
             ],
-            'hasMap' => 'https://www.google.com/maps?q=BODARE%20MPC%20%26%20Community%20Bldg%2C%20J.A.%20Clarin%20St.%2C%20Dao%20District%2C%20Tagbilaran%20City%2C%20Bohol%2C%20Philippines%206300',
+            'hasMap' => bodare_site_map_url(),
             'amenityFeature' => array_map(static function ($amenity) {
                 return [
                     '@type' => 'LocationFeatureSpecification',

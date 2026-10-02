@@ -29,15 +29,24 @@ $h = static function ($value) {
     <div class="app-header-inner">
         <a href="<?php echo $h($headerConfig['logo_href']); ?>" class="app-brand nav-logo">
             <?php
-            $logoPath = __DIR__ . '/../img/logo.png';
+            if (!function_exists('bodare_site_config')) {
+                require_once __DIR__ . '/site-config.php';
+            }
+            $headerSite = bodare_site_config();
+            $logoSrc = $headerSite['logo_src'];
+            $logoPath = __DIR__ . '/../' . $logoSrc;
             $logoVer = is_file($logoPath) ? (string) filemtime($logoPath) : (string) time();
+            $streetParts = array_map('trim', explode(',', (string) $headerSite['street_address']));
+            $headerLoc = count($streetParts) > 1 ? $streetParts[1] : $streetParts[0];
+            $headerCity = preg_replace('/\s+City$/i', '', (string) $headerSite['address_locality']);
+            $headerLoc = trim($headerLoc . ($headerCity !== '' ? ', ' . $headerCity : ''), ', ');
             ?>
-            <img src="img/logo.png?v=<?php echo htmlspecialchars($logoVer, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo $h($headerConfig['logo_alt']); ?>" class="app-brand-logo logo-img">
+            <img src="<?php echo $h($logoSrc); ?>?v=<?php echo htmlspecialchars($logoVer, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo $h($headerConfig['logo_alt']); ?>" class="app-brand-logo logo-img">
             <div class="app-brand-text">
-                <p class="app-brand-name">BODARE Pension House</p>
+                <p class="app-brand-name"><?php echo $h($headerSite['name']); ?></p>
                 <p class="app-brand-loc">
                     <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
-                    J.A. Clarin St., Tagbilaran
+                    <?php echo $h($headerLoc); ?>
                 </p>
             </div>
         </a>

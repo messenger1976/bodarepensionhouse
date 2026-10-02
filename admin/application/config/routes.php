@@ -116,6 +116,10 @@ $route['email_settings/test'] = 'admin/email_settings/test';
 $route['paymongo_setup'] = 'admin/paymongo_setup/index';
 $route['paymongo_setup/update'] = 'admin/paymongo_setup/update';
 
+// Site Settings (website name, SEO, logo, address, contact, social media)
+$route['site_settings'] = 'admin/site_settings/index';
+$route['site_settings/update'] = 'admin/site_settings/update';
+
 // Customer/Guest Management routes
 $route['customers'] = 'admin/customers/index';
 $route['customers/add'] = 'admin/customers/add';

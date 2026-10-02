@@ -128,7 +128,7 @@ $pageSeo = [
     'og_image' => 'img/og-default.jpg',
     'og_image_alt' => 'BODARE Pension House — affordable lodging in Tagbilaran City, Bohol',
     'json_ld' => [$webPageSchema, $faqSchema],
-    'extra_head' => '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; base-uri \'self\'; form-action \'self\'; object-src \'none\'; frame-ancestors \'self\'; img-src \'self\' data: https: blob:; font-src \'self\' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com https://cdn.jsdelivr.net; script-src \'self\' \'unsafe-inline\' https://www.google.com https://www.gstatic.com; frame-src https://www.google.com https://maps.google.com; connect-src \'self\' https://www.google.com;">',
+    'extra_head' => '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; base-uri \'self\'; form-action \'self\'; object-src \'none\'; frame-ancestors \'self\'; img-src \'self\' data: https: blob:; font-src \'self\' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com https://cdn.jsdelivr.net; script-src \'self\' \'unsafe-inline\' https://www.google.com https://www.gstatic.com https://www.googletagmanager.com; frame-src https://www.google.com https://maps.google.com; connect-src \'self\' https://www.google.com https://*.google-analytics.com https://www.googletagmanager.com;">',
 ];
 include __DIR__ . '/includes/site-head.php';
 ?>

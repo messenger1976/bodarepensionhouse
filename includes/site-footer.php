@@ -14,6 +14,15 @@ if (!function_exists('adsense_render_unit')) {
 }
 adsense_render_unit('footer', 'adsense-footer container my-4');
 
+if (!function_exists('bodare_site_config')) {
+    require_once __DIR__ . '/site-config.php';
+}
+$footerSite = bodare_site_config();
+$fh = static function ($value) {
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+};
+$footerCopyright = '&copy; ' . date('Y') . ' ' . $fh($footerSite['legal_name']) . '. All Rights Reserved.';
+
 $scriptName = basename(parse_url($_SERVER['SCRIPT_NAME'] ?? '', PHP_URL_PATH) ?: '');
 $tabActive = static function ($files) use ($scriptName) {
     $files = (array) $files;
@@ -36,7 +45,7 @@ $tabActive = static function ($files) use ($scriptName) {
                 </nav>
             <?php endif; ?>
             <div class="footer-bottom">
-                <p>&copy; 2026 Bodare and Community Multi-Purpose Cooperative. All Rights Reserved.</p>
+                <p><?php echo $footerCopyright; ?></p>
             </div>
         <?php else: ?>
             <div class="newsletter-section">
@@ -51,7 +60,7 @@ $tabActive = static function ($files) use ($scriptName) {
             <div class="footer-grid">
                 <div class="footer-column">
                     <h4>About Us</h4>
-                    <p>Bodare and Community Multi-Purpose Cooperative offers comfortable and affordable lodging in the heart of Tagbilaran City, providing a welcoming stay for all our guests.</p>
+                    <p><?php echo $fh($footerSite['about_text']); ?></p>
                 </div>
                 <div class="footer-column">
                     <h4>Quick Links</h4>
@@ -69,34 +78,46 @@ $tabActive = static function ($files) use ($scriptName) {
                 <div class="footer-column">
                     <h4>Contact</h4>
                     <p>
-                        BODARE MPC &amp; Community Bldg<br>
-                        J.A. Clarin St., Dao District<br>
-                        Tagbilaran City, Bohol<br>
-                        Philippines 6300<br>
-                        <a href="tel:+639505337480">0950 533 7480</a><br>
-                        <a href="mailto:bodarepensionhouse@yahoo.com">bodarepensionhouse@yahoo.com</a>
+                        <?php foreach (bodare_site_address_lines() as $addressLine): ?>
+                        <?php echo $fh($addressLine); ?><br>
+                        <?php endforeach; ?>
+                        <?php if ($footerSite['phone_display'] !== ''): ?>
+                        <a href="tel:<?php echo $fh($footerSite['phone_e164'] !== '' ? $footerSite['phone_e164'] : $footerSite['phone_display']); ?>"><?php echo $fh($footerSite['phone_display']); ?></a><br>
+                        <?php endif; ?>
+                        <?php if ($footerSite['phone_alt'] !== ''): ?>
+                        <?php echo $fh($footerSite['phone_alt']); ?><br>
+                        <?php endif; ?>
+                        <?php if ($footerSite['email'] !== ''): ?>
+                        <a href="mailto:<?php echo $fh($footerSite['email']); ?>"><?php echo $fh($footerSite['email']); ?></a>
+                        <?php endif; ?>
                     </p>
                 </div>
+                <?php
+                $socialMeta = [
+                    'facebook' => ['Facebook', 'bi-facebook'],
+                    'instagram' => ['Instagram', 'bi-instagram'],
+                    'tiktok' => ['TikTok', 'bi-tiktok'],
+                    'youtube' => ['YouTube', 'bi-youtube'],
+                    'x' => ['X', 'bi-twitter-x'],
+                    'linkedin' => ['LinkedIn', 'bi-linkedin'],
+                ];
+                $footerSocial = array_intersect_key((array) $footerSite['social'], $socialMeta);
+                ?>
+                <?php if (!empty($footerSocial)): ?>
                 <div class="footer-column">
                     <h4>Get Social</h4>
-                    <p>Follow us on Facebook for updates, offers, and news.</p>
+                    <p>Follow us for updates, offers, and news.</p>
                     <div class="social-icons">
-                        <?php
-                        if (!function_exists('bodare_site_config')) {
-                            require_once __DIR__ . '/site-config.php';
-                        }
-                        $footerSite = bodare_site_config();
-                        $facebookUrl = !empty($footerSite['facebook_url'])
-                            ? $footerSite['facebook_url']
-                            : 'https://www.facebook.com/bodarepensionhouse';
-                        ?>
-                        <a href="<?php echo htmlspecialchars($facebookUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" aria-label="BODARE Pension House on Facebook" title="Facebook">F</a>
+                        <?php foreach ($footerSocial as $network => $url): ?>
+                        <a href="<?php echo $fh($url); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo $fh($footerSite['name'] . ' on ' . $socialMeta[$network][0]); ?>" title="<?php echo $fh($socialMeta[$network][0]); ?>"><i class="bi <?php echo $socialMeta[$network][1]; ?>" aria-hidden="true"></i></a>
+                        <?php endforeach; ?>
                     </div>
                 </div>
+                <?php endif; ?>
             </div>
 
             <div class="footer-bottom">
-                <p>&copy; 2026 Bodare and Community Multi-Purpose Cooperative. All Rights Reserved.</p>
+                <p><?php echo $footerCopyright; ?></p>
                 <div class="payment-methods">
                     <span>Payment methods:</span>
                     <span>Visa</span>
@@ -129,12 +150,8 @@ $tabActive = static function ($files) use ($scriptName) {
     </div>
 </nav>
 <?php
-if (!function_exists('bodare_site_config')) {
-    require_once __DIR__ . '/site-config.php';
-}
-$messengerSite = bodare_site_config();
-$messengerUrl = !empty($messengerSite['messenger_url'])
-    ? $messengerSite['messenger_url']
+$messengerUrl = !empty($footerSite['messenger_url'])
+    ? $footerSite['messenger_url']
     : 'https://m.me/bodarepensionhouse';
 ?>
 <a href="<?php echo htmlspecialchars($messengerUrl, ENT_QUOTES, 'UTF-8'); ?>"

@@ -1,9 +1,14 @@
 <?php
 require_once __DIR__ . '/includes/site-config.php';
 $enableAds = false;
+$contactSite = bodare_site_config();
+$contactAddressLines = bodare_site_address_lines();
+$contactDescription = 'Contact ' . $contactSite['name'] . ' for reservations and inquiries. Visit us at '
+    . implode(', ', array_slice($contactAddressLines, 1, 2))
+    . ($contactSite['phone_display'] !== '' ? ', or call ' . $contactSite['phone_display'] : '') . '.';
 $pageSeo = [
     'title' => 'Contact Us | BODARE Pension House Tagbilaran City',
-    'description' => 'Contact BODARE Pension House for reservations and inquiries. Visit us at J.A. Clarin St., Dao District, Tagbilaran City, Bohol, or call 0950 533 7480.',
+    'description' => $contactDescription,
     'canonical_path' => 'contact.php',
     'include_business_schema' => true,
     'og_image' => 'img/og-default.jpg',
@@ -17,7 +22,7 @@ $pageSeo = [
             '@id' => bodare_absolute_url() . '#lodging',
         ],
     ],
-    'extra_head' => '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; base-uri \'self\'; form-action \'self\'; object-src \'none\'; frame-ancestors \'self\'; img-src \'self\' data: https: blob:; font-src \'self\' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdn.tailwindcss.com; script-src \'self\' \'unsafe-inline\' https://www.google.com https://www.gstatic.com https://cdn.tailwindcss.com https://unpkg.com; frame-src https://www.google.com https://maps.google.com; connect-src \'self\' https://www.google.com https://cdn.tailwindcss.com;">',
+    'extra_head' => '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; base-uri \'self\'; form-action \'self\'; object-src \'none\'; frame-ancestors \'self\'; img-src \'self\' data: https: blob:; font-src \'self\' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdn.tailwindcss.com; script-src \'self\' \'unsafe-inline\' https://www.google.com https://www.gstatic.com https://cdn.tailwindcss.com https://unpkg.com https://www.googletagmanager.com; frame-src https://www.google.com https://maps.google.com; connect-src \'self\' https://www.google.com https://cdn.tailwindcss.com https://*.google-analytics.com https://www.googletagmanager.com;">',
 ];
 include __DIR__ . '/includes/site-head.php';
 ?>
@@ -42,17 +47,29 @@ include __DIR__ . '/includes/site-head.php';
                 <div class="contact-info-card">
                     <span class="icon">📍</span>
                     <strong>Address</strong>
-                    <p>BODARE MPC &amp; Community Bldg<br>J.A. Clarin St., Dao District<br>Tagbilaran City, Bohol<br>Philippines 6300</p>
+                    <p><?php echo implode('<br>', array_map(static function ($line) {
+                        return htmlspecialchars($line, ENT_QUOTES, 'UTF-8');
+                    }, $contactAddressLines)); ?></p>
                 </div>
                 <div class="contact-info-card">
                     <span class="icon">📞</span>
                     <strong>Phone</strong>
-                    <p>0950 533 7480</p>
+                    <p>
+                        <?php if ($contactSite['phone_display'] !== ''): ?>
+                        <a href="tel:<?php echo htmlspecialchars($contactSite['phone_e164'] !== '' ? $contactSite['phone_e164'] : $contactSite['phone_display'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($contactSite['phone_display'], ENT_QUOTES, 'UTF-8'); ?></a>
+                        <?php endif; ?>
+                        <?php if ($contactSite['phone_alt'] !== ''): ?>
+                        <br><?php echo htmlspecialchars($contactSite['phone_alt'], ENT_QUOTES, 'UTF-8'); ?>
+                        <?php endif; ?>
+                        <?php if ($contactSite['business_hours'] !== ''): ?>
+                        <br><small><?php echo htmlspecialchars($contactSite['business_hours'], ENT_QUOTES, 'UTF-8'); ?></small>
+                        <?php endif; ?>
+                    </p>
                 </div>
                 <div class="contact-info-card">
                     <span class="icon">✉️</span>
                     <strong>Email</strong>
-                    <p>bodarepensionhouse@yahoo.com</p>
+                    <p><a href="mailto:<?php echo htmlspecialchars($contactSite['email'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($contactSite['email'], ENT_QUOTES, 'UTF-8'); ?></a></p>
                 </div>
             </div>
 
@@ -91,9 +108,9 @@ include __DIR__ . '/includes/site-head.php';
             <div class="contact-map-section" id="location">
                 <h2>Our Location</h2>
                 <iframe 
-                    src="https://www.google.com/maps?q=BODARE%20MPC%20%26%20Community%20Bldg%2C%20J.A.%20Clarin%20St.%2C%20Dao%20District%2C%20Tagbilaran%20City%2C%20Bohol%2C%20Philippines%206300&amp;output=embed"
+                    src="<?php echo htmlspecialchars(bodare_site_map_url(true), ENT_QUOTES, 'UTF-8'); ?>"
                     class="google-map"
-                    title="Map showing BODARE Pension House location on J.A. Clarin St., Dao District, Tagbilaran City"
+                    title="<?php echo htmlspecialchars('Map showing ' . $contactSite['name'] . ' location on ' . implode(', ', array_slice($contactAddressLines, 1, 2)), ENT_QUOTES, 'UTF-8'); ?>"
                     allowfullscreen="" 
                     loading="lazy" 
                     referrerpolicy="no-referrer-when-downgrade">

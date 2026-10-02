@@ -15,8 +15,8 @@ require_once __DIR__ . '/activity-log.php';
 bodare_log_page_view();
 
 $defaultPageSeo = [
-    'title' => $site['name'],
-    'description' => $site['tagline'],
+    'title' => $site['meta_title'] !== '' ? $site['meta_title'] : $site['name'],
+    'description' => $site['meta_description'] !== '' ? $site['meta_description'] : $site['tagline'],
     'canonical_path' => '',
     'robots' => 'index,follow,max-image-preview:large',
     'og_type' => 'website',
@@ -35,6 +35,15 @@ $pageSeo = isset($pageSeo) && is_array($pageSeo)
 $pageTitle = trim((string) $pageSeo['title']);
 $pageDescription = trim((string) $pageSeo['description']);
 $canonicalPath = ltrim((string) $pageSeo['canonical_path'], '/');
+// Admin → Site Settings homepage title / description win over the hardcoded homepage values.
+if ($canonicalPath === '' || $canonicalPath === 'index.php') {
+    if ($site['meta_title'] !== '') {
+        $pageTitle = $site['meta_title'];
+    }
+    if ($site['meta_description'] !== '') {
+        $pageDescription = $site['meta_description'];
+    }
+}
 $canonicalUrl = bodare_absolute_url($canonicalPath === '' || $canonicalPath === 'index.php' ? '' : $canonicalPath);
 $ogImageInput = (string) $pageSeo['og_image'];
 $ogMeta = bodare_og_image_meta($ogImageInput !== '' ? $ogImageInput : null);
@@ -42,7 +51,8 @@ $ogImage = $ogMeta['url'];
 $ogImageWidth = (int) $ogMeta['width'];
 $ogImageHeight = (int) $ogMeta['height'];
 $ogImageType = (string) $ogMeta['type'];
-$robots = (string) $pageSeo['robots'];
+$robots = !empty($site['seo_noindex']) ? 'noindex,nofollow' : (string) $pageSeo['robots'];
+$pageKeywords = trim((string) ($pageSeo['keywords'] ?? $site['meta_keywords']));
 $ogType = (string) $pageSeo['og_type'];
 $ogImageAlt = (string) $pageSeo['og_image_alt'];
 
@@ -87,6 +97,15 @@ if (!headers_sent()) {
     <title><?php echo $h($pageTitle); ?></title>
     <meta name="description" content="<?php echo $h($pageDescription); ?>">
     <meta name="robots" content="<?php echo $h($robots); ?>">
+<?php if ($pageKeywords !== ''): ?>
+    <meta name="keywords" content="<?php echo $h($pageKeywords); ?>">
+<?php endif; ?>
+<?php if ($site['google_site_verification'] !== ''): ?>
+    <meta name="google-site-verification" content="<?php echo $h($site['google_site_verification']); ?>">
+<?php endif; ?>
+<?php if ($site['bing_site_verification'] !== ''): ?>
+    <meta name="msvalidate.01" content="<?php echo $h($site['bing_site_verification']); ?>">
+<?php endif; ?>
     <link rel="canonical" href="<?php echo $h($canonicalUrl); ?>">
 
     <meta property="og:locale" content="en_PH">
@@ -161,6 +180,15 @@ if (!headers_sent()) {
     <script type="application/ld+json"><?php echo json_encode($jsonLdBlock, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS); ?></script>
 <?php endforeach; ?>
 <?php adsense_render_head(); ?>
+<?php if ($site['google_analytics_id'] !== ''): ?>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo rawurlencode($site['google_analytics_id']); ?>"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){ dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', <?php echo json_encode($site['google_analytics_id']); ?>);
+    </script>
+<?php endif; ?>
     <script>
         window.BODARE_EXTRA_BED_PRICE = <?php echo json_encode((float) bodare_room_setting('extra_bed_price', 199)); ?>;
         window.BODARE_CHECK_IN_TIME = <?php echo json_encode((string) bodare_booking_setting('check_in_time', '14:00')); ?>;
