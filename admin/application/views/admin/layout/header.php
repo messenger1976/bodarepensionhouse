@@ -3555,6 +3555,8 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                 $this->Admin_model->has_permission($admin_id, 'manage_roles') ||
                 $this->Admin_model->has_permission($admin_id, 'view_activity_logs') ||
                 $this->Admin_model->has_permission($admin_id, 'manage_email_settings') ||
+                $this->Admin_model->has_permission($admin_id, 'view_paymongo_setup') ||
+                $this->Admin_model->has_permission($admin_id, 'manage_paymongo_setup') ||
                 $this->Admin_model->has_permission($admin_id, 'view_database_backup') ||
                 $this->Admin_model->has_permission($admin_id, 'create_database_backup') ||
                 $this->Admin_model->has_permission($admin_id, 'upload_database_backup') ||
@@ -3567,6 +3569,7 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                 strpos($current_uri, 'roles') !== false ||
                 strpos($current_uri, 'activity_logs') !== false ||
                 strpos($current_uri, 'email_settings') !== false ||
+                strpos($current_uri, 'paymongo_setup') !== false ||
                 strpos($current_uri, 'database_backup') !== false ||
                 strpos($current_uri, 'module_generator') !== false
             );
@@ -3611,6 +3614,13 @@ if (!function_exists('base_url') && isset($this) && is_object($this) && method_e
                     <div class="nk-menu-sub-item">
                         <a href="<?php echo base_url('email_settings'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'email_settings') !== false ? 'active' : ''; ?>">
                             <i class="bi bi-mailbox me-2"></i> Email/SMTP
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($is_super_admin || ($admin_id && ($this->Admin_model->has_permission($admin_id, 'view_paymongo_setup') || $this->Admin_model->has_permission($admin_id, 'manage_paymongo_setup')))): ?>
+                    <div class="nk-menu-sub-item">
+                        <a href="<?php echo base_url('paymongo_setup'); ?>" class="nk-menu-sub-link <?php echo strpos($current_uri, 'paymongo_setup') !== false ? 'active' : ''; ?>">
+                            <i class="bi bi-wallet2 me-2"></i> PayMongo Setup
                         </a>
                     </div>
                     <?php endif; ?>

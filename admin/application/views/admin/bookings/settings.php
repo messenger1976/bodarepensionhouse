@@ -134,54 +134,13 @@
                     </div>
                 </div>
 
-                <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0"><i class="bi bi-wallet2"></i> PayMongo (QR Ph / Card)</h6>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted small">When guests choose <strong>GCash / QR Ph</strong> at checkout, a dynamic QR Ph code is shown on the thank-you page and again under My Invoices. From <strong>Record Payment</strong>, admins can also email a <strong>QR Ph</strong> code or a <strong>Card</strong> Hosted Checkout link. Guests never enter full card numbers in the admin panel.</p>
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="paymongo_enabled" name="paymongo_enabled" value="1"
-                                    <?php echo (isset($settings['paymongo_enabled']) && $settings['paymongo_enabled'] == '1') ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="paymongo_enabled">
-                                    Enable PayMongo QR Ph payments
-                                </label>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="paymongo_secret_key" class="form-label">Secret Key</label>
-                            <input type="password" class="form-control" id="paymongo_secret_key" name="paymongo_secret_key" autocomplete="off"
-                                value="<?php echo isset($settings['paymongo_secret_key']) ? htmlspecialchars($settings['paymongo_secret_key']) : ''; ?>"
-                                placeholder="sk_test_... or sk_live_...">
-                            <small class="form-text text-muted">From PayMongo Dashboard → Developers. Never share this key. Hosting must allow outbound HTTPS to api.paymongo.com.</small>
-                        </div>
-                        <div class="mb-3">
-                            <label for="paymongo_public_key" class="form-label">Public Key (optional)</label>
-                            <input type="text" class="form-control" id="paymongo_public_key" name="paymongo_public_key" autocomplete="off"
-                                value="<?php echo isset($settings['paymongo_public_key']) ? htmlspecialchars($settings['paymongo_public_key']) : ''; ?>"
-                                placeholder="pk_test_... or pk_live_...">
-                        </div>
-                        <div class="mb-3">
-                            <label for="paymongo_webhook_secret" class="form-label">Webhook Secret (optional)</label>
-                            <input type="password" class="form-control" id="paymongo_webhook_secret" name="paymongo_webhook_secret" autocomplete="off"
-                                value="<?php echo isset($settings['paymongo_webhook_secret']) ? htmlspecialchars($settings['paymongo_webhook_secret']) : ''; ?>"
-                                placeholder="Webhook signing secret">
-                            <small class="form-text text-muted">
-                                Webhook URL: <code><?php echo rtrim(base_url(), '/'); ?>/api/payment/webhook</code><br>
-                                Subscribe to <code>payment.paid</code> and <code>checkout_session.payment.paid</code> (for card Hosted Checkout). Optionally <code>qrph.expired</code>. Enable <strong>QR Ph</strong> and <strong>Cards</strong> in your PayMongo payment methods.
-                            </small>
-                        </div>
-                        <div class="mb-0">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="paymongo_confirm_on_paid" name="paymongo_confirm_on_paid" value="1"
-                                    <?php echo (!isset($settings['paymongo_confirm_on_paid']) || $settings['paymongo_confirm_on_paid'] == '1') ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="paymongo_confirm_on_paid">
-                                    Auto-confirm booking when QR Ph payment succeeds
-                                </label>
-                            </div>
-                        </div>
-                    </div>
+                <div class="alert alert-light border small mb-4">
+                    <i class="bi bi-wallet2"></i> PayMongo settings (QR Ph / Card keys, webhook secret) moved to
+                    <?php if (!empty($can_view_paymongo_setup)): ?>
+                        <a href="<?php echo base_url('paymongo_setup'); ?>">Admin → PayMongo Setup</a>.
+                    <?php else: ?>
+                        <strong>Admin → PayMongo Setup</strong> (Super Admin or PayMongo Setup permission required).
+                    <?php endif; ?>
                 </div>
             </div>
             

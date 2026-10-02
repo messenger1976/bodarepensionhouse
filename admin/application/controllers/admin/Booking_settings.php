@@ -23,6 +23,7 @@ class Booking_settings extends Admin_Controller {
         
         $data['title'] = 'Booking Settings';
         $data['settings'] = $this->Booking_settings_model->get_all_settings();
+        $data['can_view_paymongo_setup'] = $this->is_super_admin() || $this->has_permission('view_paymongo_setup') || $this->has_permission('manage_paymongo_setup');
         
         if ($this->input->post()) {
             $settings_data = array(
@@ -41,20 +42,13 @@ class Booking_settings extends Admin_Controller {
                 'auto_email_invoice' => $this->input->post('auto_email_invoice') ? '1' : '0',
                 'tax_rate' => $this->input->post('tax_rate'),
                 'service_charge' => $this->input->post('service_charge'),
-                'booking_notes' => $this->input->post('booking_notes'),
-                'paymongo_enabled' => $this->input->post('paymongo_enabled') ? '1' : '0',
-                'paymongo_secret_key' => trim((string) $this->input->post('paymongo_secret_key')),
-                'paymongo_public_key' => trim((string) $this->input->post('paymongo_public_key')),
-                'paymongo_webhook_secret' => trim((string) $this->input->post('paymongo_webhook_secret')),
-                'paymongo_confirm_on_paid' => $this->input->post('paymongo_confirm_on_paid') ? '1' : '0'
+                'booking_notes' => $this->input->post('booking_notes')
             );
             
             if ($this->Booking_settings_model->update_settings($settings_data)) {
                 $this->session->set_flashdata('success', 'Booking settings updated successfully');
                 if (isset($this->activity_log)) {
-                    $snap = $settings_data;
-                    unset($snap['paymongo_secret_key'], $snap['paymongo_public_key'], $snap['paymongo_webhook_secret']);
-                    $this->activity_log->crud('booking_settings', 'update', 'settings', null, 'Booking settings updated', null, $snap);
+                    $this->activity_log->crud('booking_settings', 'update', 'settings', null, 'Booking settings updated', null, $settings_data);
                 }
                 redirect('booking_settings');
             } else {

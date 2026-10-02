@@ -112,6 +112,10 @@ $route['email_settings'] = 'admin/email_settings/index';
 $route['email_settings/update'] = 'admin/email_settings/update';
 $route['email_settings/test'] = 'admin/email_settings/test';
 
+// PayMongo Setup (gateway keys, webhook secret, enable/disable)
+$route['paymongo_setup'] = 'admin/paymongo_setup/index';
+$route['paymongo_setup/update'] = 'admin/paymongo_setup/update';
+
 // Customer/Guest Management routes
 $route['customers'] = 'admin/customers/index';
 $route['customers/add'] = 'admin/customers/add';
