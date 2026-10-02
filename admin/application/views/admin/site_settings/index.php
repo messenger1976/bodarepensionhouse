@@ -276,6 +276,9 @@ $noindex = isset($settings['seo_noindex']) && $settings['seo_noindex'] === '1';
                                 <input type="text" class="form-control" id="geo_longitude" name="geo_longitude"
                                     value="<?php echo $s('geo_longitude'); ?>" <?php echo $ro; ?>>
                             </div>
+                            <div class="col-12 mb-3">
+                                <small class="text-muted">The map on the Contact page is pinned to these coordinates. To get them, right-click the building in Google Maps and click the numbers at the top of the menu.</small>
+                            </div>
                             <div class="col-md-6 mb-0">
                                 <label for="map_url" class="form-label">Google Maps Link</label>
                                 <input type="url" class="form-control" id="map_url" name="map_url"

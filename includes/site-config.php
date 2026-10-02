@@ -63,8 +63,8 @@ if (!function_exists('bodare_site_config')) {
             'postal_code' => '6300',
             'address_country' => 'PH',
             'geo' => [
-                'latitude' => 9.6729,
-                'longitude' => 123.8736,
+                'latitude' => 9.656042,
+                'longitude' => 123.867535,
             ],
             'price_range' => '$$',
             'amenities' => [
@@ -263,6 +263,13 @@ if (!function_exists('bodare_site_map_url')) {
         $site = bodare_site_config();
         if (!$embed && !empty($site['map_url'])) {
             return $site['map_url'];
+        }
+        // Pin by coordinates: an address text search matches a Google listing whose pin sits in Cebu.
+        if (!empty($site['geo']['latitude']) && !empty($site['geo']['longitude'])) {
+            $point = $site['geo']['latitude'] . ',' . $site['geo']['longitude'];
+            return $embed
+                ? 'https://maps.google.com/maps?q=' . $point . '&z=17&output=embed'
+                : 'https://www.google.com/maps/search/?api=1&query=' . $point;
         }
         $query = implode(', ', bodare_site_address_lines());
         return 'https://www.google.com/maps?q=' . rawurlencode($query) . ($embed ? '&output=embed' : '');
