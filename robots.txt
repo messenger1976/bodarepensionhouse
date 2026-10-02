@@ -24,4 +24,4 @@ Disallow: /customer-inquiry.php
 Disallow: /test-api.html
 Disallow: /includes/
 
-Sitemap: https://pensionhouse.bodarempc.com/sitemap.php
+Sitemap: https://pensionhouse.bodarempc.com/sitemap.xml
